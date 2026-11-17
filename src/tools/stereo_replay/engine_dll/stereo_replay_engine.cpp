@@ -95,6 +95,7 @@ bool Stereo::Replay::EngineDLL::StereoReplayEngine::load(const char*  in_filenam
 
     m_engine.set_call_kept_func_factory(Capture::APIDumpLoader::CallKeptFuncFactory() );
     m_engine.set_chunk_wanted_func     (Capture::APIDumpLoader::ChunkWantedFunc() );
+    m_engine.set_state_only_func       (Capture::APIDumpLoader::StateOnlyFunc() );
     m_slice_skipper.clear_slice   ();
 
     const bool result = m_engine.load(in_filename_ptr,
@@ -148,6 +149,7 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t
         /* Set these before the reset, because the replay thread restarts the reader as soon as the reset is requested. */
         m_engine.set_call_kept_func_factory(m_slice_skipper.get_call_kept_func_factory() );
         m_engine.set_chunk_wanted_func     (m_slice_skipper.get_chunk_wanted_func() );
+        m_engine.set_state_only_func       (m_slice_skipper.get_state_only_func() );
 
         if (is_last_seek_unfinished)
         {
@@ -180,6 +182,7 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::reset()
 
     m_engine.set_call_kept_func_factory(Capture::APIDumpLoader::CallKeptFuncFactory() );
     m_engine.set_chunk_wanted_func     (Capture::APIDumpLoader::ChunkWantedFunc() );
+    m_engine.set_state_only_func       (Capture::APIDumpLoader::StateOnlyFunc() );
     m_slice_skipper.clear_slice();
     m_hurry.clear();
 

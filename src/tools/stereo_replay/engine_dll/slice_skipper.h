@@ -48,6 +48,11 @@ namespace Stereo
                  */
                 Capture::APIDumpLoader::ChunkWantedFunc get_chunk_wanted_func() const;
 
+                /* Wants the segments whose frames are all dead as state calls only: they come from the state frames of the index. Empty if there is no slice.
+                 * The calls a state frame keeps are those that should_execute_call() does not leave out of a dead frame, whatever the slice.
+                 */
+                Capture::APIDumpLoader::StateOnlyFunc get_state_only_func() const;
+
                 /* Whether the call produces content, which the dead frames of a slice leave out. False for calls that set state or
                  * create or release an object.
                  */

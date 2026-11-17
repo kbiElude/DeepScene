@@ -41,6 +41,7 @@
   <li><a href="#seek">Seeking</a>
     <ul>
       <li><a href="#seek-needs">What it needs and who does it</a></li>
+      <li><a href="#seek-state">State frames in the index</a></li>
       <li><a href="#seek-gl">OpenGL: what a dead frame leaves out</a></li>
       <li><a href="#seek-more">More rules of the OpenGL replay</a></li>
     </ul>
@@ -275,7 +276,7 @@
 <table>
 <tr><th>Part</th><th>What it is</th></tr>
 <tr><td><code>.deps</code></td><td>The dependencies of the workload (<code>APIDumpDependencyExtractor</code>).</td></tr>
-<tr><td><code>.index</code></td><td>Needed for the chunk skipping (<code>APIDumpPrinter --index</code>); without it every chunk is read.</td></tr>
+<tr><td><code>.index</code></td><td>Where the segments are, and a state frame of each (below). Made by <code>APIDumpPrinter --index</code>; without it every segment is read in full.</td></tr>
 <tr><td><code>FrameSlicePlanner</code></td><td>In <code>Analysis</code>; makes the plan.</td></tr>
 <tr><td><code>SliceSkipper</code></td><td>Carries the plan out.</td></tr>
 <tr><td><code>HurriedFrameSelector</code></td><td>Runs the frames before the target unpaced.</td></tr>
@@ -285,6 +286,16 @@
   <li>A capture where every frame reads what the previous one wrote gains nothing: no frame is dead.</li>
   <li>Frames are counted as the converter counts them live (the window of a running converter says <em>Frame N</em>), so a frame seen there can be typed here.</li>
 </ul>
+
+<h3 id="seek-state">State frames in the index</h3>
+<p>A segment whose frames are all dead is not decompressed from the workload. The <code>.index</code> holds, for each segment, a <em>state frame</em>: the calls of the segment that a dead frame still makes, in the layout of the workload, with the data chunks they use. The reader takes such a segment from it, so a seek skips the decompression of most of the file. The calls it keeps are still filtered as before (the attribute pushes of OpenGL), so the images are the same.</p>
+<table>
+<tr><th>Part</th><th>What it does</th></tr>
+<tr><td><code>CallDescriberSet</code></td><td>Asks the describer of the API of each call whether it is content, state or conditional (<code>CallClass</code>). One describer each for OpenGL, Direct3D 7 and Direct3D 8; a call of any other API is state.</td></tr>
+<tr><td><code>StateSegmentBuilder</code></td><td>Writes the state frame of a segment when the index is made.</td></tr>
+<tr><td><code>WorkloadReader</code></td><td>Reads a segment from its state frame when <code>state_only_func</code> says its frames are wanted as state only.</td></tr>
+</table>
+<p>An index of an older version is not used (every segment is read in full): make it again with <code>APIDumpPrinter --index</code>. It is about 2 % of the workload (106 MB for 4.4 GB).</p>
 
 <h3 id="seek-gl">OpenGL: what a dead frame leaves out</h3>
 <p>A dead frame leaves out its content calls and makes the rest: the state, the textures and the lists. For Direct3D the content calls are draws, clears, copies (<code>Blt</code>, <code>CopyRects</code>) and the locks and unlocks of buffers and surfaces. For OpenGL they are these:</p>
@@ -296,7 +307,7 @@
 <tr><td>Pixels</td><td><code>glDrawPixels</code>, <code>glBitmap</code></td></tr>
 <tr><td>Lists</td><td><code>glCallList</code>, decided per list (the next table)</td></tr>
 </table>
-<p>A seek to frame 20000 of one OpenGL capture (4.4 GB, 27,000 frames) takes 10.7 s instead of 29.3 s. The display lists need care:</p>
+<p>A seek to frame 20000 of one OpenGL capture (4.4 GB, 27,000 frames) takes 7.1 s instead of 29.3 s. The display lists need care:</p>
 <table>
 <tr><th>Case</th><th>Rule</th></tr>
 <tr><td>Calls of a list that is being made (glNewList to glEndList)</td><td>Always made, so that the list has them.</td></tr>
