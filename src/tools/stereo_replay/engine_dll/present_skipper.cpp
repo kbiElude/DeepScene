@@ -11,6 +11,13 @@ Stereo::Replay::EngineDLL::PresentSkipper::PresentSkipper(const HurriedFrameSele
     /* Stub */
 }
 
+std::vector<Capture::APIDumpLoader::APIGroup> Stereo::Replay::EngineDLL::PresentSkipper::get_api_groups() const
+{
+    return std::vector<Capture::APIDumpLoader::APIGroup>({Capture::APIDumpLoader::APIGroup::D3D7,
+                                                          Capture::APIDumpLoader::APIGroup::D3D8,
+                                                          Capture::APIDumpLoader::APIGroup::GDI32});
+}
+
 void Stereo::Replay::EngineDLL::PresentSkipper::on_call_replayed(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                  const uint32_t&                              in_n_frame,
                                                                  const bool&                                  in_was_executed)

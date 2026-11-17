@@ -54,10 +54,16 @@ void Stereo::Replay::EngineDLL::GLDisplayListTracker::on_call(const Capture::API
     typedef Analysis::APIDumpAnalysis::Frontends::GLListClassifier    GLListClassifier;
     typedef Analysis::APIDumpAnalysis::Frontends::GLListEyeDependence GLListEyeDependence;
 
+    /* Only these read the first argument, which most calls (of which there are millions) do not need. */
+    const bool needs_number = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLCALLLIST    ||
+                               in_call.func == APIInterceptor::APIFUNCTION_GL_GLDELETELISTS ||
+                               in_call.func == APIInterceptor::APIFUNCTION_GL_GLNEWLIST);
+
     uint32_t first_number = 0;
     bool     has_number   = false;
 
-    if (in_call.arg_in_vec.empty() == false)
+    if (needs_number                           &&
+        in_call.arg_in_vec.empty() == false)
     {
         has_number = APIInterceptor::read_number(in_call.arg_in_vec.at(0),
                                                  &first_number);

@@ -22,6 +22,9 @@ namespace Stereo
             public:
                 explicit PresentSkipper(const HurriedFrameSelector* in_hurry_ptr);
 
+                /* The APIs that have a call that presents (see is_frame_boundary()): Direct3D, and GDI32 for OpenGL. */
+                std::vector<Capture::APIDumpLoader::APIGroup> get_api_groups() const override;
+
                 void on_call_replayed   (const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                          const uint32_t&                              in_n_frame,
                                          const bool&                                  in_was_executed) override;

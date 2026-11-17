@@ -44,7 +44,13 @@ void Stereo::Replay::EngineDLL::GLTextureParameterCache::on_call_replayed(const 
 
     m_skipped_last_call = false;
 
-    if (in_call.arg_in_vec.empty() == false)
+    /* Only these read the first argument, which most calls (of which there are millions) do not need. */
+    const bool needs_list_number = (in_call.func == APIInterceptor::APIFUNCTION_GL_GLCALLLIST    ||
+                                    in_call.func == APIInterceptor::APIFUNCTION_GL_GLDELETELISTS ||
+                                    in_call.func == APIInterceptor::APIFUNCTION_GL_GLNEWLIST);
+
+    if (needs_list_number                      &&
+        in_call.arg_in_vec.empty() == false)
     {
         has_list_number = APIInterceptor::read_number(in_call.arg_in_vec.at(0),
                                                       &list_number);

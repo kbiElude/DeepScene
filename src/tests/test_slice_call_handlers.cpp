@@ -7,7 +7,9 @@
 #include <gtest/gtest.h>
 #include "content_slice_call_handler.h"
 #include "gl_slice_call_handler.h"
+#include "capture/api_dump_loader/api_info.h"
 #include "gl_texture_parameter_cache.h"
+#include "present_skipper.h"
 #include "slice_skipper.h"
 #include <algorithm>
 
@@ -65,6 +67,29 @@ TEST(SliceCallHandlers, TheTextureParameterCacheAsksForOpenGLAndItsContextsOnly)
                           APIGroup::GL) );
     EXPECT_TRUE(has_group(group_vec,
                           APIGroup::WGL) );
+}
+
+TEST(SliceCallHandlers, ThePresentSkipperAsksForEveryApiWhoseCallsCanEndAFrame)
+{
+    Stereo::Replay::EngineDLL::HurriedFrameSelector hurry;
+    Stereo::Replay::EngineDLL::PresentSkipper       skipper(&hurry);
+
+    const auto group_vec = skipper.get_api_groups();
+
+    /* The functions that is_frame_boundary() can say end a frame, by the API they are of. */
+    for (const auto& function : {APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS,
+                                 APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_FLIP,
+                                 APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLT,
+                                 APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_BLTFAST,
+                                 APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_PRESENT})
+    {
+        EXPECT_TRUE(has_group(group_vec,
+                              Capture::APIDumpLoader::get_api_group(function) ) );
+    }
+
+    /* The calls of OpenGL, which are most of the calls of a workload, never end a frame. */
+    EXPECT_FALSE(has_group(group_vec,
+                           APIGroup::GL) );
 }
 
 TEST(SliceCallHandlers, ACallOfAnApiWithNoHandlerIsAlwaysExecuted)

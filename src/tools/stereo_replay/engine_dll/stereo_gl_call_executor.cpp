@@ -131,31 +131,45 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::changes_bound_texture(cons
         "glTexSubImage"
     };
 
-    const char* name_ptr = Capture::APIDumpNames::get_function_name(in_function);
-    bool        result   = false;
-
-    for (const char* prefix_ptr : prefix_ptr_array)
+    /* Built once, by function: the answer depends on the function alone, and this is asked for every call. */
+    static const std::vector<bool> is_changing_vec = [&]()
     {
-        if (name_ptr != nullptr                   &&
-            ::strncmp(name_ptr,
-                      prefix_ptr,
-                      ::strlen(prefix_ptr) ) == 0)
+        std::vector<bool> result_vec(static_cast<size_t>(APIInterceptor::APIFUNCTION_COUNT),
+                                     false);
+
+        for (size_t n_function = 0;
+                    n_function < result_vec.size();
+                  ++n_function)
         {
-            result = true;
+            const char* name_ptr = Capture::APIDumpNames::get_function_name(static_cast<APIInterceptor::APIFunction>(n_function) );
 
-            break;
+            for (const char* prefix_ptr : prefix_ptr_array)
+            {
+                if (name_ptr != nullptr                   &&
+                    ::strncmp(name_ptr,
+                              prefix_ptr,
+                              ::strlen(prefix_ptr) ) == 0)
+                {
+                    result_vec.at(n_function) = true;
+
+                    break;
+                }
+            }
         }
-    }
 
-    return result;
+        return result_vec;
+    }();
+
+    const size_t index = static_cast<size_t>(in_function);
+
+    return (index < is_changing_vec.size() &&
+            is_changing_vec.at(index) );
 }
 
 bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::execute(const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                                               const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
                                                               std::string*                                   out_error_ptr)
 {
-    const auto get_integerv_func_ptr = reinterpret_cast<PFNGETINTEGERVPROC>(get_proc_ptr("glGetIntegerv") );
-
     std::vector<std::pair<uint32_t, uint32_t> > other_copy_vec; /* the dumped name and the live name of the other eye's copy of each texture that is deleted */
     bool                                        result = false;
 
@@ -227,9 +241,11 @@ bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::execute(const Capture::API
     }
     else
     if (changes_bound_texture(in_call.func) &&
-        get_integerv_func_ptr != nullptr    &&
-        ::wglGetCurrentContext() != nullptr)
+        ::wglGetCurrentContext() != nullptr &&
+        get_proc_ptr("glGetIntegerv") != nullptr)
     {
+        const auto get_integerv_func_ptr = reinterpret_cast<PFNGETINTEGERVPROC>(get_proc_ptr("glGetIntegerv") );
+
         int      bound_name   = 0;
         uint64_t dumped_value = 0;
         bool     has_dumped   = false;
