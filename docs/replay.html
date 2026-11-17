@@ -295,7 +295,16 @@
 <tr><td><code>StateSegmentBuilder</code></td><td>Writes the state frame of a segment when the index is made.</td></tr>
 <tr><td><code>WorkloadReader</code></td><td>Reads a segment from its state frame when <code>state_only_func</code> says its frames are wanted as state only.</td></tr>
 </table>
-<p>An index of an older version is not used (every segment is read in full): make it again with <code>APIDumpPrinter --index</code>. It is about 2 % of the workload (106 MB for 4.4 GB).</p>
+<p>An index of an older version is not used (every segment is read in full): make it again with <code>APIDumpPrinter --index</code>. It is about 1 % of the workload (53 MB for 4.4 GB).</p>
+
+<p>The calls of a state frame are coalesced when the index is made. A dead frame makes no content, so nothing reads the state that its calls set until a call that reads state; of the calls that set the same piece of state (a capability, a client array, a texture parameter), only the last before such a call is kept. Each call says what it does to state (<code>StateEffect</code>): it <em>assigns</em> a piece of state, <em>selects</em> what later calls act on (the active texture unit, the matrix mode), is <em>ordered</em> (made in place, such as a matrix call), is a <em>barrier</em> (a context, a display list, a pushed attribute), or is <em>recorded</em> into a display list. The calls that a kept call needs are made again where they are needed (a copy of the call that chose the unit), and the selectors are as they were at every barrier, frame and segment end.</p>
+<table>
+<tr><th>Part</th><th>What it does</th></tr>
+<tr><td><code>IStateEffectDescriber</code></td><td>One for each API: OpenGL (a table of every function that was met), the window system (GDI32, USER32 and WGL: all barriers) and Direct3D 7 and 8 (not coalesced: all barriers).</td></tr>
+<tr><td><code>StateCoalescer</code></td><td>Chooses the calls to make, in order.</td></tr>
+<tr><td><code>StateCoalescerVerifier</code></td><td>Plays the original calls and the chosen ones on a model of state, and compares what every call that reads state would see.</td></tr>
+</table>
+<p>The index is made to fail rather than to guess. A function that no describer names ends the process with its number (add it to the table of the describer, saying what it does to state), as does a call of an API that has none, a call without the number that tells what it sets, a display list that is made and executed at once, and any difference that the verifier finds. When in doubt, a function is a barrier: it is made as it was. The tables are checked by tests, among them tens of thousands of random sequences of calls.</p>
 
 <h3 id="seek-gl">OpenGL: what a dead frame leaves out</h3>
 <p>A dead frame leaves out its content calls and makes the rest: the state, the textures and the lists. For Direct3D the content calls are draws, clears, copies (<code>Blt</code>, <code>CopyRects</code>) and the locks and unlocks of buffers and surfaces. For OpenGL they are these:</p>
@@ -307,7 +316,7 @@
 <tr><td>Pixels</td><td><code>glDrawPixels</code>, <code>glBitmap</code></td></tr>
 <tr><td>Lists</td><td><code>glCallList</code>, decided per list (the next table)</td></tr>
 </table>
-<p>A seek to frame 20000 of one OpenGL capture (4.4 GB, 27,000 frames) takes 3.5 s instead of 29.3 s. The display lists need care:</p>
+<p>A seek to frame 20000 of one OpenGL capture (4.4 GB, 27,000 frames) takes 2.5 s instead of 29.3 s. The display lists need care:</p>
 <table>
 <tr><th>Case</th><th>Rule</th></tr>
 <tr><td>Calls of a list that is being made (glNewList to glEndList)</td><td>Always made, so that the list has them.</td></tr>
