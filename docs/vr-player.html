@@ -204,7 +204,7 @@
 <table>
 <tr><th>Control</th><th>What it does</th></tr>
 <tr><td><em>Device</em></td><td>The output: a headset found through OpenXR, or the preview window alone (<em>2D preview only</em>).</td></tr>
-<tr><td><em>Depth</em></td><td>Reduced, Natural or More: a strength of 0.65, 1.0 or 1.25 that scales the eye separation of each scene. The comfort limit of the recipe is a ceiling that no choice passes. It can be changed while the program runs.</td></tr>
+<tr><td><em>Depth</em></td><td>Reduced, Natural or More: a strength of 0.65, 1.0 or 1.25 that scales the eye separation of each scene. The comfort limit of the recipe is a ceiling that More does not pass, unless the recipe lets the limits follow the strength (<code>limits_follow_strength</code>). It can be changed while the program runs.</td></tr>
 <tr><td><em>Resolution per eye</em></td><td>The size each eye is rendered at: one of 1280 x 720 to 3840 x 2160, or a size that is typed in (up to 4096 on a side). The program keeps its proportions, centered in the image, and what does not fill it is black. It works with or without a headset, for all three APIs, and is set when the program starts. While a size is chosen, <em>Image quality</em> is not used.</td></tr>
 <tr><td><em>Image quality</em></td><td>The size each eye is rendered at, taken from the headset's recommended size (from OpenXR, with the proportions of the program). Set when the program starts. The list is disabled when the output is the preview window, which has no resolution of its own to take a fraction of, and while a <em>Resolution per eye</em> is chosen.</td></tr>
 </table>

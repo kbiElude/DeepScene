@@ -1162,7 +1162,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
     }
 
     if (check_keys(in_value,
-                   {"automatic_layers", "balance_convergence", "camera_attached_depth", "ease_by_time", "eye_space_cover_keys", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "push_by_default", "push_unaffected", "scene_overrides", "snap_at_cuts"},
+                   {"automatic_layers", "balance_convergence", "camera_attached_depth", "ease_by_time", "eye_space_cover_keys", "limits_follow_strength", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "push_by_default", "push_unaffected", "scene_overrides", "snap_at_cuts"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -1229,6 +1229,25 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             }
 
             out_comfort_ptr->eases_by_time = ease_ptr->bool_value;
+        }
+
+        const auto* follow_ptr = in_value.find_ptr("limits_follow_strength");
+
+        if (follow_ptr != nullptr)
+        {
+            const bool is_finite = (::isfinite(follow_ptr->number_value) != 0);
+
+            if (follow_ptr->type         != Utils::Json::JsonValueType::NUMBER ||
+                is_finite                == false                              ||
+                follow_ptr->number_value <  0.0                                ||
+                follow_ptr->number_value >  1.0)
+            {
+                *out_error_ptr = in_path + ".limits_follow_strength: expected a number from zero to one";
+
+                goto end;
+            }
+
+            out_comfort_ptr->limits_follow_strength = static_cast<float>(follow_ptr->number_value);
         }
 
         const auto* push_default_ptr = in_value.find_ptr("push_by_default");

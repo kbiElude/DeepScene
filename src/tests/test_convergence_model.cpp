@@ -309,3 +309,50 @@ TEST(ConvergenceModel, AStallOfSecondsPutsTheEyesWhereTheSceneSaysAndTheFirstTar
     EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
                     2.0f);
 }
+
+TEST(ConvergenceModel, MoreStrengthRaisesTheLimitByThePartOfTheExcessThatTheRecipeSays)
+{
+    Stereo::Core::ConvergenceModel model;
+
+    model.set_convergence_distance(60.0f);
+    model.set_depth_strength      (1.5f);
+    model.follow_scene_max_separation(0.5f, FRACTION_PER_FRAME);
+
+    /* By default the limit is a ceiling that no strength lifts. */
+    EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
+                    0.5f);
+
+    /* Half of the excess (0.5 of 1.5) lifts it by a quarter, all of it by half. */
+    ASSERT_TRUE(model.set_limits_follow_strength(0.5f) );
+
+    EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
+                    0.5f * 1.25f);
+
+    ASSERT_TRUE(model.set_limits_follow_strength(1.0f) );
+
+    EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
+                    0.5f * 1.5f);
+
+    /* A strength below 1 lowers the limit whatever the setting is, and the natural separation still caps it. */
+    model.set_depth_strength(0.5f);
+
+    EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
+                    0.25f);
+
+    model.set_depth_strength(2.0f);
+    model.follow_scene_max_separation(0.0f, FRACTION_PER_FRAME);
+    model.follow_scene_max_separation(100.0f, FRACTION_PER_FRAME);
+
+    EXPECT_FLOAT_EQ(model.get_effective_eye_separation(),
+                    4.0f);
+}
+
+TEST(ConvergenceModel, AFollowSettingThatIsNotAFractionIsRefused)
+{
+    Stereo::Core::ConvergenceModel model;
+
+    EXPECT_FALSE(model.set_limits_follow_strength(1.5f) );
+    EXPECT_FALSE(model.set_limits_follow_strength(-0.5f) );
+    EXPECT_FALSE(model.set_limits_follow_strength(NAN) );
+    EXPECT_TRUE (model.set_limits_follow_strength(0.0f) );
+}

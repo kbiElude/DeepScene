@@ -158,6 +158,13 @@ namespace Analysis
              */
             std::vector<uint64_t> eye_space_cover_key_vec;
 
+            /* How much of a depth strength above 1 ("more") also raises the limits of the scenes (the ceiling on the separation, see SceneSeparation),
+             * from 0 to 1. 0: none, the limits are a ceiling that no strength passes, so a scene that is held by its limit gets no more depth from more
+             * strength (the default). 1: the limits grow in proportion to the strength, so more is more depth in every scene. A strength below 1
+             * lowers the limits whatever this is.
+             */
+            float limits_follow_strength = 0.0f;
+
             /* How far apart the pictures of the eyes may be at the farthest surface of a scene, as a fraction of the picture width. What lies
              * beyond the convergence distance is seen with eyes that turn toward each other less than at the screen. If the pictures were further
              * apart than the distance between a person's eyes on the screen, the eyes would have to turn away from each other, which eyes cannot

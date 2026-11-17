@@ -1641,3 +1641,38 @@ TEST_F(StereoCoreTest, AnUnknownSceneKeepsTheDistanceBeforeItWhenTheRecipeHasNoA
     EXPECT_FLOAT_EQ(core.get_effective_convergence_distance(),
                     200.0f);
 }
+
+TEST_F(StereoCoreTest, MoreStrengthRaisesTheLimitOfASceneOnlyWhenTheRecipeSaysSo)
+{
+    const auto make_core_func = [](const float& in_limits_follow_strength)
+    {
+        auto recipe = make_recipe(get_baked_text(""),
+                                  "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                                  " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}");
+
+        recipe.comfort.limits_follow_strength = in_limits_follow_strength;
+
+        /* A scene 60 away whose limit (0.5) is far below the natural separation. */
+        recipe.scene_convergence_vec.push_back({60.0f, 100});
+        recipe.scene_separation_vec.push_back({0.5f, 100});
+
+        return recipe;
+    };
+
+    for (const float follow : {0.0f, 1.0f})
+    {
+        Stereo::Core::RecipeStereoPlanner core(make_core_func(follow),
+                                               [](const std::string&)
+                                               {
+                                                   FAIL() << "The core was asked to fail";
+                                               });
+
+        core.set_depth_strength(1.5f);
+        core.on_frame_completed(100);
+
+        /* The default: a ceiling that no strength lifts. With the setting at 1: the limit grows with the strength (0.5 times 1.5). */
+        EXPECT_FLOAT_EQ(core.get_effective_eye_separation(),
+                        (follow > 0.0f) ? 0.75f
+                                        : 0.5f);
+    }
+}

@@ -1856,3 +1856,36 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
                    std::string(expected.filename) == "tesla.json") ) << expected.filename;
     }
 }
+
+TEST_F(RecipeLoaderTest, TheComfortOfTheRecipeSaysHowMuchOfMoreStrengthRaisesTheLimits)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"limits_follow_strength\": 0.5},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FLOAT_EQ(recipe.comfort.limits_follow_strength,
+                    0.5f);
+
+    /* The limits are a ceiling that no strength passes unless the recipe says so. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {},",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FLOAT_EQ(recipe.comfort.limits_follow_strength,
+                    0.0f);
+
+    expect_refused(get_recipe_text("\"comfort\": {\"limits_follow_strength\": 1.5},",
+                                   ""),
+                   "comfort.limits_follow_strength");
+    expect_refused(get_recipe_text("\"comfort\": {\"limits_follow_strength\": -0.1},",
+                                   ""),
+                   "comfort.limits_follow_strength");
+    expect_refused(get_recipe_text("\"comfort\": {\"limits_follow_strength\": true},",
+                                   ""),
+                   "comfort.limits_follow_strength");
+}

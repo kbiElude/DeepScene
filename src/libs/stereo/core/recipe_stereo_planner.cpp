@@ -30,7 +30,8 @@ Stereo::Core::RecipeStereoPlanner::RecipeStereoPlanner(const Analysis::Recipe::R
                                0.0f, 0.0f, 1.0f, 0.0f,
                                0.0f, 0.0f, 0.0f, 1.0f};
 
-    m_convergence_model.set_snaps_at_cuts(in_recipe.comfort.snaps_at_cuts);
+    m_convergence_model.set_limits_follow_strength(in_recipe.comfort.limits_follow_strength);
+    m_convergence_model.set_snaps_at_cuts         (in_recipe.comfort.snaps_at_cuts);
 
     require_fast_path(in_recipe.is_baked,
                       "The recipe is not baked, so nothing tells the converter what the draws of the application are");

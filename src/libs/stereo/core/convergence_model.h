@@ -45,8 +45,8 @@ namespace Stereo
 
             /* If the depth strength and the effective convergence distance are both above 0, returns the natural separation: one thirtieth of the
              * effective convergence distance (a rule of thumb for the camera distance of a stereo shot), times the depth strength and the IPD
-             * scale. The scene's maximum separation caps it. A depth strength below 1 lowers that cap by the same factor, and no strength
-             * raises it. Otherwise returns the separation that was set.
+             * scale. The scene's maximum separation caps it. A depth strength below 1 lowers that cap by the same factor; a strength above 1
+             * raises it by the part of the excess that set_limits_follow_strength() says (none by default). Otherwise returns the separation that was set.
              */
             float get_effective_eye_separation() const;
 
@@ -66,6 +66,12 @@ namespace Stereo
 
             /* The convergence distance that the recipe gives for the draw classified last; 0 if it gives none. */
             void set_draw_convergence_distance(const float& in_draw_convergence_distance);
+
+            /* How much of a depth strength above 1 also raises the scene's limit on the separation, from 0 to 1 (see Comfort::limits_follow_strength). 0
+             * (the default) keeps the limit a ceiling that no strength passes. Returns false and changes nothing if the value is not a number from 0
+             * to 1.
+             */
+            bool set_limits_follow_strength(const float& in_limits_follow_strength);
 
             /* Whether the scene distance and limit jump to the target at a cut (see follow_scene_convergence_distance()) instead of easing across
              * it. Off until it is set.
@@ -105,6 +111,7 @@ namespace Stereo
             float m_draw_convergence_distance;
             float m_eye_separation;
             float m_ipd_scale;
+            float m_limits_follow_strength;            /* see set_limits_follow_strength()                                */
             float m_previous_scene_convergence_target; /* the previous frame's target; 0: none */
             float m_previous_scene_max_separation_target;
             float m_scene_convergence_distance; /* eased toward the recipe's scene distance                    */

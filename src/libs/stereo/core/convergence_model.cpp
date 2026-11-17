@@ -15,6 +15,7 @@ Stereo::Core::ConvergenceModel::ConvergenceModel()
      m_draw_convergence_distance           (0.0f),
      m_eye_separation                      (0.0f),
      m_ipd_scale                           (1.0f),
+     m_limits_follow_strength              (0.0f),
      m_previous_scene_convergence_target   (0.0f),
      m_previous_scene_max_separation_target(0.0f),
      m_scene_convergence_distance          (0.0f),
@@ -108,12 +109,13 @@ float Stereo::Core::ConvergenceModel::get_effective_eye_separation() const
 
     const float convergence_distance = get_effective_convergence_distance();
 
-    /* The nearest surface of the scene may allow less separation than the natural one. The scene limit caps the separation and no depth
-     * strength raises the cap. A depth strength below 1 asks for less separation, so the cap is lowered by the same factor.
+    /* The nearest surface of the scene may allow less separation than the natural one. The scene limit caps the separation. A depth strength
+     * below 1 asks for less separation, so the cap is lowered by the same factor. A strength above 1 raises the cap by the part of the excess that
+     * the recipe says (none by default: no strength raises it).
      */
     const float natural_separation = m_depth_strength * m_ipd_scale * SEPARATION_PER_CONVERGENCE_DISTANCE * convergence_distance;
-    const float wished_for_part    = std::min(m_depth_strength,
-                                              1.0f);
+    const float wished_for_part    = (m_depth_strength <= 1.0f) ? m_depth_strength
+                                                                : 1.0f + (m_depth_strength - 1.0f) * m_limits_follow_strength;
     const float separation         = (m_scene_max_separation > 0.0f) ? std::min(natural_separation,
                                                                                  m_scene_max_separation * wished_for_part)
                                                                      : natural_separation;
@@ -241,6 +243,21 @@ bool Stereo::Core::ConvergenceModel::set_ipd_scale(const float& in_ipd_scale)
     if (result)
     {
         m_ipd_scale = in_ipd_scale;
+    }
+
+    return result;
+}
+
+bool Stereo::Core::ConvergenceModel::set_limits_follow_strength(const float& in_limits_follow_strength)
+{
+    const bool is_finite = ::isfinite(in_limits_follow_strength);
+    const bool result    = (is_finite                       &&
+                            in_limits_follow_strength >= 0.0f &&
+                            in_limits_follow_strength <= 1.0f);
+
+    if (result)
+    {
+        m_limits_follow_strength = in_limits_follow_strength;
     }
 
     return result;
