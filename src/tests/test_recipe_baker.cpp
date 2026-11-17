@@ -1164,3 +1164,52 @@ TEST_F(RecipeBakerTest, ATextureThatFramesCarryOverIsBakedAsOneThatEachEyeHasACo
     EXPECT_EQ(recipe.per_eye_texture_vec.at(0).description_key,
               analysis.model.resource_vec.at(1).match_key);
 }
+
+TEST_F(RecipeBakerTest, ASceneWhoseDrawsHaveNoOriginInFrontOfTheCameraGetsItsDistanceFromTheirVertices)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Tests::ModelTestHelper                    helper;
+    const auto                                swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX>    identity_f32mat = {1, 0, 0, 0,
+                                                                 0, 1, 0, 0,
+                                                                 0, 0, 1, 0,
+                                                                 0, 0, 0, 1};
+    Analysis::RecipeBake::BakeReport          report;
+    Analysis::Recipe::Recipe                  recipe;
+    std::string                               error;
+    std::string                               text;
+
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::VIEW_MATRIX,
+                      128,
+                      identity_f32mat);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_MATRIX,
+                      16384,
+                      identity_f32mat);
+
+    /* The origin of the draw is the origin of the eye, not in front of it; its vertices (smoke in the space of the eye) are 20 deep. */
+    helper.bind(swapchain_image);
+    helper.draw_with_geometry({{0.0f, 0.0f, 20.0f}},
+                              30);
+    helper.end_frame();
+
+    analysis.model = helper.get_model();
+
+    ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(0),
+                                                        analysis,
+                                                       &text,
+                                                       &report,
+                                                       &error) ) << error;
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(text,
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_EQ(report.n_scenes_without_depth,
+              0u);
+    ASSERT_EQ(recipe.scene_convergence_vec.size(),
+              1u);
+    EXPECT_NEAR(recipe.scene_convergence_vec.at(0).distance,
+                20.0f,
+                2.0f);
+}

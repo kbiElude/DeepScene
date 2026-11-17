@@ -251,6 +251,10 @@
         "distance": 351.657562
       },
       {
+        "shape": "0x7be39a2ca8753868",
+        "distance": 8.74176502
+      },
+      {
         "shape": "0x78eadfb44357f07f",
         "distance": 8.65777588
       },
@@ -294,7 +298,7 @@
       },
       {
         "shape": "0x74079f7c7fe3076d",
-        "separation": 0.075114958
+        "separation": 0.0751147047
       },
       {
         "shape": "0x76144a7cd2053039",
@@ -307,6 +311,10 @@
       {
         "shape": "0xd4ae87b6f1af421e",
         "separation": 8.33083439
+      },
+      {
+        "shape": "0x7be39a2ca8753868",
+        "separation": 0.143605307
       },
       {
         "shape": "0x78eadfb44357f07f",

@@ -917,13 +917,20 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
                 }
             }
 
-            if (is_affected                                                  &&
-                histogram_iterator != model_ref.depth_histogram_map.end() )
-            {
-                histogram.merge(histogram_iterator->second);
+            const auto surface_iterator = model_ref.surface_depth_histogram_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
+                                                                                                                                  pass_id) );
 
-                const auto surface_iterator = model_ref.surface_depth_histogram_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
-                                                                                                                                      pass_id) );
+            /* A pass whose draws have no origin in front of the camera (its model-view matrix is the identity, so the vertices are in the space of the eye)
+             * still has the depths of its vertices.
+             */
+            if (is_affected                                                      &&
+                (histogram_iterator != model_ref.depth_histogram_map.end()       ||
+                 surface_iterator   != model_ref.surface_depth_histogram_map.end() ) )
+            {
+                if (histogram_iterator != model_ref.depth_histogram_map.end() )
+                {
+                    histogram.merge(histogram_iterator->second);
+                }
 
                 if (surface_iterator != model_ref.surface_depth_histogram_map.end() )
                 {
@@ -986,6 +993,19 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
             measure.near_depth = (surface_near > 0.0f) ? std::min(origin_near,
                                                                   surface_near)
                                                        : origin_near;
+            measure.shape_key  = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
+                                                                                            n_shape);
+        }
+        else
+        if (surface_histogram.is_empty() == false)
+        {
+            /* Only the vertices say how deep the scene is. */
+            const double near_fraction = static_cast<double>(in_recipe.comfort.near_fraction);
+
+            measure.distance   = surface_histogram.get_depth_at_fraction(FRACTION_MEDIAN);
+            measure.far_depth  = surface_histogram.get_depth_at_fraction(1.0 - near_fraction);
+            measure.has_depth  = true;
+            measure.near_depth = surface_histogram.get_depth_at_fraction(near_fraction);
             measure.shape_key  = Analysis::APIDumpAnalysis::ModelBuilder::compute_shape_key(model_ref,
                                                                                             n_shape);
         }
