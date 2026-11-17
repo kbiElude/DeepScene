@@ -4,24 +4,19 @@
  *
  * Layout of a .textures file and of the file of blobs next to it. Integers are little-endian.
  *
- * The .textures file records what happens to the textures of a workload and where the bytes of each content are:
+ *   file := FileHeader section*   (an AnalysisFileHeader: magic, file version, analysis version; SectionedFile sections, in this order, once each)
  *
- *   file := FileHeader section*          (an AnalysisFileHeader: magic, file version, analysis version; the sections are those of SectionedFile, in this order, once each)
- *
- *   META  the workload (name, size, and hashes of its start, middle and end), whether render content was requested, and the size of the file of blobs
+ *   META  the workload (name, size, hashes of start, middle and end), whether render content was requested, size of the file of blobs
  *   RSRC  the resources, as in a .passes file (see PassesSerializer::serialize_resources)
- *   BLOB  the contents: where each is in the file of blobs, its filter, its size, and its hashes
- *   EVNT  the events of the textures, in the order of the calls
+ *   BLOB  the contents: position in the file of blobs, filter, size, hashes
+ *   EVNT  the texture events, in call order
  *
- * A content is stored in one of two ways. Bytes that an upload carried are already in the workload, so nothing is copied. The table says which
- * data chunk holds them and records their size and hashes, so that a reader can check that the chunk is the right one. Content that rendering
- * produced (a copy from a framebuffer or a render target) is not in the workload. When something first reads a level that rendering changed, a
- * SNAPSHOT event records the content of the level at that call. A replay reads the snapshot back and stores it in the file of blobs, if it was
- * asked to. The analysis alone only records where the snapshots have to be taken.
+ * Upload bytes are already in the workload and are not copied: the table names the data chunk and records its size and hashes for verification.
+ * Rendered content is not in the workload: a SNAPSHOT event marks the first read of a changed level; a replay stores the snapshot in the file of
+ * blobs when asked to. The analysis alone only records where snapshots have to be taken.
  *
- * The file of blobs has the name of the .textures file with ".data" appended. It has a header, followed by the contents one after another. Each
- * content is a Zstandard frame with its size and a checksum of its bytes, so that a reader can load any one content alone and detect a damaged
- * one. Nothing is stored lossily: a reader gets back exactly the bytes that were given. The window (the swap chain) has no content in either file.
+ * The file of blobs is named like the .textures file plus ".data". It has a header, then the contents one after another, each a Zstandard frame
+ * with its size and a checksum, so one content can be loaded alone and damage detected. Storage is lossless. The window (swap chain) has no content.
  */
 #ifndef APIDUMPTEXTURES_TEXTURES_FORMAT_H
 #define APIDUMPTEXTURES_TEXTURES_FORMAT_H

@@ -148,7 +148,7 @@ TEST_F(GLFrontendWindows, TheFrameOfAWindowIsNotTakenOffItsSize)
                             OVERLAPPED_STYLE,
                             EDGE_EX_STYLE,
                             1294,
-                            757.0f);
+                            757);
     m_builder.get_dc       (WINDOW_ADDRESS,
                             DEVICE_CONTEXT_ADDRESS);
     m_builder.make_current (DEVICE_CONTEXT_ADDRESS,

@@ -31,9 +31,8 @@ namespace Analysis
                 UNREADABLE /* the arguments or the data are not what the call requires      */
             };
 
-            /* Whether a piece of data that draws read from the memory of the application is used again, which decides how long it is kept. A piece
-             * that is seen in one frame only is kept for that frame (the eyes of a stereo frame each draw it). A piece that is seen in more than
-             * one frame is kept for the following frames as well.
+            /* Whether a piece of application data is reused, which decides how long it is kept: one-frame pieces for that frame only,
+             * pieces seen in several frames for the following frames too.
              */
             enum class GLBlobReuse
             {
@@ -55,16 +54,12 @@ namespace Analysis
                 VERTEX          = 8
             };
 
-            /* What a display list does to the state that is specific to an eye (the matrices, and the pixels that the viewport and the scissor box
-             * are expressed in). It decides whether a list that the driver made once can be called for both eyes of a stereo frame.
-             *  - A list that only draws and sets state is the same for both eyes.
-             *  - A list that changes a matrix relative to the current one (translation, rotation, scale, multiplication) is also the same for both
-             *    eyes, because the matrix of the eye passes through it.
-             *  - A list that stores something relative to the current matrix (the position of a light, a clip plane, texture coordinate planes, the
-             *    raster position: see GLFunctionPolicy::bakes_current_matrix()) is also the same for both eyes, if it is called once for each eye:
-             *    each eye then gets the result of its own matrix.
-             *  - A list that loads a matrix, sets a projection, a viewport or a scissor box stores values of its own. It is run once for each eye,
-             *    or replayed inline with those calls changed.
+            /* What a display list does to per-eye state (matrices, viewport and scissor pixels); decides whether it can be called for both eyes.
+             *  - Only draws and sets state: the same for both eyes.
+             *  - Changes a matrix relative to the current one: the same for both eyes, the eye's matrix passes through.
+             *  - Stores something relative to the current matrix (see GLFunctionPolicy::bakes_current_matrix()): the same for both eyes
+             *    if called once per eye.
+             *  - Loads a matrix or sets a projection, viewport or scissor box: run once per eye, or replayed inline with those calls changed.
              */
             enum class GLListEyeDependence
             {
@@ -108,8 +103,8 @@ namespace Analysis
                 APIInterceptor::APIFunction                      func = APIInterceptor::APIFunction::APIFUNCTION_UNKNOWN;
             };
 
-            /* A display list: the calls between its glNewList and glEndList, and the data of those calls. The data is not part of the workload in
-             * which the calls were made, because that workload is released before the list is called. Uses GLListEyeDependence and GLRecordedCall.
+            /* A display list: the calls between glNewList and glEndList with their data (kept here because the original workload is released
+             * before the list is called). Uses GLListEyeDependence and GLRecordedCall.
              */
             struct GLDisplayList
             {
@@ -126,8 +121,8 @@ namespace Analysis
                 uint32_t                       list_number  = 0;
             };
 
-            /* How the program lays out the bytes of an upload (glPixelStorei). A row is as long as the row length (the width if the row length is 0),
-             * and each row starts at a multiple of the alignment. This is client state: glPushAttrib does not save it.
+            /* Upload byte layout (glPixelStorei): rows are row_length long (width if 0), each starting at a multiple of the alignment.
+             * Client state: glPushAttrib does not save it.
              */
             struct GLPixelStore
             {
@@ -152,26 +147,26 @@ namespace Analysis
                 uint32_t y      = 0;
             };
 
-            /* A texture of the program: its resource (known once the first glTexImage2D gives it a size), and the levels it has been given. */
+            /* A texture: its resource (known once glTexImage2D gives it a size) and its levels. */
             struct GLTexture
             {
-                std::set<uint32_t>                    dirty_level_set;           /* the levels of render_level_set that changed since something read them (or since they were given) */
+                std::set<uint32_t>                    dirty_level_set;           /* render levels changed since last read                     */
                 uint32_t                              height            = 0;
                 uint32_t                              internal_format   = 0;
                 std::map<uint32_t, GLTextureLevel>    level_map;
-                std::set<uint32_t>                    render_level_set;          /* the levels whose content is not in the workload (rendered, or generated by the driver)             */
-                std::map<uint32_t, GLTextureRegion>   render_region_map;         /* by level: the smallest region that holds everything rendered into the level since it was given     */
+                std::set<uint32_t>                    render_level_set;          /* levels not in the workload (rendered or driver-generated) */
+                std::map<uint32_t, GLTextureRegion>   render_region_map;         /* by level: smallest region holding all rendered content    */
                 Analysis::APIDumpAnalysis::ResourceId resource_id       = Analysis::APIDumpAnalysis::ResourceId::NONE;
                 uint32_t                              width             = 0;
             };
 
-            /* What the program set about how the levels of a texture are generated (glTexParameter), stored under the texture name. The program
-             * sets it before the texture has a size, and it stays when the texture is given a new one.
+            /* How a texture's levels are generated (glTexParameter), stored by texture name; it may be set before the texture has a size
+             * and survives a new size.
              */
             struct GLTextureParameters
             {
-                bool     generates_mipmaps = false; /* GL_GENERATE_MIPMAP: a change of the first level regenerates the levels below it                  */
-                uint32_t max_level         = 1000;  /* GL_TEXTURE_MAX_LEVEL, with the OpenGL default: the last level that generation produces          */
+                bool     generates_mipmaps = false; /* GL_GENERATE_MIPMAP: first-level change regenerates lower levels    */
+                uint32_t max_level         = 1000;  /* GL_TEXTURE_MAX_LEVEL: last generated level (GL default)            */
             };
 
             /* A rectangle of the framebuffer, in pixels from its lower left corner, as set by glViewport and glScissor. */
@@ -183,9 +178,7 @@ namespace Analysis
                 int32_t y      = 0;
             };
 
-            /* The state that glPushAttrib saves and glPopAttrib restores, as far as the front end follows it besides the pipeline state. The
-             * matrices are not part of it: they have stacks of their own. Uses GLBox.
-             */
+            /* The state glPushAttrib saves, besides the pipeline state, as far as followed. Matrices have their own stacks. Uses GLBox. */
             struct GLAttributes
             {
                 uint32_t                     active_texture_unit  = 0;        /* counted from 0; GL_TEXTURE0 is unit 0 */
@@ -195,13 +188,11 @@ namespace Analysis
                 bool                         is_scissor_enabled   = false;
                 uint32_t                     matrix_mode          = 0x1700;   /* GL_MODELVIEW */
                 GLBox                        scissor_box;
-                std::map<uint32_t, uint32_t> texture_binding_map;             /* the GL_TEXTURE_2D texture bound to each texture unit, by unit number */
+                std::map<uint32_t, uint32_t> texture_binding_map;             /* GL_TEXTURE_2D binding by unit number */
                 GLBox                        viewport;
             };
 
-            /* A piece of data that draws read from the memory of the application. The bytes are kept while the piece is worth keeping
-             * (see GLBlobReuse).
-             */
+            /* A piece of application data read by draws; the bytes are kept while worth keeping (see GLBlobReuse). */
             struct GLBlob
             {
                 std::shared_ptr<const std::vector<uint8_t> > data_ptr;                                                       /* null: the bytes are not kept         */
@@ -210,9 +201,7 @@ namespace Analysis
                 Analysis::APIDumpAnalysis::ResourceId        resource_id = Analysis::APIDumpAnalysis::ResourceId::NONE;
             };
 
-            /* An array of vertex data that a draw reads from the memory of the application, as copied by the dumper. It holds the part of the array
-             * that the draw touches, starting at the element first_element. Uses GLClientArrayKind.
-             */
+            /* Vertex data a draw reads from application memory, as copied by the dumper: the touched part, from first_element. Uses GLClientArrayKind. */
             struct GLClientArray
             {
                 const uint8_t*    data_ptr      = nullptr; /* points into the data of the call; n_bytes long */
@@ -229,9 +218,7 @@ namespace Analysis
                 uint32_t          type          = 0;       /* a GL type                          */
             };
 
-            /* The vertices between a glBegin and its glEnd. Together they are one draw. The positions are kept only if the model builder asked for
-             * the geometry of draws (see ModelBuilder::wants_geometry).
-             */
+            /* The vertices between glBegin and glEnd, one draw. Positions are kept only if ModelBuilder::wants_geometry. */
             struct GLImmediateBlock
             {
                 uint64_t                             first_call_index = 0;     /* the glBegin */
@@ -242,9 +229,7 @@ namespace Analysis
                 bool                                 wants_positions = false;
             };
 
-            /* How the vertices of a call are passed: the number of components per vertex, the type of a component, and whether the call passes a
-             * pointer to the vertices (the data of the call is then a chunk) or passes the components as arguments. Uses GLVertexComponent.
-             */
+            /* How a call passes vertices: components per vertex, component type, and pointer (data is a chunk) or arguments. Uses GLVertexComponent. */
             struct GLVertexLayout
             {
                 GLVertexComponent component    = GLVertexComponent::FLOAT;

@@ -2,15 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * A texture format that belongs to no graphics API. Each format names one memory layout that the programs of this project handle and describes it: its
- * block size, its bytes per block, and whether it is compressed, has depth or stencil, or is sRGB. The front end of each API converts its own values
- * (an OpenGL internal format and type, a Direct3D format or pixel format) to one of these. A value without a counterpart becomes UNKNOWN, and the program
- * keeps the API's original value next to it to record what it was.
+ * An API-independent texture format: one memory layout with its block size, bytes per block, and compressed, depth, stencil and sRGB flags.
+ * Each API front end converts its own values to one of these; a value without a counterpart becomes UNKNOWN (the original value is kept beside it).
  *
- * The values are stored in files and never change: a new format is added after the last one, and none is removed or moved. The names state the memory
- * layout. For byte formats the channels follow the byte order, lowest address first (R8G8B8A8 is one byte each of red, green, blue and alpha). For formats
- * packed into a word the channels follow the bit order of the word, highest bits first (R5G6B5 has red in the top five bits). X is an unused part, and L
- * is luminance (one value for red, green and blue).
+ * Values are stored in files: new formats are only appended. Byte formats list channels lowest address first (R8G8B8A8); packed formats list
+ * them from the highest bits (R5G6B5). X is unused, L is luminance.
  */
 #ifndef UTILS_GRAPHICS_TEXTURE_FORMAT_H
 #define UTILS_GRAPHICS_TEXTURE_FORMAT_H
@@ -77,12 +73,10 @@ namespace Utils
             BC7_UNORM_SRGB     = 41
         };
 
-        /* The value of the last format. The values run from 0 to this one with no gaps. */
+        /* The last format value; values run from 0 with no gaps. */
         constexpr uint16_t LAST_TEXTURE_FORMAT_VALUE = 41;
 
-        /* The properties of a format. For an uncompressed format a block is one texel by one texel. D32_FLOAT_S8_UINT has the D3D and Vulkan memory
-         * layout: 8 bytes per texel (the float, the stencil byte, and padding).
-         */
+        /* Format properties. An uncompressed block is 1x1 texels. D32_FLOAT_S8_UINT is 8 bytes per texel (D3D/Vulkan layout: float, stencil, padding). */
         struct TextureFormatInfo
         {
             uint32_t    block_height_in_texels = 1;
@@ -101,18 +95,16 @@ namespace Utils
             /* Returns the properties of the format. UNKNOWN has no bytes per block. */
             static TextureFormatInfo get_info(const TextureFormat& in_format);
 
-            /* Returns the bytes that a region of texels occupies. It counts whole blocks, so a region smaller than one block still takes one block.
-             * Returns 0 for an unknown format.
-             */
+            /* Returns the bytes of a texel region, in whole blocks (a region under one block takes one). 0 for an unknown format. */
             static uint64_t get_n_bytes(const TextureFormat& in_format,
                                         const uint32_t&      in_width_in_texels,
                                         const uint32_t&      in_height_in_texels);
 
-            /* True if the value is a valid format, UNKNOWN included. Used to validate values read from a file. */
+            /* True if the value is a valid format, UNKNOWN included; validates values read from a file. */
             static bool is_format_value(const uint32_t& in_value);
 
         private:
-            /* Builds the properties for one table row from: block width, block height, depth, stencil, compressed, sRGB, name, bytes per block. */
+            /* Builds one table row: block width, block height, depth, stencil, compressed, sRGB, name, bytes per block. */
             static TextureFormatInfo make_info(const uint32_t& in_block_width,
                                                const uint32_t& in_block_height,
                                                const bool&     in_has_depth,

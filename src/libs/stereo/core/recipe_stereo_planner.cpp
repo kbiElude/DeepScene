@@ -294,9 +294,8 @@ void Stereo::Core::RecipeStereoPlanner::on_frame_completed(const uint64_t& in_sh
     if (m_convergence_model.follow_scene_convergence_distance(scene_distance,
                                                               fraction_of_the_way) == false)
     {
-        /* The scene is unknown. The limit of the previous scene stays together with its distance, because lifting it would give the eyes
-         * more room than the scene on the screen may allow. The distance of a far scene would be too much for a near one, so it comes down to
-         * the distance that the recipe gives for the draws that have none, and the natural separation with it. A distance below it stays.
+        /* Unknown scene: the previous limit stays (lifting it could over-separate). A distance above the recipe's default for draws
+         * comes down to it, with the natural separation; a lower one stays.
          */
         const float anchor_distance  = m_applier.get_view_anchor_shift().convergence_distance;
         const float current_distance = m_convergence_model.get_scene_convergence_distance();
@@ -375,9 +374,8 @@ float Stereo::Core::RecipeStereoPlanner::get_eye_parallax(const float& in_origin
     if (in_origin_depth < 0.0f &&
         distance        > 0.0f)
     {
-        /* The left eye's shift of a point at this depth is half the separation, reduced by what the convergence takes back. In normalized
-         * device units the picture is 2 wide, so this shift equals the distance between the two eyes' images as a fraction of the picture
-         * width.
+        /* Left-eye shift: half the separation, reduced by the convergence. The normalized picture is 2 wide, so this equals the eye-image
+         * distance as a fraction of the picture width.
          */
         const float shift_in_units = separation * HALF * (1.0f + in_origin_depth / distance);
 
@@ -522,9 +520,7 @@ Stereo::Core::ScreenShiftPlan Stereo::Core::RecipeStereoPlanner::plan_screen_shi
 void Stereo::Core::RecipeStereoPlanner::require_fast_path(const bool&        in_is_ok,
                                                           const std::string& in_reason) const
 {
-    /* Limitation: an application that fails here needs the calls of a pass to be held back until the pass is known. The converter has no
-     * such deferred path.
-     */
+    /* Limitation: the converter cannot hold a pass's calls back until the pass is known. */
     if (in_is_ok == false)
     {
         fail(in_reason                                                                                                   +

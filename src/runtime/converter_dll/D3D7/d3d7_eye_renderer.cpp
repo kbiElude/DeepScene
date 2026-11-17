@@ -65,10 +65,7 @@ void Stereo::ConverterDLL::D3D7EyeRenderer::copy_pixel_write_to_both_eyes(void* 
             goto end;
         }
 
-        /* If the back buffer is larger than the display mode, the application's picture fills only its corner. The corner is stretched into
-         * the twin and the twin is then copied back, so the picture fills the whole back buffer in both surfaces. Otherwise the whole back
-         * buffer is copied to the twin.
-         */
+        /* Larger back buffer: the picture fills only a corner; stretch it into the twin and copy back. Otherwise copy the whole buffer to the twin. */
         if (display_width  != 0                   &&
             display_height != 0                   &&
             display_width  <  description.dwWidth &&
@@ -742,9 +739,7 @@ bool Stereo::ConverterDLL::D3D7EyeRenderer::on_pre(const APIInterceptor::APIFunc
 
         case APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAWSURFACE7_LOCK:
         {
-            /* Pixels that the application reads or writes are in the application's pixels. A write of the whole surface is copied to both eyes
-             * when it ends (see copy_pixel_write_to_both_eyes()). Other reads and writes are only counted, if the back buffer is larger.
-             */
+            /* Whole-surface writes are copied to both eyes when they end (see copy_pixel_write_to_both_eyes()); other accesses are only counted. */
             if (in_n_arguments                          >= N_ARGUMENTS_LOCK                 &&
                 in_arguments_ptr[DESTINATION_ARGUMENT].type == APIInterceptor::ARGTYPE_VOID_PTR)
             {

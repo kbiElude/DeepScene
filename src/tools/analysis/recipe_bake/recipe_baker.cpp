@@ -180,10 +180,7 @@ bool Analysis::RecipeBake::RecipeBaker::compute_conditional_rules(const Analysis
     /* More than this many view matrices would make a rule that costs the converter too much time. */
     constexpr size_t MAX_VIEW_MATRICES_PER_RULE = 64;
 
-    /* TODO: the view matrix is the only thing that tells apart the passes that draw a signature differently. An application where it is not
-     * enough (the matrices of two classes overlap, or a pass has none, as when the camera is a shader constant) needs the deferred path of
-     * the converter: the calls of a pass are held back until the pass is known, and then played.
-     */
+    /* TODO: where view matrices do not tell passes apart (overlap, or none) the converter would need to hold a pass's calls back. */
     const std::string deferred_text = ". This application needs the converter to hold the draws "
                                       "of a pass back until it knows which pass it is, which the "
                                       "converter cannot do";
@@ -336,8 +333,7 @@ void Analysis::RecipeBake::RecipeBaker::compute_convergence(const Analysis::Reci
         parent_vec.at(n_pass) = n_pass;
     }
 
-    /* The converter does not know the pass of a draw, only its signature. A distance given per signature, not per pass, therefore has to be
-     * one distance for all the signatures of the passes that share any signature. Otherwise the draws of one pass would converge at
+    /* The converter knows only the signature, so passes that share any signature share one distance; else one pass would converge at
      * different distances.
      */
     for (uint32_t n_pass = 0;
@@ -639,9 +635,7 @@ std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_covering_draw_key_v
     {
         const uint64_t pass_key = in_analysis.model.pass_structure_interner.get_structure(pass_pair.first).key;
 
-        /* The passes that the recipe leaves alone are not moved by the overlay. When the vertices are moved sideways (a recipe with screen
-         * parallax), a draw that covers the view is not moved in any pass either, because that would leave a strip of the picture bare.
-         */
+        /* Passes left alone are not moved by the overlay. With screen parallax, a view-covering draw is not moved in any pass (bare strip). */
         if (unaffected_pass_key_set.count(pass_key) != 0 ||
             in_recipe.screen_parallax.is_enabled)
         {
@@ -673,9 +667,8 @@ Analysis::RecipeBake::RecipeBaker::PerEyeTextureVector Analysis::RecipeBake::Rec
 {
     PerEyeTextureVector result_vec;
 
-    /* The dependencies record what the frames do with each resource, in order, which the totals of the analysis do not. A target that is read
-     * in the frame after the one that rendered to it, and is not rewritten in that frame, is carried over too (for example two targets that a
-     * demo uses in turns, each in half of the frames).
+    /* The dependencies record the order of resource use, which the totals do not: a target read in the frame after the one that
+     * rendered it, and not rewritten there, is carried over too.
      */
     if (in_dependencies_ptr != nullptr)
     {
@@ -920,9 +913,7 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
             const auto surface_iterator = model_ref.surface_depth_histogram_map.find(Analysis::APIDumpAnalysis::DepthHistogramKey(n_shape,
                                                                                                                                   pass_id) );
 
-            /* A pass whose draws have no origin in front of the camera (its model-view matrix is the identity, so the vertices are in the space of the eye)
-             * still has the depths of its vertices.
-             */
+            /* A pass with no draw origin in front of the camera (identity model-view, eye-space vertices) still has vertex depths. */
             if (is_affected                                                      &&
                 (histogram_iterator != model_ref.depth_histogram_map.end()       ||
                  surface_iterator   != model_ref.surface_depth_histogram_map.end() ) )
@@ -978,8 +969,8 @@ std::vector<Analysis::RecipeBake::SceneMeasure> Analysis::RecipeBake::RecipeBake
         if (histogram.is_empty() == false)
         {
             measure.distance   = histogram.get_depth_at_fraction                           (FRACTION_MEDIAN);
-            /* There are two estimates: one from the vertices of the draws and one from the origins of the draws. Every draw has an origin; a draw whose
-             * vertices are not read (a display list) has no vertices. A surface is as near as the nearer estimate says and as far as the farther one says.
+            /* Two estimates, from vertices and from draw origins (every draw has an origin, not every draw has read vertices). A surface is
+             * as near as the nearer estimate says and as far as the farther one says.
              */
             const double near_fraction  = static_cast<double>(in_recipe.comfort.near_fraction);
             const float  origin_far     = histogram.get_depth_at_fraction        (1.0 - near_fraction);

@@ -2,13 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Stores the data that draws read from application memory and exposes it as resources of the model. A piece of data is a buffer. The model
- * builder is told about it the first time it is seen. Every later sighting, in any frame, gives the same buffer as long as the bytes are the same.
- *
- * The store keeps the bytes only as long as they are worth keeping, which depends on whether the piece is used again. Every piece is kept
- * for the frame in which it is seen, so that the frame can be drawn once for each eye. A piece seen in only one frame is released at the end of
- * that frame. A piece seen in a second frame is reused across frames and stays. A piece that was released and is seen again is stored again,
- * because every call carries its bytes.
+ * Stores the data that draws read from application memory and exposes it as buffer resources; identical bytes always give the same buffer.
+ * Every piece is kept for its frame (drawn once per eye); one-frame pieces are released at frame end, pieces seen in a second frame stay.
+ * A released piece seen again is stored again, as every call carries its bytes.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_BLOB_STORE_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_BLOB_STORE_H
@@ -34,9 +30,7 @@ namespace Analysis
                 /* The builder must outlive the store. */
                 explicit GLBlobStore(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
-                /* Returns the bytes of the piece if they are kept. They are kept for every piece of the current frame and for every piece seen in
-                 * more than one frame. Returns null if they are not kept, or if the resource does not belong to the store.
-                 */
+                /* Returns the bytes of the piece if kept (current-frame pieces and multi-frame pieces); null if not kept or not the store's resource. */
                 std::shared_ptr<const std::vector<uint8_t> > get_data_ptr(const Analysis::APIDumpAnalysis::ResourceId& in_resource_id) const;
 
                 /* The number of distinct pieces of data for which the store has created a resource. */
@@ -45,9 +39,7 @@ namespace Analysis
                 /* The number of bytes currently kept. */
                 uint64_t get_n_cached_bytes() const;
 
-                /* Returns the resource for the data. The resource is created now if the store has not seen these bytes before (as this kind of
-                 * buffer). The bytes are kept at least until the end of the frame.
-                 */
+                /* Returns the resource for the data, created if these bytes are new for this kind of buffer. Bytes are kept until frame end. */
                 Analysis::APIDumpAnalysis::ResourceId get_resource_id(const Analysis::APIDumpAnalysis::ResourceKind& in_kind,
                                                                       const void*                                    in_data_ptr,
                                                                       const size_t&                                  in_n_bytes);

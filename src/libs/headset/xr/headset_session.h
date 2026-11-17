@@ -40,25 +40,17 @@ namespace Headset
             std::string system_name;     /* name of the headset        */
         };
 
-        /* A headset of an OpenXR runtime and what is shown in it: a screen in the room that carries the image of each eye. The screen stays
-         * where it was placed (it does not follow the head) and is as large as the view allows. It works with any headset, because it
-         * relies only on OpenXR and its Direct3D 12 extension.
-         *
-         * Two threads use it. One runs the frames of the compositor (run_frame(), which waits for the compositor). The other supplies the
-         * eye images (acquire_eye_textures(), release_eye_textures()). The eye images are textures of the session's device. Whatever owns
-         * the session's queue copies the images into them.
+        /* OpenXR headset session showing a fixed screen in the room with the image of each eye (OpenXR + Direct3D 12 only).
+         * Two threads: one calls run_frame(), the other acquire_eye_textures()/release_eye_textures().
+         * The queue's owner copies the eye images into the textures of the session's device.
          */
         class HeadsetSession
         {
         public:
-            /* Creates the session, with its device, if a runtime and a headset are available. Returns nullptr and sets out_error_ptr to the
-             * reason if they are not.
-             */
+            /* Returns nullptr and sets out_error_ptr if no runtime or headset is available. */
             static std::unique_ptr<HeadsetSession> create_ptr(std::string* out_error_ptr);
 
-            /* Called from the thread that runs the frames, each time the compositor wants a frame. The argument is the duration of a headset
-             * frame in milliseconds. Set it before the frames are run. It must return quickly.
-             */
+            /* Called on the frame thread for each compositor frame (argument: headset frame period in ms). Set before running frames; must return quickly. */
             typedef std::function<void(const double& in_period_n_milliseconds)> FrameFunc;
 
             ~HeadsetSession();
@@ -66,10 +58,8 @@ namespace Headset
             HeadsetSession(const HeadsetSession&)            = delete;
             HeadsetSession& operator=(const HeadsetSession&) = delete;
 
-            /* Acquires the textures to copy the eyes into: the next image of each eye's swap chain, for an eye image of the given size.
-             * Returns false and sets out_error_ptr to the reason if no textures are available (the session is not running, or the compositor
-             * has not given an image back) or if the headset cannot show the size. Every call that returns textures must be followed by
-             * release_eye_textures(), which shows them.
+            /* Acquires the next swap chain image of each eye for the given size. Returns false and sets out_error_ptr if none is available or
+             * the size is unsupported. Every successful call must be followed by release_eye_textures().
              */
             bool acquire_eye_textures(const uint32_t&  in_width,
                                       const uint32_t&  in_height,
@@ -77,45 +67,34 @@ namespace Headset
                                       ID3D12Resource** out_right_texture_ptr_ptr,
                                       std::string*     out_error_ptr);
 
-            /* The device and the queue that the session uses. The device is on the adapter that the headset is on. */
+            /* Device and queue of the session, on the headset's adapter. */
             ID3D12Device*       get_device_ptr() const;
             ID3D12CommandQueue* get_queue_ptr () const;
 
-            /* The name that the runtime gives the headset. */
             std::string get_system_name() const;
 
-            /* The distance between the eyes of the person wearing the headset, in metres, as the runtime reports it. It is smoothed and
-             * follows adjustments of the headset while it is worn. It is 0 until the runtime has reported it.
-             */
+            /* Smoothed distance between the eyes in metres; 0 until the runtime has reported it. */
             float get_ipd() const;
 
-            /* Releases the textures that acquire_eye_textures() returned, so that the compositor shows what was copied into them. */
+            /* Shows the textures that acquire_eye_textures() returned. */
             void release_eye_textures();
 
-            /* Ends the session: the next run_frame() returns false. Can be called from any thread. */
+            /* Makes the next run_frame() return false. Any thread. */
             void request_exit();
 
-            /* Runs one frame of the compositor: waits for it and gives it the screen. Returns false when the session has ended (the user
-             * ended it, the runtime ended it, or request_exit() was called). out_error_ptr is not set.
-             */
+            /* Waits for and runs one compositor frame. Returns false when the session has ended (out_error_ptr is not set). */
             bool run_frame(std::string* out_error_ptr);
 
             void set_frame_func(const FrameFunc& in_frame_func);
 
-            /* Returns the log lines collected since the last call: the states the session went through, the size and place of the screen,
-             * and what went wrong. Callable from any thread.
-             */
+            /* Returns and clears the log lines collected so far. Any thread. */
             std::vector<std::string> take_log_lines();
 
 
-            /* The resource state that the textures are in when acquire_eye_textures() hands them out. They must be in it again when they are
-             * released.
-             */
+            /* State of the acquired textures; they must be back in it when released. */
             static D3D12_RESOURCE_STATES get_texture_state();
 
-            /* Asks the runtime whether it has a headset, and which one, without creating a session. It takes a few moments. Returns false and
-             * sets out_error_ptr to the reason if there is no runtime or no headset is connected.
-             */
+            /* Queries the runtime for a headset without creating a session (slow). Returns false and sets out_error_ptr if there is none. */
             static bool probe(HeadsetInfo* out_info_ptr,
                               std::string* out_error_ptr);
 
@@ -124,7 +103,7 @@ namespace Headset
             struct EyeSwapchain
             {
                 uint32_t                              acquired_index = 0;
-                bool                                  has_image      = false; /* an image was released to the compositor; it is the one that is shown */
+                bool                                  has_image      = false; /* an image was released and is the one shown */
                 std::vector<XrSwapchainImageD3D12KHR> image_vec;
                 SwapchainImageState                   state          = SwapchainImageState::IDLE;
                 XrSwapchain                           swapchain      = XR_NULL_HANDLE;
@@ -137,9 +116,7 @@ namespace Headset
                 std::mutex               mutex;
             };
 
-            /* The state that both threads use: the thread that runs the frames and the thread that supplies the eye images. The mutex guards
-             * all of it.
-             */
+            /* State of both threads; the mutex guards all of it. */
             struct Shared
             {
                 XrCompositionLayerCylinderKHR cylinder_layer_array[2] = {};
@@ -151,9 +128,7 @@ namespace Headset
                 XrCompositionLayerQuad        quad_layer_array[2]     = {};
             };
 
-            /* Statistics about the frames of the compositor, reported in the log once per second. Only the thread that runs the frames uses
-             * it. It reads the image serial of Shared, which the lock guards.
-             */
+            /* Frame statistics, logged once per second. Frame thread only (reads Shared::image_serial under the lock). */
             struct Timing
             {
                 Utils::Statistics::SeriesStats end_cost       = Utils::Statistics::SeriesStats(2.0); /* of xrEndFrame, ms                       */
@@ -174,84 +149,75 @@ namespace Headset
 
             void add_log(const std::string& in_text);
 
-            /* Clears every image of the eyes' swap chains to black, so that black is shown until something is copied into the next image. The
-             * images of a new swap chain hold whatever was in memory, which would flicker. Returns false and sets out_error_ptr to the reason
-             * if it fails.
-             */
+            /* Clears all swap chain images to black (new images hold garbage that would flicker). */
             bool clear_swapchain_images(std::string* out_error_ptr);
 
-            /* Creates the action that puts the screen where the head is, and suggests the buttons that trigger it. */
+            /* Creates the recenter action and suggests its buttons. */
             bool create_actions(std::string* out_error_ptr);
 
-            /* Creates the device and the command queue on the adapter that the headset is on. */
+            /* Creates the device and queue on the headset's adapter. */
             bool create_device(std::string* out_error_ptr);
 
-            /* Starts the OpenXR runtime with the extensions that the session needs. */
+            /* Starts the runtime with the needed extensions. */
             bool create_instance(std::string* out_error_ptr);
             bool create_session (std::string* out_error_ptr);
 
-            /* Creates the reference spaces: one for the room (local) and one for the head (view). */
+            /* Creates the room (local) and head (view) spaces. */
             bool create_spaces     (std::string* out_error_ptr);
             void destroy_swapchains();
 
-            /* Ends the frame with the given layers. With no layers the frame shows nothing. */
+            /* No layers: the frame shows nothing. */
             void end_frame(const XrTime&                              in_time,
                            const uint32_t&                            in_n_layers,
                            const XrCompositionLayerBaseHeader* const* in_layer_ptr_array);
 
-            /* Finds the headset of the runtime and reads its properties (name and largest image size). */
+            /* Finds the headset; reads its name and largest image size. */
             bool find_system(std::string* out_error_ptr);
 
             /* Returns the text for an OpenXR result code. */
             std::string get_result_text(const XrResult& in_result) const;
 
-            /* Reads where the head is (position and yaw), which is where the screen is placed. Returns false if the pose is not valid. */
+            /* Reads head position and yaw (screen placement). Returns false if the pose is invalid. */
             bool locate_head(const XrTime& in_time);
 
-            /* Logs a failed call once for each distinct result code. A headset that is not ready fails the same way on every frame. */
+            /* Logs each distinct result code once (a not-ready headset fails every frame). */
             void log_failure(const char*     in_what_ptr,
                              const XrResult& in_result);
             void log_screen (const float&    in_aspect_ratio);
 
-            /* Builds the layer of one eye: the screen as a cylinder if the runtime supports it, as a quad otherwise. */
+            /* Cylinder layer if supported, quad otherwise. */
             void make_layer(const uint32_t& in_n_eye,
                             const XrPosef&  in_pose,
                             const float&    in_aspect_ratio);
 
-            /* Builds the layers of the frame: the screen for each eye. Returns the number of layers, which is 0 if there is nothing to show. */
+            /* Returns the number of layers; 0 if there is nothing to show. */
             uint32_t make_layers             (const XrTime&         in_time);
             bool     make_swapchains         (const uint32_t&       in_width,
                                               const uint32_t&       in_height,
                                               std::string*          out_error_ptr);
             void     on_session_state_changed(const XrSessionState& in_state);
 
-            /* Picks the swap chain format whose bytes match the images. */
+            /* Picks the format whose bytes match the images. */
             bool pick_format(std::string* out_error_ptr);
             void poll_events();
 
-            /* Returns true if the user just pressed the button that puts the screen where the head is. */
+            /* True if the recenter button was just pressed. */
             bool read_recenter();
 
-            /* Returns the image size per eye that the runtime recommends, which is the size the headset is meant to be rendered at. Returns
-             * false if the runtime does not say.
-             */
+            /* Recommended image size per eye; false if the runtime does not say. */
             bool read_recommended_eye_size(uint32_t* out_width_ptr,
                                            uint32_t* out_height_ptr) const;
 
-            /* Creates everything the session needs, in order. Each step depends on the one before it. */
+            /* Runs the creation steps in dependency order. */
             bool set_up(std::string* out_error_ptr);
 
-            /* Reads the field of view that both eyes share, which is what the screen fills. It is read on every frame because a headset can
-             * change it. Also updates the smoothed eye distance.
-             */
+            /* Reads the shared field of view (every frame, it can change) and updates the smoothed eye distance. */
             void update_field_of_view(const XrTime& in_time);
 
             static const char* get_state_name(const XrSessionState& in_state);
 
 
-            /* m_ipd and m_is_exit_requested are atomics that any thread can read and write. m_shared and m_log have their own locks. The rest
-             * belongs first to the thread that sets the session up and then to the thread that runs the frames.
-             */
+            /* m_ipd and m_is_exit_requested are atomic; m_shared and m_log have their own locks. The rest: setup thread, then frame thread. */
             XrAction                                           m_action                      = XR_NULL_HANDLE;
             XrActionSet                                        m_action_set                  = XR_NULL_HANDLE;
             Microsoft::WRL::ComPtr<ID3D12Device>               m_device_ptr;

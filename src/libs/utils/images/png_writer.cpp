@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "utils/files/file_writer.h"
 #include "utils/images/png_writer.h"
 #include "miniz.h"
 #include <stdio.h>
@@ -68,9 +69,7 @@ bool Utils::Images::PngWriter::write_file(const std::string& in_path,
                                           const Image&       in_image)
 {
     std::vector<uint8_t> file_u8_vec;
-    FILE*                file_handle = nullptr;
-    bool                 is_written  = false;
-    bool                 result      = false;
+    bool                 result = false;
 
     if (encode(in_image,
               &file_u8_vec) == false)
@@ -78,25 +77,9 @@ bool Utils::Images::PngWriter::write_file(const std::string& in_path,
         goto end;
     }
 
-    file_handle = ::fopen(in_path.c_str(),
-                          "wb");
-
-    if (file_handle == nullptr)
-    {
-        goto end;
-    }
-
-    is_written = (::fwrite(file_u8_vec.data(),
-                           file_u8_vec.size(),
-                           1,
-                           file_handle) == 1);
-
-    {
-        const int close_result = ::fclose(file_handle);
-
-        result = (close_result == 0 &&
-                  is_written);
-    }
+    result = Utils::Files::FileWriter::write_bytes(in_path,
+                                                   file_u8_vec.data(),
+                                                   file_u8_vec.size() );
 
 end:
     return result;

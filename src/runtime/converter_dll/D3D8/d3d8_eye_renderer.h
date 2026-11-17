@@ -20,19 +20,11 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Renders the right eye of a Direct3D 8 application. The application's own calls draw the left eye. The renderer draws the right
-         * eye after each of those calls. Every render target, depth buffer and texture that the application renders to has a twin, which the
-         * renderer creates when the application creates the original. A draw, clear or copy of the application is repeated with the twins in
-         * place of the application's objects. The renderer calls the device through its virtual table, so anything that watches the device
-         * does not see these calls.
-         *
-         * A draw with vertices in pixels (D3DFVF_XYZRHW) is made by the renderer for both eyes. The core's plan moves the vertices for each eye.
-         *
-         * When the renderer meets something it cannot follow, it ends the application instead of showing wrong images. This covers locking a
-         * render target, resetting the device, rendering to a surface the renderer did not see created, and XYZRHW vertices from a vertex buffer.
-         *
-         * Not thread-safe. The caller serializes the calls, and the device belongs to one thread.
-         */
+        /* Draws the right eye of a Direct3D 8 application after each call that draws the left eye, repeating draws, clears and copies
+         * on twins of the render targets, depth buffers and textures; calls go through the device's virtual table.
+         * XYZRHW (pixel) draws are made here for both eyes. It ends the application on what it cannot follow (locking a render target,
+         * device reset, unseen surfaces, XYZRHW vertices from a vertex buffer).
+         * Not thread-safe: the caller serializes the calls; the device belongs to one thread. */
         class D3D8EyeRenderer
         {
         public:
@@ -41,15 +33,14 @@ namespace Stereo
             /* The twin of the back buffer of the device, or nullptr if there is none. */
             void* get_back_buffer_twin_ptr(void* in_device_ptr);
 
-            /* The number of twins created, and the number of twins that were wanted but could not be created (the device refused to create a render
-             * target or depth buffer again). */
+            /* Twins created, and twins wanted but not created (the device refused). */
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
 
-            /* The render target that the application currently renders to, as the renderer tracked it. nullptr before the device is created. */
+            /* The tracked current render target; nullptr before the device is created. */
             void* get_render_target_ptr() const;
 
-            /* The call is done: creates what the right eye needs for it (a twin of the object the call created, or the call repeated with the twins). */
+            /* The call is done: creates what the right eye needs (a twin, or the call repeated with twins). */
             void on_post(const APIInterceptor::APIFunction&         in_function,
                          const uint32_t&                            in_n_arguments,
                          const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
@@ -59,10 +50,8 @@ namespace Stereo
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* A draw is about to be made: sets the left eye's matrices in the device. Returns false if the application's call must not be made: either
-             * the draw is skipped, or the renderer already made it for both eyes (vertices in pixels). The picture width is the width of the
-             * application's viewport.
-             */
+            /* A draw is about to be made: sets the left eye's matrices. Returns false if the application's call must not be made
+             * (skipped, or already made for both eyes with pixel vertices). The picture width is the application viewport's width. */
             bool on_pre_draw(const Analysis::Recipe::DrawClass&         in_draw_class,
                              const APIInterceptor::APIFunction&         in_function,
                              const float&                               in_picture_width,
@@ -74,11 +63,11 @@ namespace Stereo
             /* The device state that the application has set, as far as the renderer has seen it. */
             struct DeviceMirror
             {
-                void*                                    back_buffer_ptr   = nullptr; /* the back buffer that the device was created with, which is what is presented */
+                void*                                    back_buffer_ptr   = nullptr; /* the back buffer the device was created with (the one presented) */
                 void*                                    depth_stencil_ptr = nullptr;
                 void*                                    render_target_ptr = nullptr;
                 std::array<void*, N_TEXTURE_STAGES>      texture_ptr_array = {};
-                uint32_t                                 vertex_shader     = 0;       /* the last argument of SetVertexShader: a shader handle, or a vertex format (a handle has the top bit set) */
+                uint32_t                                 vertex_shader     = 0;       /* last SetVertexShader argument: shader handle (top bit set) or vertex format */
             };
 
             void  apply_matrices          (void*                                      in_device_ptr,
@@ -104,7 +93,7 @@ namespace Stereo
             void  repeat_call             (const APIInterceptor::APIFunction&         in_function,
                                            const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const;
 
-            /* The twin of a surface or a texture, or the object itself if it has no twin. The right eye reads from this. */
+            /* The twin of a surface or texture, or the object itself if it has none; the right eye reads from this. */
             void* get_twin_or_own_ptr(void* in_object_ptr) const;
 
             /* The twin of a surface or a texture; nullptr if it has none. */
@@ -113,7 +102,7 @@ namespace Stereo
             /* Returns the pointer that an argument holds, to pass to the device unchanged. */
             static void* get_pointer_argument(const APIInterceptor::APIFunctionArgument& in_argument);
 
-            std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the draw being made; the entries are reused */
+            std::vector<Stereo::Core::MatrixChange> m_change_vec; /* of the current draw; entries are reused */
             Stereo::Core::RecipeStereoPlanner*      m_core_ptr;
             void*                                   m_device_ptr;
             Analysis::Recipe::DrawClass             m_draw_class;

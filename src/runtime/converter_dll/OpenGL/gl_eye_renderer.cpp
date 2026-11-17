@@ -1073,9 +1073,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         }
     }
 
-    /* The parallax that the eyes already apply to the draw, which the push must leave room for. It is zero for a draw made as it is. Otherwise it is
-     * the parallax of the depth of the draw's origin under its projection.
-     */
+    /* Parallax the eyes already apply to the draw, which the push must leave room for; zero for an unmoved draw. */
     float layer_parallax = 0.0f;
 
     if (in_is_pushed &&

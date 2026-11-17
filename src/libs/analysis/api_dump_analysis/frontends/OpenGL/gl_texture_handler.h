@@ -2,11 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Handles the OpenGL texture calls: the textures of the program (shared by all contexts), their levels and contents, the units they are bound to,
- * and what the model builder and the texture sink are told about them (events for uploads, copies and driver-generated levels, and snapshots of
- * rendered content, see TextureEventKind). A call that changes a kind of texture that is not followed ends the process (see
- * is_unsupported_texture_function() and UnsupportedUse). Copies of the window to a texture are done by the front end, which knows the window.
- * It uses the functions of this class that create a level (specify_texture(), record_texture_level(), report_render_write()).
+ * Handles the OpenGL texture calls: textures (shared by all contexts), levels, unit bindings, and the events and snapshots reported
+ * to the model builder and texture sink (see TextureEventKind). Unfollowed texture kinds end the process (see UnsupportedUse).
+ * Window-to-texture copies are done by the front end, which knows the window.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_TEXTURE_HANDLER_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_TEXTURE_HANDLER_H
@@ -33,16 +31,14 @@ namespace Analysis
                 void add_texture_bindings(const GLContextState&                       in_state,
                                           Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr) const;
 
-                /* OpenGL objects are numbers, not application addresses, so the address of a texture is the name the program uses for it. Returns false
-                 * if there is no such texture or if it has no resource yet (it gets one once it is given a size).
-                 */
+                /* A texture's address is its name. Returns false if it does not exist or has no resource yet (no size given). */
                 bool find_resource_view(const uint64_t&                          in_address,
                                         Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const;
 
                 /* Returns the texture with the given name; nullptr if the program has not created one. */
                 const Analysis::APIDumpAnalysis::Frontends::GLTexture* find_texture_ptr(const uint32_t& in_name) const;
 
-                /* A level of the bound texture changed. If the texture has GL_GENERATE_MIPMAP and the changed level is the first, the levels below it are generated. */
+                /* A level of the bound texture changed; with GL_GENERATE_MIPMAP and the first level changed, the lower levels are generated. */
                 void generate_mipmaps_if_automatic(const GLContextState& in_state,
                                                    const uint32_t&       in_level);
 
@@ -65,7 +61,7 @@ namespace Analysis
                 void handle_generate_mipmap(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                             const GLContextState&                        in_state);
 
-                /* A glPixelStorei call: the alignment and the row length of uploads are stored. The other values are not followed. */
+                /* A glPixelStorei call: alignment and row length are stored; other values are not followed. */
                 void handle_pixel_store(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                         GLContextState*                              inout_state_ptr);
 
@@ -74,9 +70,7 @@ namespace Analysis
                                       const Capture::APIDumpLoader::Workload&      in_workload,
                                       GLContextState*                              inout_state_ptr);
 
-                /* glTexParameteri and glTexParameterf, and the forms that take an array. Only the three parameters that change what the texture holds are
-                 * examined. GL_GENERATE_MIPMAP and GL_TEXTURE_MAX_LEVEL are stored. A base level other than the first is not followed.
-                 */
+                /* glTexParameter*: only the parameters that change the content are examined; GL_GENERATE_MIPMAP and GL_TEXTURE_MAX_LEVEL are stored. */
                 void handle_tex_parameter(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                           const GLContextState&                        in_state);
 
@@ -85,12 +79,12 @@ namespace Analysis
                                           const Capture::APIDumpLoader::Workload&      in_workload,
                                           GLContextState*                              inout_state_ptr);
 
-                /* Returns the level of the texture bound to the active unit, as the call that created it specified it. Returns false if the texture has no size yet. */
+                /* Returns the level of the active unit's texture as specified by its creating call; false if the texture has no size. */
                 bool record_texture_level(const GLContextState& in_state,
                                           const uint32_t&       in_level,
                                           const GLTextureLevel& in_texture_level);
 
-                /* A region of a level of the bound texture now holds content made by rendering (a copy from the window). It is reported to the builder for the texture sink. */
+                /* A level region now holds rendered content (a window copy); reported to the builder for the texture sink. */
                 void report_render_write(const GLContextState& in_state,
                                          const uint32_t&       in_level,
                                          const uint32_t&       in_x_offset,
@@ -98,13 +92,12 @@ namespace Analysis
                                          const uint32_t&       in_width,
                                          const uint32_t&       in_height);
 
-                /* A draw is about to read the textures it samples. The levels that rendering changed since they were last read are reported as snapshots
-                 * (see TextureEventKind::SNAPSHOT) and are then marked unchanged. A snapshot covers the smallest region that contains the rendered content
-                 * (the whole level for levels that the driver generated), and never storage that was allocated but not filled.
+                /* A draw is about to sample its textures: levels rendered since the last read are reported as snapshots (TextureEventKind::SNAPSHOT)
+                 * and marked unchanged. A snapshot covers the smallest rendered region (the whole level if driver-generated).
                  */
                 void report_snapshots(const GLContextState& in_state);
 
-                /* Returns the resource of the texture bound to the active unit. It is created, or created again if the size changed. */
+                /* Returns the active unit's texture resource, created again if the size changed. */
                 void specify_texture(const GLContextState& in_state,
                                      const uint32_t&       in_internal_format,
                                      const uint32_t&       in_width,
@@ -120,14 +113,12 @@ namespace Analysis
                 static bool is_unsupported_texture_function(const APIInterceptor::APIFunction& in_function);
 
             private:
-                /* Generates the levels of the bound texture below the first (down to one by one texel, or to its GL_TEXTURE_MAX_LEVEL), as the driver does
-                 * for glGenerateMipmap. Each level is reported as an event, as a copy of the level above for the dependencies, and as content that the workload does not hold.
+                /* Generates the levels below the first (down to 1x1 or GL_TEXTURE_MAX_LEVEL) like the driver; each is reported as an event and
+                 * as a copy of the level above, with content the workload does not hold.
                  */
                 void generate_mipmap_levels(const GLContextState& in_state);
 
-                /* Builds the texture event of the call, except for the event kind: the destination, the region, and the level as it is after the call,
-                 * in the terms of the project (the format is the named one, and the API value is stored beside it). The level is one that the texture has.
-                 */
+                /* Builds the call's texture event except its kind: destination, region and the level after the call. The level must exist. */
                 Analysis::APIDumpTextures::TextureEvent make_texture_event(const GLTexture& in_texture,
                                                                            const uint32_t&  in_level,
                                                                            const uint32_t&  in_x_offset,
@@ -135,9 +126,7 @@ namespace Analysis
                                                                            const uint32_t&  in_width,
                                                                            const uint32_t&  in_height) const;
 
-                /* A region of a level of the bound texture receives the pixels of the call (the ninth argument), or none. It is reported to the builder
-                 * for the texture sink, with the bytes, their layout (from the pixel store of the context), and their format and type.
-                 */
+                /* A level region receives the call's pixels (ninth argument) or none; reported for the texture sink with bytes, layout and format. */
                 void report_upload(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const Capture::APIDumpLoader::Workload&      in_workload,
                                    const GLContextState&                        in_state,
@@ -149,7 +138,7 @@ namespace Analysis
                                    const uint32_t&                              in_format,
                                    const uint32_t&                              in_type);
 
-                /* The pixels of a call that fills a level of the texture of the active unit, as the resource receives them: for the whole level, or for a rectangle of it. */
+                /* The pixels a call writes into the active unit's texture, as the resource receives them (whole level or rectangle). */
                 void upload_texture_level(const Capture::APIDumpLoader::DumpedAPICall&              in_call,
                                           const Capture::APIDumpLoader::Workload&                   in_workload,
                                           const GLContextState&                                     in_state,

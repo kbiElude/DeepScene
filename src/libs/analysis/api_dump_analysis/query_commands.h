@@ -2,16 +2,15 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Queries over an analysis. Each command writes its JSON answer to a JsonWriter and does no I/O, so the tool and the
- * tests can use it freely.
+ * Queries over an analysis. Each command writes its JSON answer to a JsonWriter and does no I/O.
  *
  * Commands:
- *   depth      how deep the draws of each pass are in each kind of frame: the depths below which a tenth, a half and nine tenths of them lie
+ *   depth      draw depth per pass and frame kind: the depths below which 10%, 50% and 90% of the draws lie
  *   info       what the analysis is of, and how much it found
  *   timeline   runs of frames of one shape, in time order (paged)
- *   pipelines  frame shapes and the pass structures each is made of (paged)
- *   overlays   passes whose camera never changes, their draws, and the draws with an orthographic projection: candidates for 2D overlays,
- *              as a recipe "unaffected" list (a hint only)
+ *   pipelines  frame shapes and their pass structures (paged)
+ *   overlays   passes with a constant camera and draws with an orthographic projection: 2D overlay candidates, as a recipe
+ *              "unaffected" list (a hint only)
  *   pass       one pass structure, with its draws (paged) and camera constants
  *   frame      one frame by index, or a representative frame of a shape
  *   resources  what the frames did with each resource, optionally for one class (paged)
@@ -37,15 +36,13 @@ namespace Analysis
             /* The names of the commands. */
             static const std::vector<std::string>& get_command_names();
 
-            /* Helpers shared by the queries of every analysis file: the name of a kind of resource, and the end of the page of a list (the items
-             * from the offset up to the limit of the arguments; a limit of 0 means all, and the end of the page is then the total).
-             */
+            /* Helpers shared by the queries: a resource kind name, and the end of a list page (offset up to the limit; limit 0 means all). */
             static uint64_t    get_page_end          (const uint64_t&       in_total,
                                                       const QueryArguments& in_arguments);
             static const char* get_resource_kind_name(const ResourceKind&   in_kind);
 
-            /* Data of the overlays command for the tools that look into it further: the first frame that contains the pass structure (false if no
-             * frame does), the depth spread of the vertices of a pass, and the passes whose camera never changes (in the order of their IDs).
+            /* Overlays data for tools: the first frame containing the pass structure (false if none), a pass's vertex depth spread, and the
+             * passes with a constant camera (in ID order).
              */
             static bool get_first_frame_index(const AnalysisResult& in_analysis,
                                               const uint32_t&       in_pass_id,

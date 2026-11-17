@@ -622,9 +622,8 @@ bool Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::is_unsupported_text
 {
     bool result = false;
 
-    /* Calls that create or change a texture that is not a GL_TEXTURE_2D, or that change one in a way that is not followed: compressed images, immutable
-     * storage, multisampled and three dimensional textures, one dimensional textures, buffer textures, views, images, textures attached to a framebuffer,
-     * calls that address a texture by name directly, and calls that clear, copy or invalidate the content of a texture.
+    /* Calls that create or change a non-GL_TEXTURE_2D texture, or change one in an unfollowed way (compressed, immutable, multisampled, 1D/3D,
+     * buffer textures, views, images, framebuffer attachments, by-name access, clear/copy/invalidate).
      */
     switch (in_function)
     {
@@ -823,9 +822,8 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_snapshots(co
 
     const bool wants_events = m_builder_ptr->wants_texture_events();
 
-    /* A draw reads the textures of the units that have the target enabled. Content that rendering wrote to a level, and that nothing has read since, is not
-     * in the workload. A snapshot captures this content, once each time it changes. Which levels a draw reads depends on how far the texture is from the
-     * eye, so every level that rendering changed is treated as read.
+    /* A draw reads the textures of units with the target enabled. Rendered content not yet read is not in the workload, so a snapshot
+     * captures it once per change. Which levels are read depends on distance, so every rendered-to level counts as read.
      */
     for (const auto& binding_pair : in_state.attributes.texture_binding_map)
     {
@@ -924,10 +922,8 @@ void Analysis::APIDumpAnalysis::Frontends::GLTextureHandler::report_upload(const
                                                                                      in_state.pixel_store.unpack_row_length,
                                                                                      in_state.pixel_store.unpack_alignment);
 
-        /* Either the call holds the pixels, or there are none and the level only gets a size. The dumper stores a data chunk for every pixel pointer that is
-         * not an offset into a buffer. For a null pointer the chunk has no bytes (see MemoryChunk). A chunk without bytes therefore means a null pointer,
-         * that is, storage that is allocated but not filled (a texture that will be a copy target). A demo can create one such texture, of 1024 by 512 texels,
-         * and a frame fills part of it with a copy.
+        /* Either the call holds the pixels, or the level only gets a size. The dumper stores a chunk for every pixel pointer that is not a
+         * buffer offset; a null pointer gives an empty chunk (see MemoryChunk), i.e. allocated but unfilled storage (a future copy target).
          */
         if (chunk_ptr != nullptr &&
             chunk_ptr->empty() == false)

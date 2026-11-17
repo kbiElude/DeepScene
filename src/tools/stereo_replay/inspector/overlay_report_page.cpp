@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "utils/files/file_writer.h"
 #include "overlay_report_page.h"
 #include <algorithm>
 #include <set>
@@ -508,18 +509,7 @@ end:
 bool Stereo::Replay::Inspector::OverlayReportPage::write_text_file(const std::string& in_path,
                                                                const std::string& in_text)
 {
-    FILE*      file_ptr = ::fopen(in_path.c_str(),
-                                  "wb");
-    const bool result   = (file_ptr != nullptr);
-
-    if (result)
-    {
-        ::fwrite(in_text.data(),
-                 1,
-                 in_text.size(),
-                 file_ptr);
-        ::fclose(file_ptr);
-    }
-
-    return result;
+    return Utils::Files::FileWriter::write_bytes(in_path,
+                                                 in_text.data(),
+                                                 in_text.size() );
 }

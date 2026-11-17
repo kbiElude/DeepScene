@@ -2,17 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The decisions of a converter that plays an application as it runs and renders each eye of what the application draws, whatever the
- * API is. An adapter for an API tells RecipeStereoPlanner what the application does (it sets a matrix, it draws) and carries out its answers
- * (set these matrices, draw this once or once per eye). The adapter knows nothing about the application, only about the recipe, which
- * must be baked (see RecipeBake).
- *
- * A converter knows less when a draw is issued than an offline replay does. It does not know which pass the draw belongs to. A draw is
- * therefore identified by its signature and the view matrix (see Recipe::draw_rule_vec), and a recipe rule that is about a pass or a
- * frame shape cannot be followed. If an application needs more than that, the converter fails at once, through the function it was
- * given, instead of producing wrong images.
- *
- * Not thread-safe: an adapter calls it from the thread that calls the device.
+ * API-neutral decisions of a live converter that renders each eye. An adapter reports what the application does and carries out the answers.
+ * The recipe must be baked (see RecipeBake). A draw is known only by signature and view matrix (see Recipe::draw_rule_vec), so pass or
+ * frame-shape rules cannot be followed; the converter then fails through its fail function. Not thread-safe: call from the device thread.
  */
 #ifndef STEREO_CORE_RECIPE_STEREO_PLANNER_H
 #define STEREO_CORE_RECIPE_STEREO_PLANNER_H
@@ -39,23 +31,19 @@ namespace Stereo
             RecipeStereoPlanner(const Analysis::Recipe::Recipe& in_recipe,
                                 const FailFunc&                 in_fail_func);
 
-            /* Collects the matrices to put in the device before a draw of in_draw_class for in_eye, leaving out those that are already in it.
-             * For an affected draw, the matrices that the recipe changes are made for the eye. For any other draw they are the application's
-             * own matrices. A draw that goes to the final target (what the application presents) and is not affected is pushed toward the
-             * viewer if the recipe says so. The caller must treat the returned matrices as put in the device. Do not call it for a skipped
-             * draw, which is not played.
-             *
-             * The changes are written to the first entries of the vector. The caller keeps the vector from one call to the next so that the
-             * storage of its entries is reused. The entries after the returned count are not valid. Returns the number of changes.
+            /* Collects the matrices to put in the device before a draw of in_draw_class for in_eye, leaving out those already in it.
+             * Affected draws get eye matrices, others the application's own. Unaffected draws to the final target may be pushed. The
+             * caller must treat the result as put in the device. Do not call for a skipped draw.
+             * Written to the first entries of the vector (keep it between calls to reuse storage); entries after the count are invalid.
+             * Returns the number of changes.
              */
             uint32_t bind_matrices(const Analysis::Recipe::DrawClass& in_draw_class,
                                    const Analysis::Recipe::Eye&       in_eye,
                                    std::vector<MatrixChange>*         inout_change_vec_ptr,
                                    const bool&                        in_is_final_target = false);
 
-            /* Returns what the recipe does to a draw, found by the draw's signature and the view matrix that the application has now. A draw
-             * that covers the whole view (a flash) is not pushed toward the viewer, because its picture would move and leave a strip of the
-             * screen bare.
+            /* Returns what the recipe does to a draw, by its signature and the current view matrix. A draw covering the whole view
+             * is never pushed (it would leave a bare strip).
              */
             Analysis::Recipe::DrawClass classify_draw(const uint64_t& in_signature_key,
                                                       const uint64_t& in_cover_key);
@@ -63,9 +51,7 @@ namespace Stereo
             /* Forgets the stored matrices. Call it when the device holds other matrices than the converter knows of (after a device reset). */
             void forget_matrices();
 
-            /* Accessors for the values that were set (see set_convergence_distance()). A convergence distance of 0 means that the recipe's
-             * distances are in use.
-             */
+            /* Accessors for the set values (see set_convergence_distance()). A convergence distance of 0 means the recipe's are in use. */
             float                        get_convergence_distance          () const;
             float                        get_depth_strength                () const;
             float                        get_effective_convergence_distance() const;
@@ -81,22 +67,20 @@ namespace Stereo
             uint64_t                     get_n_unknown_frames              () const;
             const std::array<float, 16>& get_view_matrix                   () const;
 
-            /* Returns the matrix that is put in front of the camera of a draw for the eye. It is laid out as OpenGL lays out matrices (column
-             * after column). It moves the camera half the eye separation to the side (the left eye is on the left) and shears the scene by
-             * depth, so that what is at the convergence distance stays where it is. The separation and the distance are the effective ones
-             * (see ConvergenceModel). With no convergence distance the matrix is only the translation.
+            /* Returns the matrix put in front of a draw's camera for the eye, in OpenGL (column-major) layout: half the eye separation
+             * sideways plus a depth shear that keeps the convergence distance fixed. Uses the effective separation and distance (see
+             * ConvergenceModel). Without a convergence distance it is only the translation.
              */
             std::array<float, 16> make_eye_shift_matrix(const Analysis::Recipe::Eye& in_eye) const;
 
-            /* Returns true if the last draw is attached to the camera and is therefore made the same way for both eyes. That is the case when
-             * its origin depth (in front of the camera, whatever the handedness) is below Comfort::camera_attached_depth times the
-             * convergence distance, and the draw is not in eye space.
+            /* Returns true if the last draw is attached to the camera (drawn the same for both eyes): its origin depth is below
+             * Comfort::camera_attached_depth times the convergence distance, and it is not in eye space.
              */
             bool is_last_draw_attached_to_camera(const float& in_origin_depth) const;
 
-            /* Copies the last draw's vertices (in pixels, see ScreenSpaceVertexShifter) and moves the copy for the eye. It asks plan_screen_shift() what
-             * to do and leaves the application's vertices alone. Returns true if the output vector holds the vertices to draw, because they
-             * were moved or because in_must_copy asked for a copy.
+            /* Copies the last draw's vertices (in pixels, see ScreenSpaceVertexShifter) and moves the copy for the eye per
+             * plan_screen_shift(); the application's vertices are untouched. Returns true if the output holds the vertices to draw
+             * (moved, or in_must_copy asked for a copy).
              */
             bool make_screen_vertices(const Analysis::Recipe::Eye& in_eye,
                                       const bool&                  in_is_presented,
@@ -114,9 +98,7 @@ namespace Stereo
              */
             float get_camera_attached_depth() const;
 
-            /* Returns true if the recipe wants a run of single-pixel reads by the application to be served from a picture that is read once
-             * (see Recipe::caches_pixel_reads).
-             */
+            /* Returns true if the recipe wants single-pixel reads served from one picture read once (see Recipe::caches_pixel_reads). */
             bool get_caches_pixel_reads() const;
 
             /* The fraction of the surfaces of a scene that counts as its nearest (see Comfort::near_fraction). */
@@ -125,55 +107,45 @@ namespace Stereo
             /* Whether the recipe has the converter measure how deep each frame is (see Comfort::measures_depth). */
             bool get_measures_depth() const;
 
-            /* Reports how deep the frame that the application has just presented was, measured from its depth buffer (see
-             * DepthRangeMeasurer), together with the x scale of its projection. The eyes follow the convergence distance and the maximum
-             * separation that the comfort settings of the recipe give for that depth (see RecipeApplier::get_comfort_limits()). If the recipe
-             * has comfort settings for the shape of the frame, they win over the values baked for the shape (see on_frame_completed()). The
-             * eyes ease toward them as on_frame_completed() describes, including the snap at a cut.
-             * Returns false and does nothing if the range has no depth.
+            /* Reports the depth of the just-presented frame, measured from its depth buffer (see DepthRangeMeasurer), with the x scale of
+             * its projection. The eyes follow the convergence distance and maximum separation that the recipe's comfort settings give for
+             * it (see RecipeApplier::get_comfort_limits()); comfort settings for the frame shape win over baked values. Easing as in
+             * on_frame_completed(). Returns false and does nothing if the range has no depth.
              */
             bool on_frame_depth(const uint64_t&   in_shape_key,
                                 const DepthRange& in_depth_range,
                                 const float&      in_projection_scale);
 
-            /* Reports that the frame the application has just presented had the shape in_shape_key (see CompletedFrame::shape_key). If the
-             * recipe has a convergence distance for that shape (see Recipe::scene_convergence_vec), the draws that follow converge there. The
-             * convergence eases toward the distance over several frames (by time with comfort.ease_by_time), which keeps a scene made of frames
-             * with slightly different shapes from pulsing. The first distance is taken at once, and so is one far from the one before when the
-             * recipe sets comfort.snap_at_cuts. If the recipe does not know the shape, the limit on the eye separation and the convergence
-             * distance stay as they are, except that a distance above the one the recipe gives for draws that have none (see ViewAnchorShift) comes
-             * down to it, so that a scene that is near is not given the separation of a far one.
+            /* Reports that the just-presented frame had the shape in_shape_key (see CompletedFrame::shape_key). If the recipe has a
+             * convergence distance for it (see Recipe::scene_convergence_vec), later draws converge there, easing over several frames (by
+             * time with comfort.ease_by_time). The first distance, and a far one with comfort.snap_at_cuts, is taken at once. For an
+             * unknown shape the limit and distance stay, except a distance above the recipe's default for draws (see ViewAnchorShift)
+             * comes down to it.
              */
             void on_frame_completed(const uint64_t& in_shape_key);
 
-            /* Handles an application call that sets a matrix. The arguments are those of the call, and in_matrix is the matrix inside them.
-             * Returns true if a recipe rule is about this matrix: the converter stores the matrix and puts it in the device when a draw needs
-             * it (see bind_matrices()), so the caller must not execute the call. Otherwise the caller executes the call, and any matrix
-             * stored for the same call is forgotten.
+            /* Handles an application call that sets a matrix (in_matrix is the matrix inside its arguments). Returns true if a rule is
+             * about it: the matrix is stored and bound at draw time (see bind_matrices()), so the caller must not execute the call.
+             * Otherwise the caller executes it and any matrix stored for the same call is forgotten.
              */
             bool on_matrix_call(const APIInterceptor::APIFunction&                      in_function,
                                 const std::vector<APIInterceptor::APIFunctionArgument>& in_argument_vec,
                                 const std::array<float, 16>&                            in_matrix);
 
-            /* Reports that the application set the view matrix, which the rules for draws may be about. Call it in addition to
-             * on_matrix_call() when the call sets the view matrix.
-             */
+            /* Reports a view matrix set by the application. Call it in addition to on_matrix_call(). */
             void on_view_matrix_set(const std::array<float, 16>& in_matrix);
 
-            /* Returns how far apart the eyes move a point at in_origin_depth (negative in front of the camera), as a fraction of the picture
-             * width. The value is positive in front of the convergence distance and negative behind it. It is 0 if the point is not in front
-             * of the camera.
+            /* Returns how far apart the eyes move a point at in_origin_depth (negative in front of the camera), as a fraction of the
+             * picture width: positive nearer than the convergence distance, negative beyond it, 0 if not in front of the camera.
              */
             float get_eye_parallax(const float& in_origin_depth,
                                    const float& in_projection_x_scale,
                                    const bool&  in_is_perspective) const;
 
-            /* Returns how far, in pixels, the draw that classify_draw() last classified is moved sideways for the eye if it is a protruding
-             * part (see get_is_last_draw_part()). The result puts the part where the eyes would have put it if it had been drawn once per eye.
-             * It is the shift that the affected draws get. It depends on the depth of the draw's origin in eye space (a negative number: the z
-             * of the translation of its model-view matrix) and on the projection the draw uses (its x scale, and whether it is perspective).
-             * A part drawn once for both eyes is moved by this shift and by the push, so that it stands where the object it belongs to
-             * stands, and slightly in front of it. Positive is to the right, as for plan_push_shift(). It is 0 if the draw is not a part.
+            /* Returns the sideways shift in pixels, for the eye, of the last classified draw if it is a protruding part (see
+             * get_is_last_draw_part()): the shift the affected draws get. Depends on the origin depth in eye space (negative: z of the
+             * model-view translation) and the projection (x scale, perspective or not). Positive is right, as for plan_push_shift().
+             * 0 if the draw is not a part.
              */
             float plan_follow_shift(const Analysis::Recipe::Eye& in_eye,
                                     const float&                 in_picture_width_pixels,
@@ -181,10 +153,9 @@ namespace Stereo
                                     const float&                 in_projection_x_scale,
                                     const bool&                  in_is_perspective) const;
 
-            /* Returns the shift of a protruding part that is drawn once for both eyes. It is the sum of the shift from plan_follow_shift() and
-             * the push (plan_push_shift()), limited to what the scene allows: the nearest and the farthest parallax of the recipe, or of the
-             * scene if the scene sets its own. Without the limit, a part whose origin is very near the camera would be moved without bound.
-             * Positive is to the right. The result equals plan_push_shift() if the draw is not a part.
+            /* Returns the shift of a protruding part drawn once for both eyes: plan_follow_shift() plus the push (plan_push_shift()),
+             * limited to the near and far parallax of the recipe (or the scene's own). Positive is right. Equals plan_push_shift()
+             * if the draw is not a part.
              */
             float plan_part_shift(const Analysis::Recipe::Eye& in_eye,
                                   const float&                 in_picture_width_pixels,
@@ -192,31 +163,26 @@ namespace Stereo
                                   const float&                 in_projection_x_scale,
                                   const bool&                  in_is_perspective) const;
 
-            /* Returns how far, in pixels, the draw that classify_draw() last classified is moved sideways for the eye (see PushShiftPlanner),
-             * if the recipe pushes it (see get_is_last_draw_pushed()). in_picture_width_pixels is the width of the viewport the draw is made
-             * with. The effective separation already respects the scene's limit, so no limit is passed.
+            /* Returns the sideways shift in pixels, for the eye, of the last classified draw if the recipe pushes it (see
+             * PushShiftPlanner, get_is_last_draw_pushed()). in_picture_width_pixels is the draw's viewport width. The separation
+             * already respects the scene limit.
              */
             float plan_push_shift(const Analysis::Recipe::Eye& in_eye,
                                   const float&                 in_picture_width_pixels) const;
 
-            /* The same, for an adapter that says whether the eyes move the draw. A draw that is made as it is (attached to the camera, 2D)
-             * gets the whole push.
-             */
+            /* The same, for an adapter that says whether the eyes move the draw. A draw made as it is (attached, 2D) gets the whole push. */
             float plan_push_shift(const Analysis::Recipe::Eye& in_eye,
                                   const float&                 in_picture_width_pixels,
                                   const bool&                  in_is_moved_by_eyes) const;
 
-            /* The same, for a draw that the eyes already move apart by in_layer_parallax, a fraction of the picture width (see
-             * get_eye_parallax(); 0 if they do not move it).
-             */
+            /* The same, for a draw the eyes already move apart by in_layer_parallax (picture-width fraction; see get_eye_parallax()). */
             float plan_push_shift_with_layer(const Analysis::Recipe::Eye& in_eye,
                                              const float&                 in_picture_width_pixels,
                                              const float&                 in_layer_parallax) const;
 
-            /* Returns what to do to the vertices of the draw that classify_draw() last classified, for the eye, when the vertices are in the
-             * space of the picture (see ScreenParallaxPlanner). It uses the distances that the core has now, which combine the scene's values
-             * and the person's settings. in_picture_width is the width of the viewport the draw is made with. The draw counts as presented
-             * (in_is_presented) if it goes to what the application presents.
+            /* Returns what to do to the last classified draw's vertices for the eye when they are in picture space (see
+             * ScreenParallaxPlanner), using the current distances (scene values plus the person's settings). in_picture_width is the
+             * draw's viewport width; in_is_presented is whether it goes to what the application presents.
              */
             ScreenShiftPlan plan_screen_shift(const Analysis::Recipe::Eye& in_eye,
                                               const bool&                  in_has_extent,
@@ -224,40 +190,32 @@ namespace Stereo
                                               const float&                 in_picture_width,
                                               const bool&                  in_reaches_both_sides) const;
 
-            /* Fails, through the fail function, if in_is_ok is false. An adapter calls it where it finds that the application does something
-             * that could only be converted correctly by holding back the calls of a pass.
-             */
+            /* Fails, through the fail function, if in_is_ok is false. For application behavior that would need holding back a pass's calls. */
             void require_fast_path(const bool&        in_is_ok,
                                    const std::string& in_reason) const;
 
-            /* Fails, through the fail function, with in_reason as the whole message if in_is_ok is false. An adapter calls it for anything
-             * that the converter cannot do for the application, whatever the cause (for example, the images are larger than they can be
-             * passed on).
+            /* Fails, through the fail function, with in_reason as the whole message if in_is_ok is false. For anything the converter
+             * cannot do for the application.
              */
             void require_supported(const bool&        in_is_ok,
                                    const std::string& in_reason) const;
 
-            /* Sets the distance at which the eyes converge, in the units of the matrices. What is at that distance appears at the same place
-             * in both eyes, for every draw. The initial value is 0, which leaves the choice to the recipe. The recipe gives the distance of the
-             * scene (see on_frame_completed()), and until a scene is known, the distance for the signature of the draw (see
-             * Recipe::convergence_vec). If it has neither, there is no convergence.
+            /* Sets the convergence distance, in matrix units, for every draw. The initial 0 leaves it to the recipe: the scene's
+             * distance (see on_frame_completed()), else the draw signature's (see Recipe::convergence_vec), else none.
              */
             void set_convergence_distance(const float& in_convergence_distance);
 
-            /* Sets how strong the 3D is: 1 is natural, 0 is none, 2 is twice natural. Above 0, the distance between the eyes is not the one
-             * set by set_eye_separation(). It follows the convergence distance of each draw (see set_convergence_distance()): one thirtieth
-             * of it (a rule of thumb for the camera distance of a stereo shot) times the strength. That keeps the 3D equally strong in a
-             * corridor and on a hill, which a fixed distance in the application's camera units cannot do. For a draw with no convergence
-             * distance, the separation that was set is used.
+            /* Sets the 3D strength: 1 natural, 0 none, 2 twice natural. Above 0, the eye distance is not the one from
+             * set_eye_separation() but one thirtieth of each draw's convergence distance (see set_convergence_distance()) times the
+             * strength. A draw with no convergence distance uses the separation that was set.
              */
             void set_depth_strength(const float& in_depth_strength);
 
             /* Sets the distance between the eyes, in the units of the matrices. */
             void set_eye_separation(const float& in_eye_separation);
 
-            /* Sets how long frames take. The eyes use it to follow a scene (see ConvergenceModel::get_fraction_of_the_way()). It is the time
-             * since the previous frame, and it must be set before the completed frame is reported (on_frame_completed(), on_frame_depth()).
-             * Until it is set, the interval is the duration of a 72 Hz frame, as in a replay or a test, which have no meaningful clock.
+            /* Sets the time since the previous frame, used for easing (see ConvergenceModel::get_fraction_of_the_way()). Set it before
+             * on_frame_completed() and on_frame_depth(). Until set, it is a 72 Hz frame.
              */
             void set_frame_interval_seconds(const float& in_frame_interval_seconds);
 
@@ -266,23 +224,18 @@ namespace Stereo
              */
             void set_ipd_scale(const float& in_ipd_scale);
 
-            /* Sets whether the draws that the recipe leaves alone and that go to what is presented are pushed toward the viewer, by the amount
-             * the recipe gives (Comfort::overlay_parallax; no push if it is 0). It is off until it is set: the recipe says how far and which
-             * draws (RecipeApplier::decide_draw()), the person says whether.
+            /* Sets whether left-alone draws to the presented image are pushed by Comfort::overlay_parallax (0: no push). Off until set;
+             * the recipe says how far and which draws (RecipeApplier::decide_draw()), the person says whether.
              */
             void set_is_overlay_pushed(const bool& in_is_pushed);
 
-            /* Sets the shape of the last completed frame. It identifies the scene of the draws that follow. on_frame_depth() does not set it,
-             * so the converter must.
-             */
+            /* Sets the shape of the last completed frame, which identifies the scene of later draws. on_frame_depth() does not set it. */
             void set_scene_shape_key(const uint64_t& in_shape_key);
 
         private:
             void  fail(const std::string& in_message) const;
 
-            /* The fraction of the way to a scene's distance and limit that the eyes go after a frame: by the time the frame took if the recipe
-             * has comfort.ease_by_time, else the same part of the way for every frame (see ConvergenceModel).
-             */
+            /* Fraction of the way to a scene's distance and limit the eyes go per frame: by frame time with comfort.ease_by_time, else fixed. */
             float get_fraction_of_the_way() const;
 
 

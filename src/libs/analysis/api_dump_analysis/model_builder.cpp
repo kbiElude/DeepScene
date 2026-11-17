@@ -545,9 +545,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
 
         m_last_draw_signature_key = signature_key;
 
-        /* A draw is identified by its signature and its size, because the draws of one signature are not all the same (the quads of a flash and
-         * the quads of a text can share one dynamic buffer). A key that covered the view once stays covering, even if other draws with that key
-         * do not: a flash that wipes in is a quad of one size that is not always the whole picture, and it must not be moved while it is.
+        /* A draw is identified by signature and size, as draws of one signature differ (quads sharing a dynamic buffer). A key that
+         * covered the view once stays covering, even if other draws with that key do not.
          */
         m_last_draw_cover_key = MatchKeyBuilder::compute_draw_cover_key(signature_key,
                                                                         in_draw.vertex_count,

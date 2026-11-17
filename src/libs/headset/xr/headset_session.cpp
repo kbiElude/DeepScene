@@ -246,9 +246,8 @@ end:
 
 bool Headset::XR::HeadsetSession::create_actions(std::string* out_error_ptr)
 {
-    /* Binds the action to one button on each hand. The simple controller profile uses the menu button of both hands. The Touch controller
-     * profile uses the menu button of the left hand and the A button of the right hand, which are the buttons that apps may use. A runtime
-     * that does not know a profile ignores the bindings suggested for it.
+    /* Binds one button per hand: menu on both for the simple profile; left menu and right A for Touch (the buttons apps may use).
+     * A runtime ignores bindings for profiles it does not know.
      */
     struct ProfileBinding
     {
@@ -1046,9 +1045,8 @@ void Headset::XR::HeadsetSession::on_session_state_changed(const XrSessionState&
 
                 m_shared.is_running = true;
 
-                /* The swap chains are created at the recommended size, so that black is shown from the start until the frames of the
-                 * application arrive. If those frames have another size, acquire_eye_textures() creates the swap chains again. With nothing
-                 * to show, the runtime shows arbitrary content, which flickers.
+                /* Created at the recommended size so black shows until the application's frames arrive (else the runtime flickers with
+                 * arbitrary content); acquire_eye_textures() recreates them if the frames differ in size.
                  */
                 if (read_recommended_eye_size(&eye_width,
                                               &eye_height) )
@@ -1405,9 +1403,8 @@ bool Headset::XR::HeadsetSession::run_frame(std::string* out_error_ptr)
 
             timing.lock_wait.add(Utils::Statistics::SeriesStats::get_now() - lock_start_ms);
 
-            /* The images of the application's frame are not always ready when the compositor asks. If a copy is late by a few milliseconds,
-             * the previous images would be shown again and the new images would appear one frame later. So the frame waits a short time for
-             * new images, which fits in the time budget of the frame. If they do not arrive, the previous images are shown.
+            /* A copy a few ms late would repeat the previous images and delay the new ones by a frame, so wait briefly for new images
+             * (within the frame budget); if they do not arrive, show the previous ones.
              */
             if (m_shared.image_serial == timing.last_serial)
             {

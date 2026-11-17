@@ -59,8 +59,7 @@ namespace Stereo
              */
             void forget_pending();
 
-            uint64_t get_frame() const;
-            size_t   get_n_pending() const;
+            size_t get_n_pending() const;
 
             /* Removes the oldest pending read and returns it in out_read_ptr. If in_only_older_frames is true, only a read that started before
              * the frame being made qualifies. Returns false if there is no such read.

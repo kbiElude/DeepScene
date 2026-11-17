@@ -4,6 +4,7 @@
  *
  * Bakes a recipe (see command_line.cpp for the arguments, and recipe_baker.h for what that is).
  */
+#include "utils/files/file_writer.h"
 #include "utils/json/json_reader.h"
 #include "utils/json/json_writer.h"
 #include "analysis/api_dump_analysis/model.h"
@@ -37,7 +38,6 @@ int main(int   in_argc,
     std::string                                          baked_text;
     Analysis::APIDumpDependencies::DependencyFileContent dependencies;
     std::string                                          error;
-    FILE*                                                file_ptr     = nullptr;
     bool                                                 is_written   = false;
     Analysis::RecipeBake::Options                        options;
     std::string                                          recipe_text;
@@ -222,19 +222,10 @@ int main(int   in_argc,
         goto end;
     }
 
-    file_ptr = ::fopen((options.output_filename.empty() ) ? options.recipe_filename.c_str()
-                                                          : options.output_filename.c_str(),
-                       "wb");
-
-    if (file_ptr != nullptr)
-    {
-        const size_t n_written = ::fwrite(baked_text.data(),
-                                          1,
-                                          baked_text.size(),
-                                          file_ptr);
-
-        is_written = (n_written == baked_text.size() );
-    }
+    is_written = Utils::Files::FileWriter::write_bytes((options.output_filename.empty() ) ? options.recipe_filename
+                                                                                          : options.output_filename,
+                                                       baked_text.data(),
+                                                       baked_text.size() );
 
     if (is_written == false)
     {
@@ -281,10 +272,5 @@ int main(int   in_argc,
                                         : "as the totals of the analysis say (a texture which frames use by turns is missed: give --deps)");
 
 end:
-    if (file_ptr != nullptr)
-    {
-        ::fclose(file_ptr);
-    }
-
     return result;
 }

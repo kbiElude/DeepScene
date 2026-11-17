@@ -5,9 +5,8 @@
 #include "stereo/transport/frame_channel.h"
 #include <string.h>
 
-/* The memory that the two processes share: the header, then the images. The fields appear in memory order, because both programs must
- * agree on this layout. The 64-bit fields come first so that they are aligned. Zeroed memory is an empty channel, which is how the
- * memory starts, so neither side has to initialize it before the other uses it.
+/* Shared memory: header, then images. Fields are in memory order (both programs must agree), 64-bit first for alignment.
+ * Zeroed memory is an empty channel, so neither side needs to initialize it.
  */
 struct Stereo::Transport::FrameChannel::Header
 {

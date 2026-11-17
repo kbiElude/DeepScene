@@ -2,36 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Follows the calls of an OpenGL application (GL, WGL and SwapBuffers) and tells the model builder what they amount to.
- *
- * What it follows:
- *  - the contexts, and which context each thread has current;
- *  - per context: the viewport, the scissor box and scissor test, the values that a clear uses, the attribute stack (glPopAttrib restores what
- *    the program set after glPushAttrib), and the matrix stacks (model-view and projection are used, the other stacks are only kept consistent);
- *  - the clears;
- *  - the draws of immediate mode (a glBegin and its glEnd) and of arrays (glDrawArrays and glDrawElements, using the copy of the arrays made
- *    by the dumper), each with the pipeline state that was set;
- *  - the ends of frames;
- *  - display lists: the calls made while a list is being made are stored in the list together with the data they refer to. They run when the
- *    list is called (glCallList; the lists of all contexts are shared), and also at once for GL_COMPILE_AND_EXECUTE.
- *
- * What it does not follow ends the process with a message that names the function and the reason (see UnsupportedUse): calls that write the
- * framebuffer without being a draw (glBitmap, glDrawPixels, glCopyPixels), glCallLists, a texture that is created or changed in an unsupported
- * way (see GLTextureHandler::is_unsupported_texture_function()), and state that decides what a draw writes
- * (see GLFunctionPolicy::changes_what_a_draw_writes()). A read of the framebuffer (glReadPixels) is only counted as a pixel readback hazard.
- *
- * The front end owns the contexts and dispatches the calls (handle_gl_call). The handling of each kind of call is in a class of its own. These
- * classes keep no pointer to the front end; whatever they need from the other classes is passed with the call: GLTextureHandler (textures),
- * GLMatrixHandler (matrices), GLListHandler (display lists), GLStateHandler (state values, viewport, scissor box, attributes) and
- * GLDrawHandler (draws and clears).
- *
- * Matrices: OpenGL has one matrix for model and view together, and a separate projection matrix. The model builder receives both unchanged,
- * each when it changes (MODEL_VIEW_MATRIX and PROJECTION_MATRIX in the fixed-function pipeline state, at the offsets 0 and 64). It cannot
- * separate model from view, because the calls do not either.
- *
- * The window (GLWindow) is the default framebuffer. There is one for the whole workload. It is created at the first clear, with the size of the
- * viewport that the context has at that moment. The window size is not in the calls: a context starts with a viewport that covers the whole
- * window, and the application changes it in its first glViewport.
+ * Follows the OpenGL calls (GL, WGL, SwapBuffers) and tells the model builder what they amount to.
+ * Unfollowed calls end the process naming function and reason (see UnsupportedUse). glReadPixels is only counted as a readback hazard.
+ * Per-call handling lives in GLTextureHandler, GLMatrixHandler, GLListHandler, GLStateHandler and GLDrawHandler; they keep no front end pointer.
+ * The model builder gets the model-view and projection matrices unchanged (offsets 0 and 64), as GL does not separate model from view.
+ * The window (GLWindow, one per workload) is created at the first clear, sized by the viewport the context has then.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_FRONTEND_H
@@ -75,9 +50,7 @@ namespace Analysis
                 /* The data that the draws read from the memory of the application, kept while it is worth keeping (see GLBlobStore). */
                 const GLBlobStore& get_blob_store() const;
 
-                /* The current model-view and projection matrices of the context that the thread has current (used by the tests);
-                 * false if the thread has no current context.
-                 */
+                /* The current model-view and projection matrices of the thread's current context; false if none. */
                 bool get_current_matrices(const uint32_t& in_thread_id,
                                           GLMatrix*       out_modelview_f32mat_ptr,
                                           GLMatrix*       out_projection_f32mat_ptr) const;
@@ -90,9 +63,7 @@ namespace Analysis
 
             private:
 
-                /* Copies the pixels of the window into a region of a level of the texture bound to the active unit (the depth of the window for a depth
-                 * texture). Returns false if the program has not given the texture or the level a size.
-                 */
+                /* Copies window pixels (depth for a depth texture) into a level region of the active unit's texture; false if it has no size. */
                 bool copy_to_bound_texture(const GLContextState& in_state,
                                            const uint32_t&       in_level,
                                            const uint32_t&       in_x_offset,
@@ -103,10 +74,7 @@ namespace Analysis
                 /* The state of the context that the thread has current; nullptr if the thread has none. */
                 GLContextState* find_current_context_ptr(const uint32_t& in_thread_id);
 
-                /* Handles glBindBuffer. Binding a pixel-pack buffer ends the process: glReadPixels would write to the buffer, and the data would be in no
-                 * call. Binding a pixel-unpack buffer ends it too: the pixels of an upload would be in the buffer instead of the call. Any other buffer
-                 * object (vertices, indices, constants) ends it as well, because buffers are not followed. Unbinding (buffer 0) is allowed.
-                 */
+                /* Handles glBindBuffer. Binding any buffer object ends the process (buffers are not followed); unbinding (0) is allowed. */
                 void handle_bind_buffer(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
                 /* Handles glCopyTexImage2D: the pixels of the window give the texture its size and are copied into it. */
@@ -123,9 +91,7 @@ namespace Analysis
 
                 void handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
-                /* Ends the process with a message that names the unsupported function or value and the reason (AI_ASSERT_ALWAYS). The analysis would
-                 * be wrong or incomplete otherwise, and nothing is dropped silently.
-                 */
+                /* Ends the process (AI_ASSERT_ALWAYS), naming the unsupported function or value and the reason; nothing is dropped silently. */
                 static void report_unsupported_use(const APIInterceptor::APIFunction& in_function,
                                                    const char*                        in_reason_ptr,
                                                    const uint64_t&                    in_value);
@@ -133,13 +99,11 @@ namespace Analysis
                 /* A new context: the defaults from the specification, and one identity matrix on each matrix stack. */
                 static GLContextState get_initial_context_state();
 
-                /* True for the calls whose effects the front end does not follow and that are not texture calls (they write the framebuffer from
-                 * somewhere other than a draw, or call lists named by an array). Such a call ends the process (see report_unsupported_use()).
-                 */
+                /* True for non-texture calls that are not followed (framebuffer writes outside draws, glCallLists); they end the process. */
                 static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
 
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
-                GLContextState*                          m_cached_context_state_ptr;      /* the state that find_current_context_ptr() found last, for m_cached_thread_id; nullptr: none */
+                GLContextState*                          m_cached_context_state_ptr;      /* last find_current_context_ptr() result, for m_cached_thread_id; nullptr: none */
                 uint32_t                                 m_cached_thread_id;
                 std::map<uint64_t, GLContextState>       m_context_map;                   /* by context address            */
                 std::map<uint32_t, uint64_t>             m_current_context_by_thread_map; /* context address, by thread id */

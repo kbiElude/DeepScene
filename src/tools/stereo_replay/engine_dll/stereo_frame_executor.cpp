@@ -642,9 +642,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
                                                 call_index,
                                                 is_draw_before_call_func);
 
-    /* The first call of a draw that the recipe pushes moves the viewport sideways, so that every call of the draw is made with the
-     * moved viewport. That includes the glBegin and the vertices of a block that a glEnd turns into a draw. The call of the draw
-     * itself restores the viewport.
+    /* The first call of a pushed draw moves the viewport, so all its calls (including glBegin and vertices before a glEnd) use it;
+     * the draw's own call restores it.
      */
     bool       has_pushed_viewport = true;
     const auto pushed_iterator     = m_pushed_draw_by_first_call_map.find(call_index);
@@ -797,9 +796,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_view_anchor_call(co
 
     OverlayChunkSource overlay(in_chunk_source);
 
-    /* The call loads the base of the program's camera, and the shift of the eye is applied on top of it as the left factor. After a
-     * glLoadIdentity only the shift is loaded. After a glLoadMatrixf or glLoadMatrixd the shift is multiplied with the matrix that
-     * the program loaded. In both cases the rewritten call is a glLoadMatrixf.
+    /* The eye shift is applied as the left factor of the camera base: alone after glLoadIdentity, multiplied with the loaded matrix
+     * after glLoadMatrixf/d. The rewritten call is always a glLoadMatrixf.
      */
     switch (in_call.func)
     {
@@ -998,9 +996,8 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::find_view_anchor_calls(cons
     m_unflattened_draw_call_set.clear();
     m_view_anchor_call_index_set.clear();
 
-    /* The replay applies the shift of an eye at the beginning of a camera, so every draw that shares that camera gets the shift.
-     * A draw that the recipe holds flat only because it pushes it by its cover key therefore keeps the rules when it shares the
-     * camera of an affected draw (the live converter has no such limit). A baked flat layer is never released this way.
+    /* The eye shift is applied where a camera begins, so every draw sharing it is shifted: a draw held flat only by its cover key
+     * push keeps the rules when it shares an affected draw's camera (the live converter has no such limit). A baked flat layer is never released.
      */
     {
         std::set<uint64_t> shared_anchor_set;

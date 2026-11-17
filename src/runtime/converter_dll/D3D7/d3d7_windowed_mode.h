@@ -16,31 +16,19 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Makes a Direct3D 7 application render to a window and makes that window invisible. The converter then shows the application's
-         * images; the application does not show them on the screen. Without this, an application that asks for the whole screen would take
-         * it over, in the display mode it requests.
-         *
-         * The Direct3D 7 hooks cannot change a call while it is made. Where a call must differ, the converter does not make it. It makes
-         * its own call instead and writes the results that the application would have received into the application's output arguments
-         * (see the callbacks of the interceptor), so anything that watches the calls sees an unchanged application. The converter changes
-         * the following:
-         * - The cooperative level is the one for a window, and the display mode is not set, so the window keeps the desktop's mode.
-         * - A window cannot flip, so the primary surface is created without the chain of buffers the application asked for.
-         * - The back buffer that the application gets is a separate surface with the size the display mode was asked for. The application
-         *   renders to it, and a flip shows nothing.
-         * - The window is the application's own window. It is made fully transparent and click-through, and kept that way.
-         *
-         * Not thread-safe: the caller serializes the calls.
-         */
+        /* Makes a Direct3D 7 application render to an invisible window so the converter shows the images.
+         * Hooks cannot change a call: the converter makes its own call and writes the expected results to the output arguments.
+         * Cooperative level is windowed, no display mode is set, no buffer chain on the primary, the back buffer is a separate surface.
+         * Not thread-safe: the caller serializes the calls. */
         class D3D7WindowedMode
         {
         public:
             D3D7WindowedMode();
 
-            /* The surface that the application renders to instead of the back buffer of the chain it asked for; nullptr until it is created. */
+            /* The surface the application renders to instead of the requested chain's back buffer; nullptr until created. */
             void* get_back_buffer_ptr() const;
 
-            /* The size of the display mode that the application asked for. It is also the size of the application's pictures. 0 until the application asks. */
+            /* The requested display mode size, also the size of the application's pictures. 0 until requested. */
             void get_display_size(uint32_t* out_width_ptr,
                                   uint32_t* out_height_ptr) const;
 
@@ -51,17 +39,13 @@ namespace Stereo
             /* Where the application's picture is in the back buffer. */
             const Stereo::Core::PixelRect& get_picture() const;
 
-            /* How the back buffer is enlarged relative to what the application asks, to fit the images that are shown. It is the identity
-             * until the size of the display mode is known, and when nothing is enlarged.
-             */
+            /* How the back buffer is enlarged relative to the request; identity until the display mode size is known or if not enlarged. */
             const Stereo::Core::ResolutionPolicy& get_policy() const;
 
-            /* The factor by which the back buffer is larger than the application asks, to fit the images that are shown. It is 1 until the
-             * size of the display mode is known, and when nothing is enlarged.
-             */
+            /* Factor by which the back buffer exceeds the request; 1 until the display mode size is known or if not enlarged. */
             float get_render_scale() const;
 
-            /* Returns the size in pixels that the back buffer gets for an extent that the application asks for. */
+            /* Returns the back buffer size in pixels for a requested extent. */
             uint32_t get_scaled_extent(const uint32_t& in_extent) const;
 
             /* True if the application's pixels are scaled or moved in the back buffer. */
@@ -70,19 +54,15 @@ namespace Stereo
             /* Makes the windows invisible again if the application changed their styles. */
             void keep_windows_invisible();
 
-            /* A call is about to be made. Returns false if the call must not be made: the converter has done what the call was for, in the way a window needs it. */
+            /* A call is about to be made. Returns false if it must not be made (the converter already did its job in a window-compatible way). */
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* Whether the application is made to render to an invisible window. This is the case when another program shows the images (it says
-             * so before the application starts), and not when the application is shown on the screen as it is.
-             */
+            /* Whether the application renders to an invisible window (another program shows the images). Set before the application starts. */
             void set_is_enabled(const bool& in_is_enabled);
 
-            /* The size of one eye's image in the program that shows the images (see FrameChannel::get_target_eye_size()). The back buffer is
-             * made as large as this allows, keeping the proportions of the display mode.
-             */
+            /* Size of one eye's image in the showing program (see FrameChannel::get_target_eye_size()); caps the back buffer, keeping the display mode's aspect. */
             void set_target_eye_size(const uint32_t& in_width,
                                      const uint32_t& in_height);
 
@@ -98,7 +78,7 @@ namespace Stereo
 
             void handle_set_display_mode(const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* A render-target surface (for example a depth buffer) that is as large as the application's images is created at the size of the back buffer. */
+            /* A render-target surface (e.g. depth buffer) as large as the application's images gets the back buffer size. */
             void handle_sized_surface(const Interception::Hooks::D3D7::DDSURFACEDESC2& in_description,
                                       void*                                            in_direct_draw_ptr,
                                       void**                                           out_surface_ptr_ptr,

@@ -120,9 +120,8 @@ bool Analysis::Recipe::RecipeApplier::apply_overlay_shift(const Analysis::Recipe
 
     if (is_perspective)
     {
-        /* The shear shifts the picture in picture units, and the picture is two units wide. Moving the left picture by +p and the right picture
-         * by -p puts them 2p apart, which is p of the width. The shift goes the same way as for a near object: the left picture moves toward
-         * the right.
+        /* The picture is two units wide: +p for the left picture and -p for the right puts them p of the width apart. The left picture
+         * moves right, as for a near object.
          */
         inout_matrix_ptr->at(SHEAR_INDEX) += (in_eye == Analysis::Recipe::Eye::LEFT) ?  in_overlay_parallax
                                                                                      : -in_overlay_parallax;
@@ -160,9 +159,7 @@ bool Analysis::Recipe::RecipeApplier::apply_rule(const Analysis::Recipe::MatrixR
             if (is_matrix_of_kind(*inout_matrix_ptr,
                                   Analysis::Recipe::MatrixKind::PERSPECTIVE) )
             {
-                /* The view moves the scene toward the right by half the separation for the left eye. The shear moves it back, so that content
-                 * at the convergence distance has no parallax.
-                 */
+                /* The view moves the scene right for the left eye; the shear moves it back at the convergence distance. */
                 if (in_convergence_distance > 0.0f)
                 {
                     const float half_separation = ((in_eye == Analysis::Recipe::Eye::LEFT) ?  0.5f
@@ -235,9 +232,7 @@ Analysis::Recipe::DrawDecision Analysis::Recipe::RecipeApplier::decide_draw(cons
                                                 in_query.view_matrix);
     }
 
-    /* A baked flat layer is left alone, and so is a draw that the recipe pushes by its cover key (unless the caller waives that): neither has
-     * a depth of its own to show.
-     */
+    /* A baked flat layer is left alone, and so is a draw pushed by its cover key (unless the caller waives that). */
     const bool is_held = (is_cover_flat ||
                           (is_pushed_by_cover && in_query.is_cover_hold_waived == false) );
 
@@ -340,10 +335,8 @@ Analysis::Recipe::ComfortLimits Analysis::Recipe::RecipeApplier::get_comfort_lim
                                      in_scene_ptr->max_near_parallax >  0.0f)   ? in_scene_ptr->max_near_parallax
                                                                                 : in_comfort.max_near_parallax;
 
-    /* With both limits, the eyes converge where the whole depth of the scene fits best. The total parallax from the nearest to the farthest
-     * surface is s * scale * (1 / zn - 1 / zf) / 2 of the picture width, and it should not exceed the two limits together. The distance d splits
-     * this total in the ratio of the two limits, so that the nearest surfaces get exactly the near limit:
-     * 1 / d = 1 / zn - (1 / zn - 1 / zf) * near / (near + far).
+    /* With both limits, d splits the total parallax s * scale * (1 / zn - 1 / zf) / 2 in the ratio of the limits, so the nearest
+     * surfaces get exactly the near limit: 1 / d = 1 / zn - (1 / zn - 1 / zf) * near / (near + far).
      */
     if (in_comfort.balances_convergence                                                           &&
         (in_scene_ptr                   == nullptr || in_scene_ptr->convergence_distance <= 0.0f) &&
@@ -358,11 +351,8 @@ Analysis::Recipe::ComfortLimits Analysis::Recipe::RecipeApplier::get_comfort_lim
         result.distance = 1.0f / inverse_depth;
     }
 
-    /* The separation is limited so that the pictures of the eyes show the nearest surface of the scene at most max_near_parallax of the
-     * picture width apart. With the eyes a separation s apart (each half of it from the middle), a surface at depth z lies on the screen when
-     * z equals the convergence distance d. Otherwise the pictures show it s * scale * (1 / z - 1 / d) / 2 of the picture width apart. The limit
-     * is the s for which this equals max_near_parallax at the nearest depth z. For the farthest surface the same applies with (1 / d - 1 / z),
-     * which never exceeds 1 / d however far the surface is.
+    /* A surface at depth z is s * scale * (1 / z - 1 / d) / 2 of the picture width apart in the two pictures (zero at z = d). The limit
+     * is the s that makes this max_near_parallax at the nearest z. For the farthest surface use (1 / d - 1 / z), which never exceeds 1 / d.
      */
     if (max_near_parallax > 0.0f           &&
         in_near_depth     > 0.0f           &&

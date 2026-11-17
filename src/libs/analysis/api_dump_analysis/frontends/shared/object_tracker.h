@@ -33,8 +33,6 @@ namespace Analysis
 
                 void forget(const uint64_t& in_address);
 
-                size_t get_n_objects() const;
-
                 /* Returns nullptr if the address does not belong to a live, tracked object. */
                 const TrackedObject* get_object_ptr(const uint64_t& in_address) const;
 

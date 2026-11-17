@@ -23,40 +23,27 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Renders the eyes of a Direct3D 7 application whose vertices are in picture space (see ScreenSpaceVertexShifter).
-         *
-         * The application draws the left eye with its own calls. The renderer draws the right eye, each time before the left eye. Every
-         * surface the application renders to has a twin (see D3D7SurfaceTwins). When the application draws or clears, the renderer repeats
-         * the call for the right eye: it renders to the twin, sets the twins of the textures and moves the vertices for the eye. When the
-         * core says a draw is to be moved, the renderer also makes the left-eye draw itself, from a moved copy of the vertices, and the
-         * application's own call is not made. The device is called through its virtual table, so nothing that watches the device sees the
-         * calls that the renderer makes inside the interceptor callbacks.
-         *
-         * Some actions of the application cannot be followed: a draw from a vertex buffer that cannot be read, a copy or a load to a
-         * surface whose twin cannot repeat it, a draw to a surface without a twin. They are counted and noted, and the right eye then
-         * shows wrong content.
-         *
-         * Not thread-safe: the caller serializes the calls, and the device belongs to one thread.
-         */
+        /* Draws the right eye of a Direct3D 7 application with picture-space vertices; the application draws the left eye.
+         * Repeats each draw/clear on the surface twins (see D3D7SurfaceTwins); calls go through the device's virtual table.
+         * Actions that cannot be followed are counted and the right eye shows wrong content.
+         * Not thread-safe: the caller serializes the calls; the device belongs to one thread. */
         class D3D7EyeRenderer
         {
         public:
-            /* Returns the data chunk with the given id. The analysis runs before the renderer and takes the chunks out of the interceptor, so the renderer reads them through this function. */
+            /* Returns the data chunk with the given id (the analysis takes the chunks out of the interceptor first). */
             typedef std::function<bool(const uint32_t& in_chunk_id,
                                        const void**    out_data_ptr_ptr,
                                        uint32_t*       out_n_bytes_ptr)> ChunkFunc;
 
-            /* The windowed mode gives the factor by which the back buffer is made larger than the application asks (see D3D7WindowedMode::get_render_scale()). */
+            /* Back buffer enlargement factor (see D3D7WindowedMode::get_render_scale()). */
             D3D7EyeRenderer(Stereo::Core::RecipeStereoPlanner* in_core_ptr,
                             const D3D7WindowedMode*            in_windowed_mode_ptr);
 
             uint64_t get_n_failed_twins() const;
             uint64_t get_n_twins       () const;
 
-            /* Counts the calls made on the back buffer in the application's pixels. The back buffer is larger than the application knows,
-             * so these calls land in the wrong place. A write of the whole back buffer is not counted: it is stretched (see
-             * copy_pixel_write_to_both_eyes()).
-             */
+            /* Counts calls on the back buffer in the application's pixels; they land in the wrong place because the buffer is larger.
+             * Whole-buffer writes are not counted (stretched, see copy_pixel_write_to_both_eyes()). */
             uint64_t get_n_pixel_calls() const;
 
             /* Counts the calls that changed the surfaces of the right eye but were not repeated for it. */
@@ -71,24 +58,22 @@ namespace Stereo
                          const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                          const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
-            /* A call that is not a draw is about to be made. The renderer tracks the state the call sets, and repeats a clear for the right eye.
-             * Returns false if the application's call must not be made, because the renderer already made it with the sizes of the larger back buffer.
-             */
+            /* A non-draw call is about to be made: tracks its state, repeats clears for the right eye.
+             * Returns false if the application's call must not be made (the renderer made it at the larger back buffer size). */
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* A draw is about to be made, and the core has classified it (see RecipeStereoPlanner::classify_draw()). The renderer makes the draw for
-             * the right eye. Returns false if the application's call must not be made, because the renderer made the left-eye draw itself.
-             * in_picture_width is the width of the viewport that the draw uses (see LiveCallAnalyzer::get_viewport()).
-             */
+            /* A draw is about to be made, classified by the core (see RecipeStereoPlanner::classify_draw()); draws the right eye.
+             * Returns false if the application's call must not be made (the left-eye draw was made here).
+             * in_picture_width: width of the draw's viewport (see LiveCallAnalyzer::get_viewport()). */
             bool on_pre_draw(const APIInterceptor::APIFunction&         in_function,
                              const uint32_t&                            in_n_arguments,
                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                              const ChunkFunc&                           in_chunk_func,
                              const float&                               in_picture_width);
 
-            /* Returns descriptions of the first calls that were not repeated for the right eye since the last call of this function. */
+            /* Returns descriptions of the first calls not repeated for the right eye since the last call. */
             std::vector<std::string> take_unmirrored_notes();
 
 
@@ -129,34 +114,29 @@ namespace Stereo
                 Interception::Hooks::D3D7::D3DVIEWPORT7  viewport           = {};
             };
 
-            /* The application locked the whole back buffer, wrote it and unlocked it. The picture is in the application's pixels, so it fills only
-             * the corner of the larger back buffer. This function stretches it over the whole back buffer and copies it to the right eye. The
-             * picture is flat, so it is the same in both eyes.
-             */
+            /* The application wrote the whole back buffer; the picture fills only a corner of the larger buffer.
+             * Stretches it over the buffer and copies it to the right eye (flat, same in both eyes). */
             void copy_pixel_write_to_both_eyes(void* in_back_buffer_ptr) const;
 
             /* Makes the draw with the given vertices instead of the application's draw. */
             void draw(const DrawArguments& in_draw_arguments,
                       const uint8_t*       in_vertices_ptr) const;
 
-            /* Makes the draw for one eye. If the core says the vertices are to be moved, the draw uses moved vertices. Otherwise it uses
-             * the original vertices, but only if in_must_draw is set. Returns true if the draw was made.
-             */
+            /* Makes the draw for one eye with moved vertices if the core says so, else with the original ones, only if in_must_draw.
+             * Returns true if the draw was made. */
             bool draw_for_eye(const Analysis::Recipe::Eye& in_eye,
                               const DrawArguments&         in_draw_arguments,
                               const float&                 in_picture_width,
                               const bool&                  in_must_draw);
 
-            /* Makes the device render to the twin of the surface the application set, with the twins of its textures. Returns false, and
-             * changes nothing, if the surface has no twin.
-             */
+            /* Renders to the twin of the application's surface, with twin textures. Returns false, changing nothing, if there is no twin. */
             bool enter_right_eye(void*          in_device_ptr,
                                  RightEyeScope* out_scope_ptr) const;
 
             /* Where the application's pixels are in the surface it renders to (empty: all of it). */
             Stereo::Core::PixelRect get_render_picture() const;
 
-            /* How much larger the surface the application renders to is than the application knows: 1, except for the back buffer, which is made larger. */
+            /* Size factor of the render surface over what the application knows: 1 except for the enlarged back buffer. */
             Stereo::Core::ResolutionPolicy get_render_policy() const;
 
             float get_render_scale() const;
@@ -177,9 +157,8 @@ namespace Stereo
             void note_unmirrored(const APIInterceptor::APIFunction& in_function,
                                  const char*                        in_reason_ptr);
 
-            /* Repeats the application's clear for the right eye. The clear for the left eye is also made here if its rectangles must be
-             * converted to the larger back buffer. Returns false if the application's call must not be made.
-             */
+            /* Repeats a clear for the right eye; also makes the left-eye clear if its rectangles need converting to the larger back buffer.
+             * Returns false if the application's call must not be made. */
             bool play_clear(const uint32_t&                            in_n_arguments,
                             const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
@@ -189,18 +168,14 @@ namespace Stereo
             /* Returns the bytes of a structure that an argument holds as a chunk; nullptr if the argument is not a chunk (a null pointer). */
             static const void* get_chunk_ptr(const APIInterceptor::APIFunctionArgument& in_argument);
 
-            /* Reads the arguments of a draw call. Returns false if the call is not a draw that the renderer knows, or if its arguments are
-             * not those of a draw.
-             */
+            /* Reads the arguments of a draw call. Returns false if it is not a known draw or its arguments do not fit. */
             static bool read_draw_arguments(const APIInterceptor::APIFunction&         in_function,
                                             const uint32_t&                            in_n_arguments,
                                             const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
                                             const ChunkFunc&                           in_chunk_func,
                                             DrawArguments*                             out_draw_arguments_ptr);
 
-            /* Reads the vertices of a draw from a vertex buffer into memory. The buffer is locked for reading, for the vertices that the draw
-             * uses. The draw then uses vertices in memory, in the format of the buffer. Returns false if the buffer cannot be read.
-             */
+            /* Reads the vertices a draw uses from a vertex buffer into memory (buffer format). Returns false if the buffer cannot be read. */
             bool read_vertex_buffer(DrawArguments* inout_draw_arguments_ptr);
 
 

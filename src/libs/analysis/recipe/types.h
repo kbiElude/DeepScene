@@ -2,9 +2,8 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * A recipe says which calls to change, and how, to render each eye. It is a JSON file (see recipe_loader.h), and these are the types it loads
- * into. Frames and passes are referred to by match keys (see MatchKeyBuilder). Match keys are the same in every run, unlike frame indices and
- * analysis IDs, which can differ between runs.
+ * Types of a recipe (JSON, see recipe_loader.h): which calls to change, and how, to render each eye.
+ * Frames and passes are named by match keys (see MatchKeyBuilder), which are stable across runs, unlike indices and analysis IDs.
  */
 #ifndef RECIPE_TYPES_H
 #define RECIPE_TYPES_H
@@ -30,13 +29,8 @@ namespace Analysis
         /* What a rule does to the matrix of a call. */
         enum class ActionKind
         {
-            EYE_CONVERGENCE, /* shears the projection by half the eye separation, so that the eyes converge at a distance: the distance of the draw
-                              * (baked), or one that is set for the replay. With neither, nothing is changed. For a perspective projection (Direct3D,
-                              * row vectors), P[2][0] changes by -/+ (separation / 2) * P[0][0] / distance for the left / right eye */
-            EYE_OFFSET,      /* translates along an axis by half the eye separation: +separation / 2 for the left eye and -separation / 2 for the
-                              * right eye (applied to a view matrix, this moves the camera toward the left for the left eye). The separation is a
-                              * setting of the replay, not of the recipe. The translation is multiplied with the matrix of the call in the order that
-                              * the rule gives                                                                                      */
+            EYE_CONVERGENCE, /* shears the projection to converge at the baked or replay-set distance; none: no change              */
+            EYE_OFFSET,      /* translates along an axis by +/- half the eye separation (a replay setting)                          */
             MULTIPLY,        /* the matrix of the recipe is multiplied with the matrix of the call                                  */
             REPLACE          /* the matrix of the recipe replaces the matrix of the call                                            */
         };
@@ -102,10 +96,7 @@ namespace Analysis
             uint32_t value          = 0;
         };
 
-        /* What the recipe author says about one scene (a kind of frame, identified by its shape key as in SceneConvergence), when the limits of the
-         * whole recipe (see Comfort) or the measured distance do not suit it, for example a scene that is all near, or one with a long view. A value
-         * of 0 means that nothing is said. What is said wins over what was measured and over what the recipe says for all scenes.
-         */
+        /* Author overrides for one scene (identified by its shape key). 0 means unset. A set value wins over measured and recipe-wide values. */
         struct SceneComfort
         {
             float    convergence_distance = 0.0f; /* in the units of the camera of the application                                                          */
@@ -115,7 +106,7 @@ namespace Analysis
             uint64_t shape_key            = 0;
         };
 
-        /* What the comfort settings of a recipe make of the depth of a scene: where the eyes converge, and how far apart they may be (0 means no limit). */
+        /* Where the eyes converge for a scene and how far apart they may be (0 means no limit). */
         struct ComfortLimits
         {
             float distance       = 0.0f;
@@ -123,114 +114,82 @@ namespace Analysis
             float max_separation = 0.0f;
         };
 
-        /* What the recipe author says about how much the eyes can be asked to do. The nearest surfaces of a scene (see SceneSeparation) need the
-         * eyes to turn the most, and how much the eyes can bear of that does not depend on the scene.
-         */
+        /* Author limits on how much the eyes are asked to do; they do not depend on the scene. */
         struct Comfort
         {
-            /* Also use the layers that the baker found (flat_layer_draw_key_vec, overlay_draw_key_vec and eye_space_draw_key_vec), in addition to
-             * the names in the recipe. Off by default.
-             */
+            /* Also use the baked layers (flat_layer_, overlay_ and eye_space_draw_key_vec). Off by default. */
             bool uses_automatic_layers = false;
 
-            /* Whether the convergence distance of a scene is chosen to fit its depth into the two parallax limits below, instead of being the
-             * median depth of its vertices. With both limits (max_near_parallax and max_far_parallax) set, the eyes converge where the nearest
-             * surfaces use the whole near limit and the farthest surfaces use the whole far limit. That is where the eyes may be furthest apart.
-             * A scene with a sky behind a near object (where the median depth is the sky) is then not made flat. A distance that a scene sets for
-             * itself (see SceneComfort) is kept.
+            /* Whether the convergence distance fits the scene depth into both parallax limits (needs max_near_parallax and max_far_parallax),
+             * instead of being the median vertex depth. A distance set by the scene (see SceneComfort) is kept.
              */
             bool balances_convergence = false;
 
-            /* A draw whose origin is nearer to the camera than this fraction of the convergence distance is treated as attached to the camera (an
-             * interface drawn with a perspective projection, a weapon, a sky centred on the viewer). Such a draw is drawn the same for both eyes.
-             * The parallax of a draw depends on how far away it is, so a draw this near would get nearly the whole separation, which is more than
-             * the surfaces of the scene may have. 0 means that no draw is treated as attached.
+            /* A draw whose origin is nearer than this fraction of the convergence distance counts as attached to the camera and is drawn the
+             * same for both eyes. 0 means none.
              */
             float camera_attached_depth = 0.0f;
 
-            /* Whether a converter eases the eyes toward the scene by the time that goes (the same movement in the same time at any frame rate, so
-             * a long frame moves them a long way in one step), instead of by the same part of the way in each frame. Off by default: by frame.
-             */
+            /* Whether a converter eases the eyes by elapsed time (frame-rate independent) instead of by a fixed fraction per frame. Off by default. */
             bool eases_by_time = false;
 
-            /* Keys of draws (signature and size) whose vertices are already in eye space (the model-view matrix is the identity). They are not
-             * treated as attached to the camera, and they get the parallax of the depth of their vertices.
-             */
+            /* Keys (signature and size) of draws whose vertices are already in eye space. Not treated as attached to the camera. */
             std::vector<uint64_t> eye_space_cover_key_vec;
 
-            /* How much of a depth strength above 1 ("more") also raises the limits of the scenes (the ceiling on the separation, see SceneSeparation),
-             * from 0 to 1. 0: none, the limits are a ceiling that no strength passes, so a scene that is held by its limit gets no more depth from more
-             * strength (the default). 1: the limits grow in proportion to the strength, so more is more depth in every scene. A strength below 1
-             * lowers the limits whatever this is.
+            /* 0 to 1: how much a depth strength above 1 also raises the scene limits (see SceneSeparation). 0 (default): the limits are a
+             * ceiling; 1: they grow in proportion. A strength below 1 lowers the limits regardless.
              */
             float limits_follow_strength = 0.0f;
 
-            /* How far apart the pictures of the eyes may be at the farthest surface of a scene, as a fraction of the picture width. What lies
-             * beyond the convergence distance is seen with eyes that turn toward each other less than at the screen. If the pictures were further
-             * apart than the distance between a person's eyes on the screen, the eyes would have to turn away from each other, which eyes cannot
-             * do. 0 means no limit.
-             */
+            /* Largest distance between the eye pictures at the farthest surface of a scene, as a fraction of the picture width. 0 means no limit. */
             float max_far_parallax = 0.0f;
 
-            /* How far apart the pictures of the eyes may be at the nearest surface of a scene, as a fraction of the picture width (0.03 is 3 in
-             * 100). The eye separation is reduced so that this limit is not exceeded. 0 means no limit.
+            /* Largest distance between the eye pictures at the nearest surface, as a fraction of the picture width; the separation is reduced
+             * to fit. 0 means no limit.
              */
             float max_near_parallax = 0.0f;
 
-            /* Whether a converter that can (see RecipeStereoPlanner::on_frame_depth) measures the depth of the surfaces of each frame while the application
-             * renders it, and checks that depth against the limits, instead of using what was baked for the scene (see SceneSeparation). The baked
-             * values only cover scenes whose depth the analysis can see, not a program that draws with display lists, and not a camera that flies
-             * past a near surface. What a recipe says about a scene (see SceneComfort) is kept.
+            /* Whether a converter that can (see RecipeStereoPlanner::on_frame_depth) measures the surface depth of each frame live and checks it
+             * against the limits, instead of using the baked values (see SceneSeparation). Author values (see SceneComfort) are kept.
              */
             bool measures_depth = false;
 
-            /* Which fraction of the surfaces of a scene (counted by vertices) counts as its nearest: 0.001 is the nearest thousandth. A scene is
-             * rarely near everywhere, and what is very near is often a few large polygons, so the value is small.
-             */
+            /* Fraction of the surfaces of a scene (counted by vertices) that counts as its nearest. */
             float near_fraction = 0.001f;
 
-            /* How far toward the viewer the draws that the rules leave alone are pushed, as a fraction of the picture width (0.04 is 4 in 100).
-             * The two pictures of such a draw are this far apart, so the draw stands in front of the screen, and in front of the surfaces of a
-             * scene when the parallax limits above are kept. This applies only to draws that the application makes to what it presents (an
-             * interface, text). Draws made to a texture are left as they are, because the texture is used elsewhere. 0 means no push.
+            /* Push toward the viewer of the draws the rules leave alone, as a fraction of the picture width. Only draws to the presented
+             * image are pushed, not draws to a texture. 0 means no push.
              */
             float overlay_parallax = 0.0f;
 
-            /* How far toward the viewer the parts of an object that protrude from it (the eyes of a robot, its siren) are pushed, as a fraction
-             * of the picture width. It applies when the recipe names the parts (DrawSelector::part_cover_key_vec). A protruding part is only
-             * slightly nearer than the rest of the object, so this value is smaller than overlay_parallax. 0 means the same as overlay_parallax.
+            /* Push toward the viewer of protruding object parts named by DrawSelector::part_cover_key_vec, as a fraction of the picture
+             * width. 0 means the same as overlay_parallax.
              */
             float part_parallax = 0.0f;
 
-            /* Whether the draws that the recipe pushes (see pushes_unaffected and DrawSelector) are pushed while nobody has said whether to push
-             * them: a run without the VR player, where nothing sets the switch of the person. Once the switch is set, it decides.
+            /* Whether the recipe's pushed draws (see pushes_unaffected and DrawSelector) are pushed while no switch has been set (a run
+             * without the VR player). Once the switch is set, it decides.
              */
             bool pushes_by_default = false;
 
-            /* Whether the draws that the rules leave alone are pushed by overlay_parallax as well, and not only the draws the recipe lists
-             * (DrawSelector). It is for an application whose left-alone draws are all an overlay (an interface); where they include scenery,
-             * the recipe lists the draws to push instead.
+            /* Whether all draws the rules leave alone are pushed by overlay_parallax, not only those listed in DrawSelector. For
+             * applications whose left-alone draws are all overlay.
              */
             bool pushes_unaffected = false;
 
             /* What the recipe says about single scenes, identified by their shape keys. */
             std::vector<SceneComfort> scene_override_vec;
 
-            /* Whether a converter puts the eyes at the distance and the limit of a scene at once when the scene is cut to another one far from it
-             * (a target more than twice or less than half of the one before), instead of easing the eyes across the cut. Off by default.
+            /* Whether a converter jumps to the new scene distance and limit at a cut (target over 2x or under 0.5x the previous) instead
+             * of easing. Off by default.
              */
             bool snaps_at_cuts = false;
         };
 
-        /* How the eyes get parallax in an application whose vertices are already in the space of the picture (pre-transformed, as Direct3D calls
-         * it: a vertex position is in pixels, together with the reciprocal of its depth). No matrix moves such vertices. There is no projection to
-         * read the angle of view from and no camera to measure the distance of the surfaces with, so the recipe provides both.
-         *
-         * A vertex is moved sideways by
-         *   (width / 2) / tan(field_of_view / 2) * (eye separation / 2) * (1 / depth - 1 / convergence_distance)
-         * pixels, to the right for the left eye and to the left for the right eye. This is the same as moving the camera sideways and shifting
-         * the picture so that what is at the convergence distance has no parallax. A vertex at that distance is not moved. That is how an
-         * interface (drawn flat at one depth) and a picture that is made from another picture are left unmoved.
+        /* Parallax for pre-transformed vertices (positions in pixels plus 1 / depth), which no matrix moves. The recipe supplies the angle
+         * of view and the convergence distance. A vertex moves sideways, right for the left eye and left for the right eye, by
+         *   (width / 2) / tan(field_of_view / 2) * (eye separation / 2) * (1 / depth - 1 / convergence_distance) pixels.
+         * A vertex at the convergence distance is not moved.
          */
         struct ScreenParallaxSettings
         {
@@ -239,9 +198,7 @@ namespace Analysis
             bool  is_enabled            = false; /* whether the recipe has the section                                                      */
         };
 
-        /* The distance at which the eyes converge for a draw, identified by its signature, in the units of the camera of the application.
-         * RecipeBake measures it from how deep the passes that draw it are (see DepthHistogram), so nobody has to specify it.
-         */
+        /* Convergence distance for a draw (by signature), in camera units. RecipeBake measures it (see DepthHistogram). */
         struct DrawConvergence
         {
             float    distance      = 0.0f;
@@ -255,9 +212,8 @@ namespace Analysis
             bool      is_pushed  = false; /* the draw is moved toward the viewer */
         };
 
-        /* What a caller knows about a draw when it asks the recipe to decide. A replay knows the pass of the draw (has_pass), so the recipe can
-         * name the draw in that pass. A converter that plays an application while it runs does not know the pass, so it gives the signature of
-         * the draw and the view matrix in effect instead. The cover key is known in both cases.
+        /* What a caller knows about a draw. A replay knows the pass (has_pass); a live converter does not, so it gives the signature and
+         * the view matrix instead. The cover key is known in both cases.
          */
         struct DrawQuery
         {
@@ -270,10 +226,8 @@ namespace Analysis
             std::array<float, 16> view_matrix          = {};    /* used if has_pass is false                                                            */
         };
 
-        /* A rule that classifies draws by the signature a draw has when it is issued (see MatchKeyBuilder::compute_draw_signature_key). The signature
-         * is all that a converter, which plays an application while it runs, knows about a draw, because the pass of the draw is not known until
-         * the pass ends. RecipeBake builds the rules from the lists of passes and draws. Rules are tried in order, and a draw that no rule applies
-         * to is affected.
+        /* Classifies draws by their signature at issue time (see MatchKeyBuilder::compute_draw_signature_key), which is all a live
+         * converter knows. RecipeBake builds the rules. Tried in order; a draw no rule matches is affected.
          */
         struct DrawRule
         {
@@ -283,10 +237,7 @@ namespace Analysis
             std::vector<std::array<float, 16>> view_matrix_vec; /* if not empty, the rule applies only while the view matrix is one of these */
         };
 
-        /* A draw in one pass. A draw structure is often in several passes (a 3D scene and a pass that draws over it may share it), and the key
-         * of the draw alone names it in all of them. A replay knows the passes, so it can name a draw in one pass only. A converter that plays
-         * an application while it runs does not know the passes, so it cannot tell this pair from the plain draw.
-         */
+        /* A draw in one pass only. A live converter does not know the passes, so it cannot tell this pair from the plain draw. */
         struct PassDraw
         {
             uint64_t draw_key = 0; /* of a draw structure */
@@ -296,18 +247,16 @@ namespace Analysis
         /* Names passes and draws by their match keys (see MatchKeyBuilder), which are the same in every run. */
         struct DrawSelector
         {
-            std::vector<uint64_t> cover_key_vec; /* keys of draws by signature and size (MatchKeyBuilder::compute_draw_cover_key); only "pushed" has them.
-                                                  * They tell apart the draws of one structure (the parts of one object, which are drawn alike).
-                                                  * They are flat as well: drawn once for both eyes, like a draw that the rules leave alone                     */
+            std::vector<uint64_t> cover_key_vec; /* keys by signature and size (MatchKeyBuilder::compute_draw_cover_key); only "pushed" has them;
+                                                  * tell apart draws of one structure; drawn flat, once for both eyes                                           */
             std::vector<uint64_t> draw_key_vec;  /* keys of draw structures                                                                                     */
             std::vector<uint64_t> part_cover_key_vec; /* like cover_key_vec, for the parts of an object that protrude from it; pushed by Comfort::part_parallax */
             std::vector<PassDraw> pass_draw_vec; /* a draw in one pass only: the most specific name there is                                                    */
             std::vector<uint64_t> pass_key_vec;  /* keys of pass structures                                                                                     */
         };
 
-        /* One change to a matrix. A rule applies to a call of its function when every condition holds and the call is in a matching pass and
-         * frame (no pass keys means any pass, no shape keys means any frame). Rules apply in recipe order, and each rule works on the matrix that
-         * the previous rule produced.
+        /* One change to a matrix. Applies when every condition holds and the pass and frame match (no keys means any). Rules apply in
+         * recipe order, each on the previous rule's result.
          */
         struct MatrixRule
         {
@@ -325,10 +274,8 @@ namespace Analysis
             std::vector<uint64_t>          shape_key_vec;
         };
 
-        /* A texture of which each eye has its own copy. What one eye renders to it is not what the other eye sees, and what a frame reads from it
-         * from the previous frame is what that eye rendered. It is identified by how it was made and by the number of earlier textures made the
-         * same way (see ResourceIdentity), which is known when the application creates it. RecipeBake measures it from the textures that frames
-         * carry over.
+        /* A texture of which each eye has its own copy. Identified by how it was made and the count of earlier textures made the same
+         * way (see ResourceIdentity). RecipeBake measures it from the textures that frames carry over.
          */
         struct PerEyeTexture
         {
@@ -336,9 +283,8 @@ namespace Analysis
             uint32_t ordinal         = 0;
         };
 
-        /* The distance at which the eyes converge in a kind of frame (a scene), identified by its shape key. RecipeBake measures it from how deep
-         * the affected passes of the frames of that shape are. A converter that knows the shape of the previous frame (what a frame is made of is
-         * known when it ends) uses this distance. The distance of a draw (see DrawConvergence) is the fallback for what the converter does not know.
+        /* Convergence distance for a scene (by shape key), measured by RecipeBake. Used when the previous frame's shape is known;
+         * DrawConvergence is the fallback.
          */
         struct SceneConvergence
         {
@@ -346,9 +292,8 @@ namespace Analysis
             uint64_t shape_key = 0;
         };
 
-        /* How far apart the eyes may be in a kind of frame (a scene), identified by its shape key, in the units of the camera of the application.
-         * RecipeBake measures it from how near the surfaces of the scene are, and from the Comfort of the recipe. A scene that is not listed has
-         * no limit. The shape key is the same as in SceneConvergence.
+        /* Largest eye separation for a scene (by shape key, as in SceneConvergence), in camera units; measured by RecipeBake from
+         * surface depth and Comfort. An unlisted scene has no limit.
          */
         struct SceneSeparation
         {
@@ -356,34 +301,23 @@ namespace Analysis
             uint64_t shape_key      = 0;
         };
 
-        /* How the eyes get parallax when the camera of a draw is built by many calls on one matrix, and not set by a call of its own (OpenGL,
-         * whose model-view matrix is a stack that the program loads, multiplies, pushes and pops). The call that begins the camera
-         * (DrawInstance::view_anchor_call_index: the last glLoadIdentity or glLoadMatrix of the matrix) loads the shift of the eye on top of what
-         * it loads, so everything that the program does afterwards is applied on top of the shift.
-         *
-         * In the space of the camera, which looks down the negative z axis, the shift is x + h + (h / d) * z for the left eye, where h is half
-         * the eye separation and d is the distance at which the eyes converge. For the right eye the sign of h is reversed. This moves the camera
-         * sideways and shifts the picture so that what is at distance d has no parallax. Without a distance (0), only the translation is applied.
+        /* Parallax when the camera is built by many calls on one matrix (OpenGL model-view stack). The call that begins the camera
+         * (DrawInstance::view_anchor_call_index: the last glLoadIdentity or glLoadMatrix) loads the eye shift on top of what it loads.
+         * In camera space (looking down -z) the shift is x + h + (h / d) * z for the left eye, with h half the eye separation and d the
+         * convergence distance; the right eye reverses the sign of h. Distance 0 applies only the translation.
          */
         struct ViewAnchorShift
         {
             float convergence_distance        = 0.0f;  /* where the eyes converge when the scene gives no distance; in the units of the camera of the application; 0 means none */
             bool  is_enabled                  = false; /* whether the recipe has the section                                                                                    */
-            /* Whether a draw that the recipe affects, but whose camera no call begins (such as an interface drawn with an identity projection), is
-             * played as it is. Otherwise such a draw is refused.
-             */
+            /* Whether an affected draw whose camera no call begins is played as it is. Otherwise it is refused. */
             bool  leaves_draws_without_anchor = false;
         };
 
-        /* A draw is affected by the rules unless `unaffected` names it. A draw key counts for more than a pass key, so a draw can be named in
-         * `affected` inside a pass that is named in `unaffected`. A key of the same kind that is named in both `affected` and `unaffected` is
-         * refused. A draw named by `skipped`, or in a pass that it names, is not played at all, in either eye. The calls that set its state are
-         * played.
+        /* A draw is affected unless `unaffected` names it. A draw key beats a pass key. The same kind of key in both `affected` and
+         * `unaffected` is refused. A draw named by `skipped`, or in a skipped pass, is not played in either eye; its state calls are played.
          */
-        /* What an application ties to time (its music, for example) plays as it does on a screen only if it is shown at the rate of one. The
-         * pacing says what a converter does when no screen keeps time: no program shows the images, or it does not say when a frame is due.
-         * It is the same for every API.
-         */
+        /* What a converter does when no screen keeps time, for applications that tie things to time. The same for every API. */
         struct FramePacing
         {
             float           frames_per_second = 60.0f; /* for HOLD_TO_RATE */
@@ -393,9 +327,7 @@ namespace Analysis
         struct Recipe
         {
             DrawSelector                  affected;
-            /* Serves the single-pixel reads that an application makes in a run from one picture that is read once (see PictureReadbackCache).
-             * Off unless the recipe asks, because it changes where the data that the application reads comes from.
-             */
+            /* Serves single-pixel reads from one picture read once (see PictureReadbackCache). Off unless the recipe asks. */
             bool                          caches_pixel_reads      = false;
             Comfort                       comfort;                         /* set by the recipe author; see Comfort      */
             std::vector<DrawConvergence>  convergence_vec;                 /* from "baked"; see DrawConvergence          */

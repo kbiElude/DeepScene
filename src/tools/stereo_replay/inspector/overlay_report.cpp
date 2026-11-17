@@ -166,9 +166,8 @@ std::vector<uint32_t> Stereo::Replay::Inspector::OverlayReport::get_shard_of_ent
             return (in_group_a.frame_index > in_group_b.frame_index);
         };
 
-        /* Groups are assigned most expensive frame first. Each group goes to the shard that would finish it soonest. That is the shard with the
-         * least work, unless the frame is already replayed in another shard (the unmodified frame is replayed once in each shard that has a draw of
-         * it). The assignment depends only on the list, so every process computes the same result.
+        /* Most expensive frame first, each group to the shard that finishes it soonest: the least loaded, accounting for the unmodified
+         * frame being replayed once per shard with a draw of it. Depends only on the list, so every process gets the same result.
          */
         std::stable_sort(group_vec.begin(),
                          group_vec.end  (),
@@ -1204,10 +1203,7 @@ bool Stereo::Replay::Inspector::OverlayReport::write_images(const std::string&  
 {
     constexpr uint32_t ANIMATION_FRAME_DELAY_N_MILLISECONDS = 700;
 
-    /* The still shows the pixels that the draws make in magenta and dims the rest of the frame so that they stand out. The animation
-     * alternates between the frame as it is and the same frame with those pixels in magenta, so that the magenta area can be compared with what
-     * is under it.
-     */
+    /* Still: draw pixels in magenta on a dimmed frame. Animation: the frame alternating with the magenta version, to compare what is under it. */
     const auto marked_image = make_highlighted_image(in_baseline_image,
                                                      in_probe_image,
                                                      false); /* in_is_rest_dimmed */

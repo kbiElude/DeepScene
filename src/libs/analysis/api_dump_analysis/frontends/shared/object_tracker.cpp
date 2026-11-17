@@ -14,11 +14,6 @@ void Analysis::APIDumpAnalysis::Frontends::ObjectTracker::forget(const uint64_t&
     m_object_map.erase(in_address);
 }
 
-size_t Analysis::APIDumpAnalysis::Frontends::ObjectTracker::get_n_objects() const
-{
-    return m_object_map.size();
-}
-
 const Analysis::APIDumpAnalysis::Frontends::ObjectTracker::TrackedObject* Analysis::APIDumpAnalysis::Frontends::ObjectTracker::get_object_ptr(const uint64_t& in_address) const
 {
     const auto           object_iterator = m_object_map.find(in_address);

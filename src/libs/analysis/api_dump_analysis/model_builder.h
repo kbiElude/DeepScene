@@ -2,15 +2,13 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Builds the model of a workload from what the front ends of the APIs report. A front end follows the state of its API and reports events
- * with everything resolved: a draw arrives with the resources it uses, not with the calls that bound them. Nothing here knows about any API.
- *
- * Passes: the builder starts a pass with the first draw or clear after the previous pass ended. A pass ends when
+ * Builds the model of a workload from front end events, resolved: a draw arrives with its resources, not the binding calls. API-neutral.
+ * A pass starts with the first draw or clear after the previous pass ended, and ends when
  *  - the render targets change,
  *  - a clear or a viewport change comes after a draw,
- *  - a copy or an upload touches what the pass renders to (the pass must be finished before the copy or upload sees the result), or
+ *  - a copy or upload touches what the pass renders to, or
  *  - the frame ends.
- * Writing to a buffer between two draws does not end a pass. Rendering to the same target in two consecutive scenes therefore gives two passes.
+ * Writing to a buffer between draws does not end a pass.
  */
 #ifndef APIDUMPANALYSIS_MODEL_BUILDER_H
 #define APIDUMPANALYSIS_MODEL_BUILDER_H
@@ -37,8 +35,8 @@ namespace Analysis
         class ModelBuilder
         {
         public:
-            /* Without history, the builder keeps no frame records, no frame details and no camera series. Memory then grows only with the
-             * number of kinds of frames, passes and draws, and with the resources created. Use this while a workload is played.
+            /* Without history, no frame records, frame details or camera series are kept, so memory grows only with the kinds of frames,
+             * passes and draws and the resources. Use it while a workload is played.
              */
             explicit ModelBuilder(const bool& in_keeps_history = true);
 
@@ -46,9 +44,7 @@ namespace Analysis
             void begin_call(const uint64_t& in_call_index,
                             const uint64_t& in_timestamp_qpc);
 
-            /* The keys of each draw that the current call made, in order. A call of a display list can make several draws, or none (a list that
-             * only sets state). Empty until the call makes a draw; begin_call() empties it.
-             */
+            /* The keys of the draws the current call made, in order (a list call can make several or none). begin_call() empties it. */
             const std::vector<DrawKeys>& get_call_draw_key_vec() const;
 
             /* The number of the call that the current events belong to (the index that begin_call() received last). */
@@ -85,7 +81,7 @@ namespace Analysis
             /* Ends the frame (a swapchain present). */
             void on_frame_presented();
 
-            /* Sets what is rendered to from now on. If a draw came before, this starts a new pass even when nothing changed, so call it only on a change. */
+            /* Sets the render targets. After a draw it starts a new pass even if nothing changed, so call it only on a change. */
             void on_set_attachments(const AttachmentSet& in_attachments);
 
             void on_set_viewport(const Viewport& in_viewport);
@@ -105,32 +101,27 @@ namespace Analysis
                            const AccessCoverage&   in_coverage  = AccessCoverage::UNKNOWN,
                            const AccessRectangle&  in_rectangle = AccessRectangle());
 
-            /* Sets the sink that is told about resource accesses (see IAccessSink). The default, nullptr, means no sink. The builder does not own
-             * the sink, so the sink must outlive the builder.
-             */
+            /* Sets the sink for resource accesses (see IAccessSink); nullptr (default) means none. Not owned: it must outlive the builder. */
             void set_access_sink(IAccessSink* in_sink_ptr);
 
-            /* Sets the sink that is told about what happens to textures (see ITextureSink). The default, nullptr, means no sink. The builder does not own the sink, so the sink must outlive the builder. */
+            /* Sets the sink for texture events (see ITextureSink); nullptr (default) means none. Not owned: it must outlive the builder. */
             void set_texture_sink(Analysis::APIDumpTextures::ITextureSink* in_sink_ptr);
 
             /* Moves the model out of the builder instead of copying it. Call it when the analysis is done; do not use the builder afterwards. */
             Model take_model();
 
-            /* True if a draw made now should come with a sample of its geometry (see DrawDescription). A front end that needs extra work to
-             * read the vertices asks first.
-             */
+            /* True if a draw should come with a geometry sample (see DrawDescription); front ends that need extra work to read vertices ask first. */
             bool wants_geometry() const;
 
-            /* True if there is a sink for texture events. A front end that needs extra work to produce them (the bytes of an upload) asks first. */
+            /* True if there is a texture sink; front ends that need extra work to produce events (upload bytes) ask first. */
             bool wants_texture_events() const;
 
             /* The match key of a frame shape of the model, built from the keys of its passes in the same way as the shape key of a completed frame. */
             static uint64_t compute_shape_key(const Model&    in_model,
                                               const uint32_t& in_shape_id);
 
-            /* Finds the pass of a completed frame that a call belongs to: the first pass whose last draw or clear is at or after the call
-             * (state set by the call applies to the draws that follow it). Returns false for calls after the last pass, such as the present. The call
-             * index is the one given to begin_call(); the pass index is a position in pass_instance_vec.
+            /* Finds the pass of a completed frame a call belongs to: the first pass whose last draw or clear is at or after the call.
+             * False for calls after the last pass (the present). The call index is the begin_call() one; the pass index is into pass_instance_vec.
              */
             static bool find_pass_index(const CompletedFrame& in_frame,
                                         const uint64_t&       in_call_index,
@@ -153,7 +144,7 @@ namespace Analysis
                              const SubresourceRange& in_subresource_range,
                              const AccessRectangle&  in_rectangle = AccessRectangle());
 
-            /* Fills the structure using the keys that the resources have at the time of the draw, or the keys they would have if no pass had written to them. */
+            /* Fills the structure with the resource keys at draw time, or as if no pass had written to them. */
             void fill_draw_structure(const DrawDescription& in_draw,
                                      const bool&            in_uses_unwritten_keys,
                                      DrawStructure*         out_structure_ptr) const;
@@ -182,7 +173,7 @@ namespace Analysis
             std::set<ResourceId>                      m_color_copy_target_set; /* the resources that received a copy of the color of the picture */
             CompletedFrame                            m_completed_frame;
             ConstantStateMap                          m_constant_state_map;
-            DrawStructure                             m_draw_signature_scratch; /* for on_draw(), so that it does not allocate each time */
+            DrawStructure                             m_draw_signature_scratch; /* on_draw() scratch, avoids allocation */
             DrawStructure                             m_draw_structure_scratch;
             FrameInProgress                           m_frame;
             bool                                      m_keeps_history;

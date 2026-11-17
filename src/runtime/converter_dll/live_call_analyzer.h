@@ -18,17 +18,11 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
-        /* Feeds the calls of the application to the analysis (see AnalysisSession, created without history) as they are made, in the form of a dump.
-         * The API front end therefore tracks the device the same way the offline analysis did, and a draw gets the same signature
-         * (see MatchKeyBuilder::compute_draw_signature_key) here as in the analysis the recipe was baked from.
-         *
-         * A call is analysed when it is done, because only then are its results known. A draw is the exception: its signature is needed
-         * before the draw is made, so it is analysed at once. The data chunks of a call are moved out of the interceptor when the call is analysed.
-         *
-         * The call analyzer works with any API: it uses the front end that matches the API of the calls (see AnalysisSession).
-         *
-         * Not thread-safe: the caller serializes the calls.
-         */
+        /* Feeds the application's calls live to the analysis (see AnalysisSession, no history), so draws get the same signature
+         * (see MatchKeyBuilder::compute_draw_signature_key) as in the analysis the recipe was baked from.
+         * A call is analysed when done (results known); draws at once, as their signature is needed before the draw. Data chunks
+         * are moved out of the interceptor on analysis. Works with any API via the matching front end.
+         * Not thread-safe: the caller serializes the calls. */
         class LiveCallAnalyzer
         {
         public:
@@ -38,16 +32,14 @@ namespace Stereo
 
             LiveCallAnalyzer();
 
-            /* Returns a data chunk of the call that was analysed last. The call analyzer took the chunk out of the interceptor. Returns false if the call has no such
-             * chunk. The data stays valid until the next call is analysed.
-             */
+            /* Returns a data chunk of the last analysed call (taken out of the interceptor). Returns false if there is no such chunk.
+             * Valid until the next call is analysed. */
             bool get_last_call_chunk(const uint32_t& in_chunk_id,
                                      const void**    out_data_ptr_ptr,
                                      uint32_t*       out_n_bytes_ptr) const;
 
-            /* Returns the keys of each draw made by the call that was analysed last (see ModelBuilder::get_call_draw_key_vec). A call of a display list can make
-             * several draws, or none. The keys stay valid until the next call is analysed.
-             */
+            /* Returns the keys of each draw of the last analysed call (see ModelBuilder::get_call_draw_key_vec); a display list call
+             * can make several or none. Valid until the next call is analysed. */
             const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& get_last_call_draw_key_vec() const;
 
             /* Returns the key of the draw that on_pre() analysed last, looked up by its signature and size. */
@@ -59,10 +51,10 @@ namespace Stereo
             /* Returns the viewport that the application has set. The next draw is made with it. */
             const Analysis::APIDumpAnalysis::Viewport& get_viewport() const;
 
-            /* Returns true for the calls that on_pre() analyses at once, which are the draws. */
+            /* Returns true for the calls on_pre() analyses at once (draws). */
             static bool is_draw(const APIInterceptor::APIFunction& in_function);
 
-            /* Returns true for the calls that the front ends follow: Direct3D 7, Direct3D 8 and OpenGL, plus the GDI32 SwapBuffers, which ends an OpenGL frame. */
+            /* Returns true for the calls the front ends follow: Direct3D 7, Direct3D 8, OpenGL, and GDI32 SwapBuffers (ends an OpenGL frame). */
             static bool is_followed(const APIInterceptor::APIFunction& in_function);
 
             /* Called when the call is done. Analyses the call with its results, unless it is a draw (on_pre() already analysed draws). */
@@ -71,25 +63,20 @@ namespace Stereo
                          const APIInterceptor::APIFunctionArgument* in_arguments_out_ptr,
                          const APIInterceptor::APIFunctionArgument* in_returned_value_ptr);
 
-            /* Called before the call is made. A draw is analysed at once and the function returns true. Any other call is stored until on_post() is called
-             * for it.
-             */
+            /* Called before the call is made. A draw is analysed at once (returns true); other calls are stored until on_post(). */
             bool on_pre(const APIInterceptor::APIFunction&         in_function,
                         const uint32_t&                            in_n_arguments,
                         const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
-            /* Sets the function that changes the data of the calls before the analysis sees them. Without it, the analysis sees the data the device was given. */
+            /* Sets the function that changes call data before analysis; without it the analysis sees the data the device was given. */
             void set_chunk_func(const ChunkFunc& in_chunk_func);
 
-            /* Returns true, once per frame, if the last analysed call ended a frame since the previous call of this function. Then it sets the shape key of the
-             * frame (see CompletedFrame::shape_key).
-             */
+            /* Returns true once per frame if the last analysed call ended a frame since the previous call; then sets the frame's
+             * shape key (see CompletedFrame::shape_key). */
             bool take_completed_frame_shape_key(uint64_t* out_shape_key_ptr);
 
         private:
-            /* The calls of one thread that have been started but are not done. The slots from n_calls on are free. They keep their vectors, so that the next
-             * calls reuse the memory and allocate nothing.
-             */
+            /* The started, unfinished calls of one thread. Slots from n_calls on are free and keep their vectors for reuse. */
             struct PendingCalls
             {
                 std::vector<Capture::APIDumpLoader::DumpedAPICall> call_vec;
@@ -99,11 +86,11 @@ namespace Stereo
             typedef std::map<uint32_t, PendingCalls>                     PendingCallsByThreadMap;
             typedef std::unique_ptr<APIInterceptor::APIFunctionArgument> ReturnedValueUniquePtr;
 
-            /* Returns a returned-value object that holds in_value. It reuses an object from the pool when there is one (see fill_call()). */
+            /* Returns a returned-value object holding in_value, reused from the pool if possible (see fill_call()). */
             ReturnedValueUniquePtr acquire_returned_value(const APIInterceptor::APIFunctionArgument&   in_value);
             void                   analyze               (const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
-            /* Fills in the call record for the function. The returned-value object that the record still holds goes back to the pool. */
+            /* Fills in the call record; the record's old returned-value object goes back to the pool. */
             void          fill_call            (const APIInterceptor::APIFunction&         in_function,
                                                 const uint32_t&                            in_n_arguments,
                                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
@@ -114,7 +101,7 @@ namespace Stereo
             ChunkFunc                                             m_chunk_func;
             std::vector<uint32_t>                                 m_chunk_id_vec;                /* scratch of analyze()
  */
-            APIInterceptor::ChunkPool                             m_chunk_pool;                  /* vectors of the chunks of the calls that were analysed, kept for reuse
+            APIInterceptor::ChunkPool                             m_chunk_pool;                  /* chunk vectors of analysed calls, kept for reuse
  */
             uint64_t                                              m_completed_frame_shape_key;
             std::vector<std::vector<uint8_t>*>                    m_destination_ptr_vec;         /* scratch of analyze()
@@ -127,7 +114,7 @@ namespace Stereo
             PendingCalls*                                         m_last_thread_pending_calls_ptr;
             PendingCallsByThreadMap                               m_pending_calls_by_thread_map;
             uint64_t                                              m_qpc_frequency;
-            std::vector<ReturnedValueUniquePtr>                   m_returned_value_pool;         /* returned-value objects that finished calls released, kept for reuse
+            std::vector<ReturnedValueUniquePtr>                   m_returned_value_pool;         /* released returned-value objects, kept for reuse
  */
             Analysis::APIDumpAnalysis::Frontends::AnalysisSession m_session;
             Capture::APIDumpLoader::Workload                      m_workload;                    /* scratch of analyze()

@@ -103,11 +103,6 @@ void Stereo::Core::FrameDepthLedger::forget_pending()
     m_pending_read_deque.clear();
 }
 
-uint64_t Stereo::Core::FrameDepthLedger::get_frame() const
-{
-    return m_frame;
-}
-
 size_t Stereo::Core::FrameDepthLedger::get_n_pending() const
 {
     return m_pending_read_deque.size();

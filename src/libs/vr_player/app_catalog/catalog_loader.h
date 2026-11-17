@@ -2,35 +2,35 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * Reads the catalog of the VR player, a JSON file. Reading is strict: unknown fields are refused, and errors say where they are.
+ * Reads the VR player catalog (JSON). Strict: unknown fields are refused and errors say where they are.
  *
  *   {
  *     "catalog_version": 0,
  *     "apps": [
  *       {
- *         "id": "example",                           letters, digits, '-' and '_'; each id once
- *         "recipe": "recipes/example.json",          the recipe that converts the application to stereo
- *         "executable": "example/example.exe",       the program to start
- *         "arguments": "-windowed",                  (optional) command line arguments of the application
- *         "working_directory": "example",            (optional) default: the directory of the executable
- *         "title": "Example"                         (optional) default: the name of the recipe target
- *         "launch_button": "Launch",                 (optional) text of a button in the application's first dialog; the launcher presses it
- *         "untick_checkbox": "Fullscreen",           (optional) text of a checkbox in that dialog; the launcher unticks it just before it presses the button
- *         "unavailable_reason": "...",               (optional) why the player cannot start the application (see below)
- *         "download": {                              (optional) where to get the application if its executable is missing:
- *           "urls": ["https://..."],                 https only; tried one after the other until one works
- *           "sha256": "...",                         hex SHA-256 of the archive (a zip file); an archive with another hash is not used
- *           "size": 66454,                           size of the archive in bytes
- *           "unpacked_size": 69184,                  the most that the unpacked files may take together
- *           "page": "https://..."                    (optional) where the archive can be downloaded by hand
+ *         "id": "example",                           letters, digits, '-' and '_'; unique
+ *         "recipe": "recipes/example.json",          recipe that converts the application to stereo
+ *         "executable": "example/example.exe",       program to start
+ *         "arguments": "-windowed",                  (optional) command line arguments
+ *         "working_directory": "example",            (optional) default: the executable's directory
+ *         "title": "Example"                         (optional) default: the recipe target name
+ *         "launch_button": "Launch",                 (optional) button in the first dialog, pressed by the launcher
+ *         "untick_checkbox": "Fullscreen",           (optional) checkbox in that dialog, unticked before the button is pressed
+ *         "unavailable_reason": "...",               (optional) why the application cannot be started
+ *         "download": {                              (optional) source if the executable is missing:
+ *           "urls": ["https://..."],                 https only; tried in order until one works
+ *           "sha256": "...",                         hex SHA-256 of the zip archive; a different hash is refused
+ *           "size": 66454,                           archive size in bytes
+ *           "unpacked_size": 69184,                  maximum total size of the unpacked files
+ *           "page": "https://..."                    (optional) page for a manual download
  *         }
  *       }
  *     ]
  *   }
  *
- * Relative paths are relative to the directory of the catalog. An application whose recipe or executable is missing, or whose recipe is
- * invalid, is still listed, with the reason (AppEntry::unavailable_reason), so the catalog remains usable. An application that has a
- * download is installed into the directory next to the catalog that is named after its id, and its executable must be inside it.
+ * Relative paths are relative to the catalog directory. An application with a missing executable or missing/invalid recipe is still
+ * listed with AppEntry::unavailable_reason. A download is installed into a directory named after the id next to the catalog; the
+ * executable must be inside it.
  */
 #ifndef APPCATALOG_CATALOG_LOADER_H
 #define APPCATALOG_CATALOG_LOADER_H
