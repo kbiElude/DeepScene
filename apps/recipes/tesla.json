@@ -9,6 +9,12 @@
     "overlay_parallax": 0.019361413,
     "push_by_default": true,
     "push_unaffected": true,
+    "scene_overrides": [
+      {
+        "shape": "0x74079f7c7fe3076d",
+        "max_separation": 0.0497
+      }
+    ],
     "snap_at_cuts": true
   },
   "frame_pacing": {
@@ -298,7 +304,7 @@
       },
       {
         "shape": "0x74079f7c7fe3076d",
-        "separation": 0.0751147047
+        "separation": 0.0496999994
       },
       {
         "shape": "0x76144a7cd2053039",
