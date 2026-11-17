@@ -98,6 +98,11 @@ namespace Stereo
         private:
             static constexpr size_t N_TEXTURE_UNITS = 32;
 
+            /* Copies the framebuffer into the bound texture with glCopyTexSubImage2D (in_is_sub) or glCopyTexImage2D; in_value_array holds the call's arguments after the target. */
+            void copy_framebuffer(const bool&                   in_is_sub,
+                                  const uint32_t&               in_target,
+                                  const std::array<int32_t, 8>& in_value_array) const;
+
             /* Calls the function per eye, right first, with that eye's target bound (and its matrix applied for an affected draw). */
             void play_eyes(const std::function<void()>&      in_draw_func,
                            const Analysis::Recipe::DrawClass& in_draw_class,

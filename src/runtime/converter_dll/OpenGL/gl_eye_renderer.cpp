@@ -91,6 +91,34 @@ void Stereo::ConverterDLL::GLEyeRenderer::collect_depth_reads(const bool& in_onl
     }
 }
 
+void Stereo::ConverterDLL::GLEyeRenderer::copy_framebuffer(const bool&                   in_is_sub,
+                                                           const uint32_t&               in_target,
+                                                           const std::array<int32_t, 8>& in_value_array) const
+{
+    if (in_is_sub)
+    {
+        GLDriverFunctions::get().copy_tex_sub_image_2d_func_ptr(in_target,
+                                                                in_value_array.at(1),
+                                                                in_value_array.at(2),
+                                                                in_value_array.at(3),
+                                                                in_value_array.at(4),
+                                                                in_value_array.at(5),
+                                                                in_value_array.at(6),
+                                                                in_value_array.at(7) );
+    }
+    else
+    {
+        GLDriverFunctions::get().copy_tex_image_2d_func_ptr(in_target,
+                                                            in_value_array.at(1),
+                                                            in_value_array.at(2),
+                                                            in_value_array.at(3),
+                                                            in_value_array.at(4),
+                                                            in_value_array.at(5),
+                                                            in_value_array.at(6),
+                                                            in_value_array.at(7) );
+    }
+}
+
 void Stereo::ConverterDLL::GLEyeRenderer::forget_lost_depth_reads()
 {
     const uint32_t generation = m_targets.get_generation();
@@ -321,28 +349,9 @@ bool Stereo::ConverterDLL::GLEyeRenderer::mirror_copy(const APIInterceptor::APIF
                 GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                                twin);
 
-                if (is_sub)
-                {
-                    GLDriverFunctions::get().copy_tex_sub_image_2d_func_ptr(target,
-                                                                            value_array.at(1),
-                                                                            value_array.at(2),
-                                                                            value_array.at(3),
-                                                                            value_array.at(4),
-                                                                            value_array.at(5),
-                                                                            value_array.at(6),
-                                                                            value_array.at(7) );
-                }
-                else
-                {
-                    GLDriverFunctions::get().copy_tex_image_2d_func_ptr(target,
-                                                                        value_array.at(1),
-                                                                        value_array.at(2),
-                                                                        value_array.at(3),
-                                                                        value_array.at(4),
-                                                                        value_array.at(5),
-                                                                        value_array.at(6),
-                                                                        value_array.at(7) );
-                }
+                copy_framebuffer(is_sub,
+                                 target,
+                                 value_array);
 
                 GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                                texture);
@@ -362,28 +371,9 @@ bool Stereo::ConverterDLL::GLEyeRenderer::mirror_copy(const APIInterceptor::APIF
             /* The application's copy call uses the sizes of the smaller framebuffer, so it cannot be made. The left-eye copy is made with the scaled-up sizes instead. */
             if (is_scaled)
             {
-                if (is_sub)
-                {
-                    GLDriverFunctions::get().copy_tex_sub_image_2d_func_ptr(target,
-                                                                            value_array.at(1),
-                                                                            value_array.at(2),
-                                                                            value_array.at(3),
-                                                                            value_array.at(4),
-                                                                            value_array.at(5),
-                                                                            value_array.at(6),
-                                                                            value_array.at(7) );
-                }
-                else
-                {
-                    GLDriverFunctions::get().copy_tex_image_2d_func_ptr(target,
-                                                                        value_array.at(1),
-                                                                        value_array.at(2),
-                                                                        value_array.at(3),
-                                                                        value_array.at(4),
-                                                                        value_array.at(5),
-                                                                        value_array.at(6),
-                                                                        value_array.at(7) );
-                }
+                copy_framebuffer(is_sub,
+                                 target,
+                                 value_array);
 
                 is_made_scaled = true;
             }
