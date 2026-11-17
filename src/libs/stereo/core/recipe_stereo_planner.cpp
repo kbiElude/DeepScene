@@ -294,8 +294,21 @@ void Stereo::Core::RecipeStereoPlanner::on_frame_completed(const uint64_t& in_sh
                                                               fraction_of_the_way) == false)
     {
         /* The scene is unknown. The limit of the previous scene stays together with its distance, because lifting it would give the eyes
-         * more room than the scene on the screen may allow.
+         * more room than the scene on the screen may allow. The distance of a far scene would be too much for a near one, so it comes down to
+         * the distance that the recipe gives for the draws that have none, and the natural separation with it. A distance below it stays.
          */
+        const float anchor_distance  = m_applier.get_view_anchor_shift().convergence_distance;
+        const float current_distance = m_convergence_model.get_scene_convergence_distance();
+        const bool  has_anchor       = m_applier.has_view_anchor_shift();
+
+        if (has_anchor                    &&
+            anchor_distance  >  0.0f      &&
+            current_distance >  anchor_distance)
+        {
+            m_convergence_model.follow_scene_convergence_distance(anchor_distance,
+                                                                  fraction_of_the_way);
+        }
+
         m_n_unknown_frames++;
     }
     else

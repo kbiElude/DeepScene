@@ -50,6 +50,9 @@ namespace Stereo
              */
             float get_effective_eye_separation() const;
 
+            /* The distance the scene gives (see follow_scene_convergence_distance()); 0 until a scene gave one. */
+            float get_scene_convergence_distance() const;
+
             /* Each returns false and changes nothing if the value is not a number or is below zero. */
             bool set_convergence_distance(const float& in_convergence_distance);
             bool set_depth_strength      (const float& in_depth_strength);

@@ -140,8 +140,9 @@ namespace Stereo
              * recipe has a convergence distance for that shape (see Recipe::scene_convergence_vec), the draws that follow converge there. The
              * convergence eases toward the distance over several frames (by time with comfort.ease_by_time), which keeps a scene made of frames
              * with slightly different shapes from pulsing. The first distance is taken at once, and so is one far from the one before when the
-             * recipe sets comfort.snap_at_cuts. If the recipe does not know the shape, the convergence distance and the
-             * limit on the eye separation stay as they are.
+             * recipe sets comfort.snap_at_cuts. If the recipe does not know the shape, the limit on the eye separation and the convergence
+             * distance stay as they are, except that a distance above the one the recipe gives for draws that have none (see ViewAnchorShift) comes
+             * down to it, so that a scene that is near is not given the separation of a far one.
              */
             void on_frame_completed(const uint64_t& in_shape_key);
 

@@ -160,6 +160,11 @@ float Stereo::Core::ConvergenceModel::get_reference_frame_seconds()
     return 1.0f / REFERENCE_FRAMES_PER_SECOND;
 }
 
+float Stereo::Core::ConvergenceModel::get_scene_convergence_distance() const
+{
+    return m_scene_convergence_distance;
+}
+
 bool Stereo::Core::ConvergenceModel::is_cut(const float& in_previous_target,
                                             const float& in_target)
 {

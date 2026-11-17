@@ -1551,3 +1551,93 @@ TEST_F(StereoCoreTest, TheEyesGiveADrawAParallaxByItsDepthThatTheDistanceOfConve
     EXPECT_FLOAT_EQ(core.get_eye_parallax(1.0f, 1.0f, true),
                     0.0f);
 }
+
+TEST_F(StereoCoreTest, AnUnknownSceneComesDownToTheAnchorDistanceOfTheRecipeAndIsNeverRaisedToIt)
+{
+    auto recipe = make_recipe(get_baked_text(""),
+                              "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                              " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}");
+
+    recipe.view_anchor_shift.convergence_distance = 5.0f;
+    recipe.view_anchor_shift.is_enabled           = true;
+
+    /* A far scene (shape 100), a near one (shape 200), and shape 999, which the recipe does not know. */
+    recipe.scene_convergence_vec.push_back({200.0f, 100});
+    recipe.scene_convergence_vec.push_back({3.0f, 200});
+
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [](const std::string&)
+                                           {
+                                               FAIL() << "The core was asked to fail";
+                                           });
+
+    core.set_depth_strength(1.0f);
+
+    core.on_frame_completed(100);
+
+    EXPECT_FLOAT_EQ(core.get_effective_convergence_distance(),
+                    200.0f);
+
+    /* Nothing is known of the next scene: it is not given the separation of the far one (200 / 30), but the natural one for the anchor. */
+    for (int n_frame = 0;
+             n_frame < 400;
+           ++n_frame)
+    {
+        core.on_frame_completed(999);
+    }
+
+    EXPECT_NEAR(core.get_effective_convergence_distance(),
+                5.0f,
+                0.01f);
+    EXPECT_NEAR(core.get_effective_eye_separation(),
+                5.0f / 30.0f,
+                0.001f);
+    EXPECT_EQ(core.get_n_unknown_frames(),
+              400u);
+
+    /* A scene nearer than the anchor is followed as it is, and an unknown scene after it does not raise it. */
+    for (int n_frame = 0;
+             n_frame < 400;
+           ++n_frame)
+    {
+        core.on_frame_completed(200);
+    }
+
+    EXPECT_NEAR(core.get_effective_convergence_distance(),
+                3.0f,
+                0.01f);
+
+    core.on_frame_completed(999);
+
+    EXPECT_NEAR(core.get_effective_convergence_distance(),
+                3.0f,
+                0.01f);
+}
+
+TEST_F(StereoCoreTest, AnUnknownSceneKeepsTheDistanceBeforeItWhenTheRecipeHasNoAnchorDistance)
+{
+    auto recipe = make_recipe(get_baked_text(""),
+                              "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                              " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}");
+
+    recipe.scene_convergence_vec.push_back({200.0f, 100});
+
+    Stereo::Core::RecipeStereoPlanner core(recipe,
+                                           [](const std::string&)
+                                           {
+                                               FAIL() << "The core was asked to fail";
+                                           });
+
+    core.set_depth_strength(1.0f);
+    core.on_frame_completed(100);
+
+    for (int n_frame = 0;
+             n_frame < 400;
+           ++n_frame)
+    {
+        core.on_frame_completed(999);
+    }
+
+    EXPECT_FLOAT_EQ(core.get_effective_convergence_distance(),
+                    200.0f);
+}
