@@ -164,15 +164,29 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_unit_key(con
 
 uint32_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_value_groups(const GLStateValue& in_value)
 {
-    constexpr uint32_t COLOR_BUFFER_BIT = 0x00004000;
-    constexpr uint32_t DEPTH_BUFFER_BIT = 0x00000100;
-    constexpr uint32_t LIGHTING_BIT     = 0x00000040;
-    constexpr uint32_t POLYGON_BIT      = 0x00000008;
+    constexpr uint32_t COLOR_BUFFER_BIT   = 0x00004000;
+    constexpr uint32_t DEPTH_BUFFER_BIT   = 0x00000100;
+    constexpr uint32_t LIGHTING_BIT       = 0x00000040;
+    constexpr uint32_t POLYGON_BIT        = 0x00000008;
+    constexpr uint32_t STENCIL_BUFFER_BIT = 0x00000400;
 
     uint32_t result = 0;
 
     switch (in_value)
     {
+        case GLStateValue::STENCIL_DEPTH_FAIL:
+        case GLStateValue::STENCIL_DEPTH_PASS:
+        case GLStateValue::STENCIL_FAIL:
+        case GLStateValue::STENCIL_FUNC:
+        case GLStateValue::STENCIL_REFERENCE:
+        case GLStateValue::STENCIL_VALUE_MASK:
+        case GLStateValue::STENCIL_WRITE_MASK:
+        {
+            result = STENCIL_BUFFER_BIT;
+
+            break;
+        }
+
         case GLStateValue::ALPHA_FUNC:
         case GLStateValue::BLEND_DESTINATION:
         case GLStateValue::BLEND_SOURCE:
@@ -184,6 +198,7 @@ uint32_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::get_value_groups
         }
 
         case GLStateValue::CULL_FACE:
+        case GLStateValue::FRONT_FACE:
         case GLStateValue::POLYGON_MODE_BACK:
         case GLStateValue::POLYGON_MODE_FRONT:
         {

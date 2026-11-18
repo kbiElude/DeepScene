@@ -20,11 +20,18 @@ namespace
             BLEND         = 0x00000BE2,
             COMPILE       = 0x00001300,
             DEPTH_TEST    = 0x00000B71,
+            GL_ALWAYS     = 0x00000207,
+            GL_CCW        = 0x00000901,
+            GL_CW         = 0x00000900,
+            GL_EQUAL      = 0x00000202,
+            GL_INCR       = 0x00001E02,
+            GL_KEEP       = 0x00001E00,
             GL_LEQUAL     = 0x00000203,
             GL_LESS       = 0x00000201,
             GL_ONE        = 0x00000001,
             GL_SRC_ALPHA  = 0x00000302,
             LINES         = 0x00000001,
+            STENCIL_TEST  = 0x00000B90,
             TRIANGLES     = 0x00000004,
             TRIANGLE_FAN  = 0x00000006
         };
@@ -203,6 +210,128 @@ TEST_F(GLFrontendDraws, TheBlendFunctionTellsDrawsApart)
 
     EXPECT_EQ(m_harness.get_model().draw_structure_map.size(),
               2u);
+}
+
+TEST_F(GLFrontendDraws, TheFaceWhichIsTheFrontTellsDrawsApart)
+{
+    start(640,
+          480);
+
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    m_builder.front_face  (GL_CCW);
+    add_triangle          (TRIANGLES);
+    m_builder.front_face  (GL_CW);
+    add_triangle          (TRIANGLES);
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    EXPECT_EQ(m_harness.get_model().draw_structure_map.size(),
+              2u);
+}
+
+TEST_F(GLFrontendDraws, TheStencilFunctionTellsDrawsApart)
+{
+    start(640,
+          480);
+
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    m_builder.enable      (STENCIL_TEST);
+    m_builder.stencil_func(GL_ALWAYS,
+                           1,
+                           0xFFFFFFFF);
+    add_triangle          (TRIANGLES);
+    m_builder.stencil_func(GL_EQUAL,
+                           1,
+                           0xFFFFFFFF);
+    add_triangle          (TRIANGLES);
+    m_builder.stencil_func(GL_EQUAL,
+                           2,
+                           0xFFFFFFFF); /* only the reference differs */
+    add_triangle          (TRIANGLES);
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    EXPECT_EQ(m_harness.get_model().draw_structure_map.size(),
+              3u);
+}
+
+TEST_F(GLFrontendDraws, TheStencilOperationsAndTheWriteMaskTellDrawsApart)
+{
+    start(640,
+          480);
+
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    m_builder.enable      (STENCIL_TEST);
+    m_builder.stencil_op  (GL_KEEP,
+                           GL_KEEP,
+                           GL_KEEP);
+    add_triangle          (TRIANGLES);
+    m_builder.stencil_op  (GL_KEEP,
+                           GL_KEEP,
+                           GL_INCR);
+    add_triangle          (TRIANGLES);
+    m_builder.stencil_mask(0x0F);
+    add_triangle          (TRIANGLES);
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    EXPECT_EQ(m_harness.get_model().draw_structure_map.size(),
+              3u);
+}
+
+TEST_F(GLFrontendDraws, TheStencilAndFrontFaceCallsAreFollowedAndNotCountedAsUnfollowed)
+{
+    start(640,
+          480);
+
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    m_builder.enable      (STENCIL_TEST);
+    m_builder.front_face  (GL_CW);
+    m_builder.stencil_func(GL_EQUAL,
+                           1,
+                           0xFFFFFFFF);
+    m_builder.stencil_op  (GL_KEEP,
+                           GL_KEEP,
+                           GL_INCR);
+    m_builder.stencil_mask(0xFF);
+    add_triangle          (TRIANGLES);
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    EXPECT_EQ(m_harness.get_frontend().get_n_unfollowed_calls(),
+              0u);
+    EXPECT_EQ(m_harness.get_model().frame_record_vec.at(0).n_draws,
+              1u);
+}
+
+TEST_F(GLFrontendDraws, APopPutsBackTheStencilAndTheFrontFace)
+{
+    start(640,
+          480);
+
+    m_builder.clear       (COLOR_BUFFER_BIT);
+    add_triangle          (TRIANGLES);
+    m_builder.push_attrib (ALL_ATTRIB_BITS);
+    m_builder.front_face  (GL_CW);
+    m_builder.stencil_func(GL_EQUAL,
+                           3,
+                           0xFFFFFFFF);
+    m_builder.stencil_op  (GL_KEEP,
+                           GL_KEEP,
+                           GL_INCR);
+    m_builder.stencil_mask(0x0F);
+    m_builder.pop_attrib  ();
+    add_triangle          (TRIANGLES); /* the same as the first one */
+    m_builder.swap_buffers(DEVICE_CONTEXT_ADDRESS);
+
+    feed();
+
+    EXPECT_EQ(m_harness.get_model().draw_structure_map.size(),
+              1u);
 }
 
 TEST_F(GLFrontendDraws, APopPutsBackThePipelineState)

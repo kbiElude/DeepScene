@@ -69,7 +69,8 @@ namespace Analysis
             };
 
             /* The fixed-function pipeline values that tell draws apart, besides what is enabled. The value of each is what the call set
-             * (a function, a mode, the color mask). */
+             * (a function, a mode, the color mask). The numbers go into the keys of draws, so the entries keep their place and new ones are added at the end.
+             */
             enum class GLStateValue
             {
                 ALPHA_FUNC,
@@ -81,7 +82,16 @@ namespace Analysis
                 DEPTH_MASK,
                 POLYGON_MODE_BACK,
                 POLYGON_MODE_FRONT,
-                SHADE_MODEL
+                SHADE_MODEL,
+
+                FRONT_FACE,
+                STENCIL_DEPTH_FAIL,
+                STENCIL_DEPTH_PASS,
+                STENCIL_FAIL,
+                STENCIL_FUNC,
+                STENCIL_REFERENCE,
+                STENCIL_VALUE_MASK,
+                STENCIL_WRITE_MASK
             };
 
             /* The type of the components of a vertex call. */

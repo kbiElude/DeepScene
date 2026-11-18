@@ -66,9 +66,9 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::changes_what_a_draw
 {
     bool result = false;
 
-    /* The stencil test and its operations, the logic op, the blend equation, the separate blend factors, the blend constant color, and the choice of
-     * which face side is the front. These decide which draws reach the framebuffer and how they combine with it, as the culling that the model follows
-     * does. The model follows the basic blending and culling functions (glBlendFunc, glCullFace) and tells draws apart by them. The functions listed here are the remaining ones.
+    /* The logic op, the blend equation, the separate blend factors and the blend constant color. These decide how a draw combines with the
+     * framebuffer. The model follows the basic blending, culling, winding and stencil functions (glBlendFunc, glCullFace, glFrontFace, glStencil*) and
+     * tells draws apart by them. The functions listed here are the remaining ones.
      */
     switch (in_function)
     {
@@ -76,11 +76,7 @@ bool Analysis::APIDumpAnalysis::Frontends::GLFunctionPolicy::changes_what_a_draw
         case APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATION:
         case APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATIONSEPARATE:
         case APIInterceptor::APIFUNCTION_GL_GLBLENDFUNCSEPARATE:
-        case APIInterceptor::APIFUNCTION_GL_GLFRONTFACE:
         case APIInterceptor::APIFUNCTION_GL_GLLOGICOP:
-        case APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC:
-        case APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK:
-        case APIInterceptor::APIFUNCTION_GL_GLSTENCILOP:
         {
             result = true;
 

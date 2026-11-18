@@ -1254,27 +1254,6 @@ TEST_F(GLFrontendTextureLevels, EveryFunctionThatGerberaMakesAndTheFrontEndDoesN
     SUCCEED();
 }
 
-TEST_F(GLFrontendTextureLevels, TheStencilTestAndWhatItDoesEndTheProcessUntilTheyAreFollowed)
-{
-    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC);
-
-    expect_unsupported("glStencilFunc.*decides what a draw writes");
-}
-
-TEST_F(GLFrontendTextureLevels, TheStencilOperationsEndTheProcessUntilTheyAreFollowed)
-{
-    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILOP);
-
-    expect_unsupported("glStencilOp.*decides what a draw writes");
-}
-
-TEST_F(GLFrontendTextureLevels, TheStencilMaskEndsTheProcessUntilItIsFollowed)
-{
-    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK);
-
-    expect_unsupported("glStencilMask.*decides what a draw writes");
-}
-
 TEST_F(GLFrontendTextureLevels, TheLogicOpEndsTheProcessUntilItIsFollowed)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLLOGICOP);
@@ -1296,11 +1275,16 @@ TEST_F(GLFrontendTextureLevels, TheSeparateFactorsAndTheConstantColorOfBlendingE
     expect_unsupported("glBlendFuncSeparate.*decides what a draw writes");
 }
 
-TEST_F(GLFrontendTextureLevels, TheWindingOfFacesEndsTheProcessUntilItIsFollowed)
+TEST_F(GLFrontendTextureLevels, TheStencilAndTheWindingOfFacesAreFollowedAndDoNotEndTheProcess)
 {
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLFRONTFACE);
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC);
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK);
+    add_call_of(APIInterceptor::APIFUNCTION_GL_GLSTENCILOP);
 
-    expect_unsupported("glFrontFace.*decides what a draw writes");
+    feed();
+
+    SUCCEED();
 }
 
 TEST_F(GLFrontendTextureLevels, WhatOnlyChangesHowADrawLooksGoesThroughAndSoDoThePolygonOffsetAndTheFog)

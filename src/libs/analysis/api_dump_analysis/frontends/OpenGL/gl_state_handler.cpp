@@ -196,6 +196,14 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_state_value(co
             break;
         }
 
+        case APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC:
+        case APIInterceptor::APIFUNCTION_GL_GLSTENCILOP:
+        {
+            n_arguments = 3;
+
+            break;
+        }
+
         case APIInterceptor::APIFUNCTION_GL_GLCOLORMASK:
         {
             n_arguments = 4;
@@ -289,9 +297,17 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_state_value(co
                 break;
             }
 
+            case APIInterceptor::APIFUNCTION_GL_GLFRONTFACE:
+            {
+                pipeline_ptr->set_value(GLStateValue::FRONT_FACE,
+                                        argument_array.at(0) );
+
+                break;
+            }
+
             case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
             {
-                const bool is_back  = (argument_array.at(0) == BACK  ||
+                const bool is_back = (argument_array.at(0) == BACK  ||
                                        argument_array.at(0) == FRONT_AND_BACK);
                 const bool is_front = (argument_array.at(0) == FRONT ||
                                        argument_array.at(0) == FRONT_AND_BACK);
@@ -315,6 +331,38 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_state_value(co
             {
                 pipeline_ptr->set_value(GLStateValue::SHADE_MODEL,
                                         argument_array.at(0) );
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC:
+            {
+                pipeline_ptr->set_value(GLStateValue::STENCIL_FUNC,
+                                        argument_array.at(0) );
+                pipeline_ptr->set_value(GLStateValue::STENCIL_REFERENCE,
+                                        argument_array.at(1) );
+                pipeline_ptr->set_value(GLStateValue::STENCIL_VALUE_MASK,
+                                        argument_array.at(2) );
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK:
+            {
+                pipeline_ptr->set_value(GLStateValue::STENCIL_WRITE_MASK,
+                                        argument_array.at(0) );
+
+                break;
+            }
+
+            case APIInterceptor::APIFUNCTION_GL_GLSTENCILOP:
+            {
+                pipeline_ptr->set_value(GLStateValue::STENCIL_FAIL,
+                                        argument_array.at(0) );
+                pipeline_ptr->set_value(GLStateValue::STENCIL_DEPTH_FAIL,
+                                        argument_array.at(1) );
+                pipeline_ptr->set_value(GLStateValue::STENCIL_DEPTH_PASS,
+                                        argument_array.at(2) );
 
                 break;
             }

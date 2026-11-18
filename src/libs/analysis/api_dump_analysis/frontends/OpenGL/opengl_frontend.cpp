@@ -362,8 +362,12 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                 case APIInterceptor::APIFUNCTION_GL_GLCULLFACE:
                 case APIInterceptor::APIFUNCTION_GL_GLDEPTHFUNC:
                 case APIInterceptor::APIFUNCTION_GL_GLDEPTHMASK:
+                case APIInterceptor::APIFUNCTION_GL_GLFRONTFACE:
                 case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
                 case APIInterceptor::APIFUNCTION_GL_GLSHADEMODEL:
+                case APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC:
+                case APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK:
+                case APIInterceptor::APIFUNCTION_GL_GLSTENCILOP:
                 {
                     m_state_handler.handle_state_value(in_call,
                                                        state_ptr);
@@ -725,7 +729,7 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                          * The call is reported instead of ignored.
                          */
                         report_unsupported_use(in_call.func,
-                                               "state that decides what a draw writes, or how its pixels are combined with what is there (the stencil test, the logic op, the blend equation, the winding of faces), is not followed (the function)",
+                                               "state that decides what a draw writes, or how its pixels are combined with what is there (the logic op, the blend equation, the blend constant color), is not followed (the function)",
                                                static_cast<uint64_t>(in_call.func) );
                     }
                     else

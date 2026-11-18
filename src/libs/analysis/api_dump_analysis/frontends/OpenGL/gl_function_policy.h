@@ -28,8 +28,8 @@ namespace Analysis
                 static bool bakes_current_matrix(const APIInterceptor::APIFunction& in_function);
 
                 /* Returns true for the functions that set state which decides what a draw writes, or how its pixels combine with the existing ones, and
-                 * which the model does not follow: the stencil test and its operations, the logic op, the blend equation, the separate blend factors, the
-                 * blend constant color, and which face side is the front. A frame containing only such a draw could be mistaken for a frame that writes
+                 * which the model does not follow: the logic op, the blend equation, the separate blend factors and the
+                 * blend constant color. A frame containing only such a draw could be mistaken for a frame that writes
                  * nothing and be skipped by a seek. The front end therefore ends the process on these functions (see report_unsupported_use()), so they
                  * are reported and not passed over. Not in is_left_out_by_design().
                  */

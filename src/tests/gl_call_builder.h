@@ -103,6 +103,8 @@ namespace Tests
         void end          ();
         void end_list     ();
 
+        void front_face(const uint32_t& in_mode);
+
         void frustum(const double& in_left,
                      const double& in_right,
                      const double& in_bottom,
@@ -179,6 +181,14 @@ namespace Tests
                      const int32_t& in_height);
 
         void set_thread_id(const uint32_t& in_thread_id);
+
+        void stencil_func(const uint32_t& in_function,
+                          const int32_t&  in_reference,
+                          const uint32_t& in_mask);
+        void stencil_mask(const uint32_t& in_mask);
+        void stencil_op  (const uint32_t& in_fail,
+                          const uint32_t& in_depth_fail,
+                          const uint32_t& in_depth_pass);
 
         void swap_buffers(const uint64_t& in_device_context_address);
 

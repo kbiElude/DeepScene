@@ -104,11 +104,7 @@ TEST(GLFunctionPolicy, WhatDecidesWhatADrawWritesAndTheModelDoesNotFollowIsNotLe
         APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATION,
         APIInterceptor::APIFUNCTION_GL_GLBLENDEQUATIONSEPARATE,
         APIInterceptor::APIFUNCTION_GL_GLBLENDFUNCSEPARATE,
-        APIInterceptor::APIFUNCTION_GL_GLFRONTFACE,
-        APIInterceptor::APIFUNCTION_GL_GLLOGICOP,
-        APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC,
-        APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK,
-        APIInterceptor::APIFUNCTION_GL_GLSTENCILOP
+        APIInterceptor::APIFUNCTION_GL_GLLOGICOP
     };
 
     for (const auto function : function_array)
@@ -116,6 +112,23 @@ TEST(GLFunctionPolicy, WhatDecidesWhatADrawWritesAndTheModelDoesNotFollowIsNotLe
         EXPECT_TRUE (GLFunctionPolicy::changes_what_a_draw_writes(function) ) << Capture::APIDumpNames::get_function_name(function);
         EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(function) )      << Capture::APIDumpNames::get_function_name(function);
         EXPECT_FALSE(GLFunctionPolicy::bakes_current_matrix(function) )       << Capture::APIDumpNames::get_function_name(function);
+    }
+}
+
+TEST(GLFunctionPolicy, TheStencilAndFrontFaceFunctionsAreFollowedByTheModelSoTheyAreNeitherReportedNorLeftOut)
+{
+    const APIInterceptor::APIFunction function_array[] =
+    {
+        APIInterceptor::APIFUNCTION_GL_GLFRONTFACE,
+        APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC,
+        APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK,
+        APIInterceptor::APIFUNCTION_GL_GLSTENCILOP
+    };
+
+    for (const auto function : function_array)
+    {
+        EXPECT_FALSE(GLFunctionPolicy::changes_what_a_draw_writes(function) ) << Capture::APIDumpNames::get_function_name(function);
+        EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(function) )      << Capture::APIDumpNames::get_function_name(function);
     }
 }
 

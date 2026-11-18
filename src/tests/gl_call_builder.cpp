@@ -302,6 +302,12 @@ void Tests::GLCallBuilder::end_list()
              {});
 }
 
+void Tests::GLCallBuilder::front_face(const uint32_t& in_mode)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLFRONTFACE,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_mode)});
+}
+
 void Tests::GLCallBuilder::frustum(const double& in_left,
                                    const double& in_right,
                                    const double& in_bottom,
@@ -571,6 +577,32 @@ void Tests::GLCallBuilder::scissor(const int32_t& in_x,
 void Tests::GLCallBuilder::set_thread_id(const uint32_t& in_thread_id)
 {
     m_thread_id = in_thread_id;
+}
+
+void Tests::GLCallBuilder::stencil_func(const uint32_t& in_function,
+                                        const int32_t&  in_reference,
+                                        const uint32_t& in_mask)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_function),
+              APIInterceptor::APIFunctionArgument::create_i32       (in_reference),
+              APIInterceptor::APIFunctionArgument::create_u32       (in_mask)});
+}
+
+void Tests::GLCallBuilder::stencil_mask(const uint32_t& in_mask)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLSTENCILMASK,
+             {APIInterceptor::APIFunctionArgument::create_u32(in_mask)});
+}
+
+void Tests::GLCallBuilder::stencil_op(const uint32_t& in_fail,
+                                      const uint32_t& in_depth_fail,
+                                      const uint32_t& in_depth_pass)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLSTENCILOP,
+             {APIInterceptor::APIFunctionArgument::create_u32_glenum(in_fail),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(in_depth_fail),
+              APIInterceptor::APIFunctionArgument::create_u32_glenum(in_depth_pass)});
 }
 
 void Tests::GLCallBuilder::swap_buffers(const uint64_t& in_device_context_address)
