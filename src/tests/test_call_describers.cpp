@@ -34,6 +34,8 @@ TEST(CallDescribers, DrawsAndClearsAreContentInEveryApi)
               CallClass::CONTENT);
     EXPECT_EQ(CallDescriberSet::get_function_class(APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_DRAWPRIMITIVE),
               CallClass::CONTENT);
+    EXPECT_EQ(CallDescriberSet::get_function_class(APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DDEVICE8_UPDATETEXTURE),
+              CallClass::CONTENT);
     EXPECT_EQ(CallDescriberSet::get_function_class(APIInterceptor::APIFUNCTION_D3D8_IDIRECT3DTEXTURE8_UNLOCKRECT),
               CallClass::CONTENT);
 }
@@ -50,6 +52,9 @@ TEST(CallDescribers, StateAndObjectCallsAreStateInEveryApi)
     EXPECT_EQ(CallDescriberSet::get_function_class(APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_SETRENDERSTATE),
               CallClass::STATE);
     EXPECT_EQ(CallDescriberSet::get_function_class(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAW7_CREATESURFACE),
+              CallClass::STATE);
+    /* It copies the pixels, but it also creates the surface that later calls use: a dead frame must run it. */
+    EXPECT_EQ(CallDescriberSet::get_function_class(APIInterceptor::APIFUNCTION_D3D7_IDIRECTDRAW7_DUPLICATESURFACE),
               CallClass::STATE);
     EXPECT_EQ(CallDescriberSet::get_function_class(APIInterceptor::APIFUNCTION_GDI32_SWAPBUFFERS),
               CallClass::STATE);

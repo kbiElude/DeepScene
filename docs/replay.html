@@ -307,7 +307,7 @@
 <p>The index is made to fail rather than to guess. A function that no describer names ends the process with its number (add it to the table of the describer, saying what it does to state), as does a call of an API that has none, a call without the number that tells what it sets, a display list that is made and executed at once, and any difference that the verifier finds. When in doubt, a function is a barrier: it is made as it was. The tables are checked by tests, among them tens of thousands of random sequences of calls.</p>
 
 <h3 id="seek-gl">OpenGL: what a dead frame leaves out</h3>
-<p>A dead frame leaves out its content calls and makes the rest: the state, the textures and the lists. For Direct3D the content calls are draws, clears, copies (<code>Blt</code>, <code>CopyRects</code>) and the locks and unlocks of buffers and surfaces. For OpenGL they are these:</p>
+<p>A dead frame leaves out its content calls and makes the rest: the state, the textures and the lists. For Direct3D the content calls are draws, clears, copies (<code>Blt</code>, <code>CopyRects</code>, <code>UpdateTexture</code>) and the locks and unlocks of buffers and surfaces. For OpenGL they are these:</p>
 <table>
 <tr><th>Kind</th><th>Calls</th></tr>
 <tr><td>Vertices</td><td><code>glBegin</code> to <code>glEnd</code> with the vertices between them (<code>glVertex*</code>, <code>glRect*</code>, <code>glArrayElement</code>)</td></tr>
