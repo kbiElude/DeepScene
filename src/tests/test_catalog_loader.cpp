@@ -260,7 +260,7 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
                                                           &m_catalog,
                                                           &m_error) ) << m_error;
     ASSERT_EQ  (m_catalog.app_vec.size(),
-                4u);
+                5u);
 
     EXPECT_EQ(m_catalog.app_vec.at(0).id,
               "fr08");
@@ -314,20 +314,42 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_NE(m_catalog.app_vec.at(2).install_spec.install_directory.find("\\apps\\kasparov"),
               std::string::npos);
 
-    /* Tesla (OpenGL): a recipe which is valid, and an archive of the demo to download. */
+    /* Propaganda (OpenGL): the archive is listed; its recipe does not exist yet, so the entry is unavailable, and the catalog lists
+     * an unavailable entry after the available ones.
+     */
     EXPECT_EQ(m_catalog.app_vec.at(3).id,
-              "tesla");
+              "propaganda");
     EXPECT_EQ(m_catalog.app_vec.at(3).name,
-              "Tesla by Sunflower (2000)");
-    EXPECT_EQ(m_catalog.app_vec.at(3).unavailable_reason.find("recipe"),
+              "Propaganda by INF (2001)");
+    EXPECT_NE(m_catalog.app_vec.at(3).unavailable_reason.find("recipe"),
               std::string::npos) << m_catalog.app_vec.at(3).unavailable_reason;
+    EXPECT_EQ(m_catalog.app_vec.at(3).launch_button_text,
+              "Start");
+    EXPECT_EQ(m_catalog.app_vec.at(3).untick_checkbox_text,
+              "Fullscreen");
     EXPECT_GE(m_catalog.app_vec.at(3).install_spec.url_vec.size(),
               2u);
     EXPECT_EQ(m_catalog.app_vec.at(3).install_spec.sha256_hex.size(),
               64u);
     EXPECT_EQ(m_catalog.app_vec.at(3).install_spec.n_archive_bytes,
+              6030064u);
+    EXPECT_NE(m_catalog.app_vec.at(3).install_spec.install_directory.find("\\apps\\propaganda"),
+              std::string::npos);
+
+    /* Tesla (OpenGL): a recipe which is valid, and an archive of the demo to download. */
+    EXPECT_EQ(m_catalog.app_vec.at(4).id,
+              "tesla");
+    EXPECT_EQ(m_catalog.app_vec.at(4).name,
+              "Tesla by Sunflower (2000)");
+    EXPECT_EQ(m_catalog.app_vec.at(4).unavailable_reason.find("recipe"),
+              std::string::npos) << m_catalog.app_vec.at(4).unavailable_reason;
+    EXPECT_GE(m_catalog.app_vec.at(4).install_spec.url_vec.size(),
+              2u);
+    EXPECT_EQ(m_catalog.app_vec.at(4).install_spec.sha256_hex.size(),
+              64u);
+    EXPECT_EQ(m_catalog.app_vec.at(4).install_spec.n_archive_bytes,
               7367658u);
-    EXPECT_NE(m_catalog.app_vec.at(3).install_spec.install_directory.find("\\apps\\tesla"),
+    EXPECT_NE(m_catalog.app_vec.at(4).install_spec.install_directory.find("\\apps\\tesla"),
               std::string::npos);
 }
 

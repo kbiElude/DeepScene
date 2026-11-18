@@ -76,6 +76,26 @@
         "unpacked_size": 8057353,
         "page": "https://files.scene.org/view/demos/groups/sunflower/tesla_sunflower.zip"
       }
+    },
+    {
+      "id": "propaganda",
+      "title": "Propaganda by INF (2001)",
+      "launch_button": "Start",
+      "untick_checkbox": "Fullscreen",
+      "recipe": "recipes/propaganda.json",
+      "executable": "propaganda/propaganda.exe",
+      "download": {
+        "urls": [
+          "https://archive.scene.org/pub/parties/2001/mekkasymposium01/demo/infprop.zip",
+          "https://mirror.netcologne.de/scene.org/parties/2001/mekkasymposium01/demo/infprop.zip",
+          "https://mirror.scenesat.com/scene.org/parties/2001/mekkasymposium01/demo/infprop.zip",
+          "https://http.jp.scene.org/parties/2001/mekkasymposium01/demo/infprop.zip"
+        ],
+        "sha256": "38ff858e9d125f24292a74c4ef559f3cc704ae81f5910912a2787cb836ebb4f8",
+        "size": 6030064,
+        "unpacked_size": 7330319,
+        "page": "https://files.scene.org/view/parties/2001/mekkasymposium01/demo/infprop.zip"
+      }
     }
   ]
 }
