@@ -71,16 +71,19 @@ namespace Analysis
                               const uint32_t* in_value_ptr,
                               const size_t&   in_n_values);
 
-            static StateEffect make_assign (const uint32_t& in_domain,
-                                            const Family&   in_family,
-                                            const uint32_t& in_first,
-                                            const uint32_t& in_second,
-                                            const uint32_t& in_selector_mask);
-            static StateEffect make_barrier();
-            static StateEffect make_ordered(const uint32_t& in_domain_mask,
-                                            const uint32_t& in_selector_mask);
-            static StateEffect make_select (const uint32_t& in_selector,
-                                            const uint32_t& in_value);
+            static StateEffect make_assign         (const uint32_t& in_domain,
+                                                    const Family&   in_family,
+                                                    const uint32_t& in_first,
+                                                    const uint32_t& in_second,
+                                                    const uint32_t& in_selector_mask);
+            static StateEffect make_barrier        ();
+
+            /* What a function that has a kind and no entry of its own does to state: queries and names change none, any other call is a barrier. */
+            static StateEffect make_generic_effect (const APIInterceptor::APIFunction& in_function);
+            static StateEffect make_ordered        (const uint32_t& in_domain_mask,
+                                                    const uint32_t& in_selector_mask);
+            static StateEffect make_select         (const uint32_t& in_selector,
+                                                    const uint32_t& in_value);
 
             /* The number in the argument. Ends the process if the call has none: a key made of a guess would merge calls that differ. */
             static uint32_t read_argument(const Capture::APIDumpLoader::DumpedAPICall& in_call,

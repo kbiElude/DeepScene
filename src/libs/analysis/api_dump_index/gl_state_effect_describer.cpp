@@ -2,6 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_index/gl_function_classifier.h"
 #include "analysis/api_dump_index/gl_state_effect_describer.h"
 #include "common/argument_reader.h"
 #include "common/macros.h"
@@ -154,6 +155,12 @@ Analysis::APIDumpIndex::StateEffect Analysis::APIDumpIndex::GLStateEffectDescrib
     };
 
     StateEffect result;
+
+    /* A function that no layer has met ends the process here, whatever the table below says of it. */
+    if (GLFunctionClassifier::get_kind(in_call.func) == GLFunctionKind::UNKNOWN)
+    {
+        AI_FAIL_UNSUPPORTED(in_call.func);
+    }
 
     switch (in_call.func)
     {
@@ -748,8 +755,10 @@ Analysis::APIDumpIndex::StateEffect Analysis::APIDumpIndex::GLStateEffectDescrib
 
         default:
         {
-            /* A function that the state coalescing has not met: say in the table above what it does to state. */
-            AI_FAIL_UNSUPPORTED(in_call.func);
+            /* A known function that has no entry of its own above. */
+            result = make_generic_effect(in_call.func);
+
+            break;
         }
     }
 
@@ -786,6 +795,34 @@ Analysis::APIDumpIndex::StateEffect Analysis::APIDumpIndex::GLStateEffectDescrib
     StateEffect result;
 
     result.kind = StateEffectKind::BARRIER;
+
+    return result;
+}
+
+Analysis::APIDumpIndex::StateEffect Analysis::APIDumpIndex::GLStateEffectDescriber::make_generic_effect(const APIInterceptor::APIFunction& in_function)
+{
+    StateEffect result;
+
+    switch (GLFunctionClassifier::get_kind(in_function))
+    {
+        case GLFunctionKind::NAME_OR_SIZE:
+        case GLFunctionKind::QUERY:
+        {
+            /* They set no state that is tracked, and a replay does not use what a query returns (it is made into memory that the replay discards). */
+            result = make_ordered(0,
+                                  0);
+
+            break;
+        }
+
+        default:
+        {
+            /* It may read or set anything, so it is a barrier: made in place, and nothing moves across it. */
+            result = make_barrier();
+
+            break;
+        }
+    }
 
     return result;
 }

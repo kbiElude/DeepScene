@@ -266,7 +266,7 @@
 <tr><td><code>GLArrayDrawDescriber</code>, <code>GLClientArraySnapshot</code>, <code>GLBlobStore</code></td><td>Draws whose vertices are in application memory: the snapshot of the arrays that the dumper took, the draw built from it, and the store that gives the same bytes the same buffer in every frame.</td></tr>
 <tr><td><code>GLVertexReader</code></td><td>The position that a <code>glVertex</code> call gives.</td></tr>
 <tr><td><code>GLGeometrySampler</code></td><td>Builds the sample of a draw from the positions OpenGL read; which vertices are sampled is <code>GeometrySampler</code>'s choice.</td></tr>
-<tr><td><code>GLFunctionPolicy</code>, <code>GLResolutionHazards</code></td><td>Which functions may be left out and why (any other ends the process), and the calls that depend on the pixel size of the render target.</td></tr>
+<tr><td><code>GLFunctionPolicy</code>, <code>GLResolutionHazards</code></td><td>Which functions may be left out and why (any other ends the process; what each function is comes from <code>GLFunctionClassifier</code> in <code>APIDumpIndex</code>), and the calls that depend on the pixel size of the render target.</td></tr>
 </table>
 <p>A handler keeps no address of the front end: what it needs of the others (the window, the texture handler, the counter of the hazards) is given with the call.</p>
 
@@ -307,6 +307,7 @@
 <tr><td><code>StateCoalescer</code>, <code>StateCoalescerVerifier</code></td><td>Choose the calls of a state frame, and check the choice on a model of state.</td></tr>
 <tr><td><code>IStateEffectDescriber</code> and its describers</td><td>Say what the calls of one API do to state (OpenGL, the window system, Direct3D 7 and 8).</td></tr>
 <tr><td><code>CallDescriberSet</code>, <code>ICallDescriber</code> and its describers</td><td>Say whether a call is content, state or conditional (<code>CallClass</code>).</td></tr>
+<tr><td><code>GLFunctionClassifier</code></td><td>Says what an OpenGL function is (<code>GLFunctionKind</code>: content, a value for the vertices, a query, a state call, unknown...) and whether the analysis follows it, and why not if it does not (<code>GLFunctionSupport</code>). The call describer, the state coalescing and the policy of the front end all ask it, so no layer accepts a function that another does not know.</td></tr>
 </table>
 
 <h4 id="analysis-slicing">APIDumpSlicing</h4>

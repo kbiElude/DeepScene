@@ -20,6 +20,38 @@ namespace Analysis
             STATE        /* everything else                                              */
         };
 
+        /* What an OpenGL function is, for everything that has to recognize it (see GLFunctionClassifier). */
+        enum class GLFunctionKind
+        {
+            BAKES_CURRENT_MATRIX,   /* its arguments are converted with the model-view matrix that is current at the call (a light position, a clip plane, the raster position) */
+            CLIENT_ARRAY_STATE,     /* where the arrays that a draw reads are, and which are enabled                                                                            */
+            CONDITIONAL,            /* content or state, by what it refers to (a display list call)                                                                            */
+            CONTENT,                /* draws, clears, copies, uploads of pixels and reads of them                                                                              */
+            CURRENT_VALUE,          /* a value for the vertices that follow (a color, a normal, a texture coordinate...)                                                       */
+            NAME_OR_SIZE,           /* the names and sizes of objects, and the calls that only wait                                                                            */
+            QUERY,                  /* returns what the program asks for, changes nothing                                                                                      */
+            RENDER_STATE_UNTRACKED, /* changes how a draw looks and not its structure, so the model does not tell draws apart by it                                           */
+            STATE,                  /* any other state call that is known: followed by the front end, or told in the state coalescing                                         */
+
+            UNKNOWN                 /* not a function that any layer has met: every layer ends the process for it                                                              */
+        };
+
+        /* Whether the analysis follows what a function does (the front end of OpenGL), and if not, why not. */
+        enum class GLFunctionSupport
+        {
+            SUPPORTED,
+            UNSUPPORTED_DRAW_WRITE_STATE,  /* how a draw combines with the framebuffer, and the model does not follow it (the logic op, the blend equation) */
+            UNSUPPORTED_FRAMEBUFFER_WRITE, /* the framebuffer is written from somewhere other than a draw, or lists named by an array are called         */
+            UNSUPPORTED_TEXTURE            /* a texture of another kind than GL_TEXTURE_2D, or one that is changed in a way that is not followed       */
+        };
+
+        /* What a function is, and whether the analysis supports it. */
+        struct GLFunctionInfo
+        {
+            GLFunctionKind    kind    = GLFunctionKind::UNKNOWN;
+            GLFunctionSupport support = GLFunctionSupport::SUPPORTED;
+        };
+
         /* How a call acts on the state that dead frames carry from call to call (see IStateEffectDescriber). */
         enum class StateEffectKind
         {

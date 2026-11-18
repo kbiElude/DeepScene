@@ -2,21 +2,20 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
- * The OpenGL functions are classified in more than one place (the analysis front end, and the state coalescing of the loader), and each place
- * ends the process for a function it does not know. These checks give every function to each of them, and say where they disagree: a function that
- * the front end follows (an analysis of a workload that calls it succeeds) must be one that the state coalescing knows too, or a seek in that workload
- * ends the process.
+ * Every layer that recognizes an OpenGL function (the analysis front end, the state coalescing) ends the process for one it does not know. These checks give
+ * every function to each of them and say where they disagree: a function that the front end follows (an analysis of a workload that calls it succeeds)
+ * must be one that the state coalescing knows too, or a seek in that workload ends the process; and what the classifier knows, the state coalescing knows.
  */
 #include <gtest/gtest.h>
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/opengl_frontend.h"
 #include "analysis/api_dump_index/gl_call_describer.h"
+#include "analysis/api_dump_index/gl_function_classifier.h"
 #include "analysis/api_dump_index/gl_state_effect_describer.h"
 #include "capture/api_dump_names/function_names.h"
 #include "common/fatal_error.h"
 #include "frontend_harness.h"
 #include "gl_call_builder.h"
-#include <set>
 #include <string>
 #include <vector>
 
@@ -125,24 +124,10 @@ namespace
     };
 }
 
-TEST_F(GLFunctionTables, EveryFunctionThatTheFrontEndFollowsIsKnownToTheStateCoalescingExceptThoseOfTheLedger)
+TEST_F(GLFunctionTables, EveryFunctionThatTheFrontEndFollowsIsKnownToTheStateCoalescing)
 {
-    /* The functions on which the two disagree today (see gl_function_table_gaps.inl). The list may only get shorter: a new gap fails this test, and so does
-     * a gap that was closed and is still listed.
-     */
-    const char* const ledger_array[] =
-    {
-#include "gl_function_table_gaps.inl"
-    };
-
-    std::set<std::string> ledger_set;
-    std::set<std::string> missing_set;
-    size_t                n_followed = 0;
-
-    for (const auto name_ptr : ledger_array)
-    {
-        ledger_set.insert(name_ptr);
-    }
+    std::string missing_names;
+    size_t      n_followed = 0;
 
     for (const auto function : get_gl_functions() )
     {
@@ -152,27 +137,8 @@ TEST_F(GLFunctionTables, EveryFunctionThatTheFrontEndFollowsIsKnownToTheStateCoa
 
             if (does_state_coalescing_know(function) == false)
             {
-                missing_set.insert(Capture::APIDumpNames::get_function_name(function) );
+                missing_names += std::string(Capture::APIDumpNames::get_function_name(function) ) + " ";
             }
-        }
-    }
-
-    std::string closed_names;
-    std::string new_names;
-
-    for (const auto& name : missing_set)
-    {
-        if (ledger_set.count(name) == 0)
-        {
-            new_names += name + " ";
-        }
-    }
-
-    for (const auto& name : ledger_set)
-    {
-        if (missing_set.count(name) == 0)
-        {
-            closed_names += name + " ";
         }
     }
 
@@ -180,8 +146,18 @@ TEST_F(GLFunctionTables, EveryFunctionThatTheFrontEndFollowsIsKnownToTheStateCoa
     EXPECT_GT(n_followed,
               100u);
 
-    EXPECT_TRUE(new_names.empty() )    << "followed by the front end, unknown to the state coalescing (GLStateEffectDescriber), and not in the ledger: " << new_names;
-    EXPECT_TRUE(closed_names.empty() ) << "in the ledger, but no longer a gap (take it out of gl_function_table_gaps.inl): " << closed_names;
+    EXPECT_TRUE(missing_names.empty() ) << "followed by the front end, unknown to the state coalescing: " << missing_names;
+}
+
+TEST_F(GLFunctionTables, TheStateCoalescingKnowsAFunctionExactlyWhenTheClassifierDoes)
+{
+    for (const auto function : get_gl_functions() )
+    {
+        const bool is_classified = (Analysis::APIDumpIndex::GLFunctionClassifier::classify(function).kind != Analysis::APIDumpIndex::GLFunctionKind::UNKNOWN);
+
+        EXPECT_EQ(does_state_coalescing_know(function),
+                  is_classified) << Capture::APIDumpNames::get_function_name(function);
+    }
 }
 
 TEST_F(GLFunctionTables, TheGroupsOfTheFrontEndPolicyDoNotOverlap)

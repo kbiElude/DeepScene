@@ -3,12 +3,13 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  *
  * Decides which GL functions the front end may leave out, and why. A function is either followed (the front end handles it by name) or left out by
- * design (it does not affect what the model finds, and the reason is written beside it). Any other function ends the process. An unknown call must
- * end the process: skipping it silently would make the result wrong.
+ * design (it does not affect what the model finds). What each function is comes from GLFunctionClassifier, which has the groups and the reason of each.
+ * Any other function ends the process. An unknown call must end the process: skipping it silently would make the result wrong.
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_FUNCTION_POLICY_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_FUNCTION_POLICY_H
 
+#include "analysis/api_dump_index/types.h"
 #include "common/types.h"
 
 namespace Analysis
@@ -41,9 +42,8 @@ namespace Analysis
                  */
                 static bool is_left_out_by_design(const APIInterceptor::APIFunction& in_function);
 
-            private:
-                /* Returns true for glGet*, glIs* and glAre*, which return what the program asks for and change nothing. */
-                static bool is_query(const APIInterceptor::APIFunction& in_function);
+                /* The same, for the kind of a function (see GLFunctionClassifier). */
+                static bool is_left_out_by_design(const Analysis::APIDumpIndex::GLFunctionKind& in_kind);
             };
         }
     }

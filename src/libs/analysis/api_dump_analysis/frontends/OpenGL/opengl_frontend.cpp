@@ -13,6 +13,7 @@
 #include "analysis/api_dump_analysis/frontends/shared/call_view.h"
 #include "analysis/api_dump_analysis/frontends/shared/resolution_hazard_counter.h"
 #include "analysis/api_dump_analysis/frontends/shared/unsupported_use.h"
+#include "analysis/api_dump_index/gl_function_classifier.h"
 #include "capture/api_dump_loader/api_info.h"
 #include "capture/api_dump_names/function_names.h"
 #include "common/macros.h"
@@ -706,42 +707,8 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                                                      state_ptr);
                     }
                     else
-                    if (GLTextureHandler::is_unsupported_texture_function(in_call.func) )
                     {
-                        report_unsupported_use(in_call.func,
-                                               "a texture is made or changed in a way that is not followed (the function)",
-                                               static_cast<uint64_t>(in_call.func) );
-                    }
-                    else
-                    if (is_unsupported_function(in_call.func) )
-                    {
-                        /* The model does not follow what these calls write to the framebuffer or which lists they call. Without them, the frames
-                         * (and the textures made from the framebuffer) would be reported wrongly.
-                         */
-                        report_unsupported_use(in_call.func,
-                                               "the framebuffer is written from somewhere other than a draw, or lists named by an array are called, which is not followed (the function)",
-                                               static_cast<uint64_t>(in_call.func) );
-                    }
-                    else
-                    if (GLFunctionPolicy::changes_what_a_draw_writes(in_call.func) )
-                    {
-                        /* A frame whose only draw depends on this state could look like a frame that writes nothing, and a seek would skip it.
-                         * The call is reported instead of ignored.
-                         */
-                        report_unsupported_use(in_call.func,
-                                               "state that decides what a draw writes, or how its pixels are combined with what is there (the logic op, the blend equation, the blend constant color), is not followed (the function)",
-                                               static_cast<uint64_t>(in_call.func) );
-                    }
-                    else
-                    if (GLFunctionPolicy::is_left_out_by_design(in_call.func) == false &&
-                        GLFunctionPolicy::bakes_current_matrix (in_call.func) == false)
-                    {
-                        /* The front end does not know this call, so it cannot tell that the call is irrelevant. It is reported instead of ignored
-                         * (examples: shaders, buffers, evaluators, selection, the accumulation buffer, rectangles, pixel conversion state).
-                         */
-                        report_unsupported_use(in_call.func,
-                                               "the function is not followed, and is not one that is known to be of no matter to what is found of the frames (the function)",
-                                               static_cast<uint64_t>(in_call.func) );
+                        report_unfollowed_function(in_call.func);
                     }
 
                     break;
@@ -817,31 +784,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_make_current(c
     }
 }
 
-bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::is_unsupported_function(const APIInterceptor::APIFunction& in_function)
-{
-    bool result = false;
-
-    switch (in_function)
-    {
-        case APIInterceptor::APIFUNCTION_GL_GLBITMAP:
-        case APIInterceptor::APIFUNCTION_GL_GLCALLLISTS:
-        case APIInterceptor::APIFUNCTION_GL_GLCOPYPIXELS:
-        case APIInterceptor::APIFUNCTION_GL_GLDRAWPIXELS:
-        {
-            result = true;
-
-            break;
-        }
-
-        default:
-        {
-            break;
-        }
-    }
-
-    return result;
-}
-
 void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                    const Capture::APIDumpLoader::Workload&      in_workload)
 {
@@ -871,6 +813,49 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
         m_draw_handler.on_frame_ended();
 
         m_builder_ptr->on_frame_presented();
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::report_unfollowed_function(const APIInterceptor::APIFunction& in_function)
+{
+    const Analysis::APIDumpIndex::GLFunctionInfo function_info = Analysis::APIDumpIndex::GLFunctionClassifier::classify(in_function);
+
+    if (function_info.support == Analysis::APIDumpIndex::GLFunctionSupport::UNSUPPORTED_TEXTURE)
+    {
+        report_unsupported_use(in_function,
+                               "a texture is made or changed in a way that is not followed (the function)",
+                               static_cast<uint64_t>(in_function) );
+    }
+    else
+    if (function_info.support == Analysis::APIDumpIndex::GLFunctionSupport::UNSUPPORTED_FRAMEBUFFER_WRITE)
+    {
+        /* The model does not follow what these calls write to the framebuffer or which lists they call. Without them, the frames
+         * (and the textures made from the framebuffer) would be reported wrongly.
+         */
+        report_unsupported_use(in_function,
+                               "the framebuffer is written from somewhere other than a draw, or lists named by an array are called, which is not followed (the function)",
+                               static_cast<uint64_t>(in_function) );
+    }
+    else
+    if (function_info.support == Analysis::APIDumpIndex::GLFunctionSupport::UNSUPPORTED_DRAW_WRITE_STATE)
+    {
+        /* A frame whose only draw depends on this state could look like a frame that writes nothing, and a seek would skip it.
+         * The call is reported instead of ignored.
+         */
+        report_unsupported_use(in_function,
+                               "state that decides what a draw writes, or how its pixels are combined with what is there (the logic op, the blend equation, the blend constant color), is not followed (the function)",
+                               static_cast<uint64_t>(in_function) );
+    }
+    else
+    if (GLFunctionPolicy::is_left_out_by_design(function_info.kind) == false &&
+        function_info.kind != Analysis::APIDumpIndex::GLFunctionKind::BAKES_CURRENT_MATRIX)
+    {
+        /* The front end does not know this call, so it cannot tell that the call is irrelevant. It is reported instead of ignored
+         * (examples: shaders, buffers, evaluators, selection, the accumulation buffer, rectangles, pixel conversion state).
+         */
+        report_unsupported_use(in_function,
+                               "the function is not followed, and is not one that is known to be of no matter to what is found of the frames (the function)",
+                               static_cast<uint64_t>(in_function) );
     }
 }
 

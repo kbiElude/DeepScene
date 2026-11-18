@@ -109,9 +109,6 @@ namespace Analysis
                 /* Returns what an image of the internal format holds: color, or depth (or depth and stencil). */
                 static Analysis::APIDumpAnalysis::FormatClass get_format_class(const uint32_t& in_internal_format);
 
-                /* A call that creates or changes a kind of texture that is not followed. The process ends (see UnsupportedUse). */
-                static bool is_unsupported_texture_function(const APIInterceptor::APIFunction& in_function);
-
             private:
                 /* Generates the levels below the first (down to 1x1 or GL_TEXTURE_MAX_LEVEL) like the driver; each is reported as an event and
                  * as a copy of the level above, with content the workload does not hold.

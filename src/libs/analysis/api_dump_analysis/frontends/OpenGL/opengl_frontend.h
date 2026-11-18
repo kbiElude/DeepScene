@@ -91,6 +91,11 @@ namespace Analysis
 
                 void handle_make_current(const Capture::APIDumpLoader::DumpedAPICall& in_call);
 
+                /* Ends the process for a function that the front end has no handler for, unless it is one that is left out by design (see GLFunctionClassifier): the
+                 * reason is the one of the group that the function is in. Nothing is dropped silently.
+                 */
+                static void report_unfollowed_function(const APIInterceptor::APIFunction& in_function);
+
                 /* Ends the process (AI_ASSERT_ALWAYS), naming the unsupported function or value and the reason; nothing is dropped silently. */
                 static void report_unsupported_use(const APIInterceptor::APIFunction& in_function,
                                                    const char*                        in_reason_ptr,
@@ -98,9 +103,6 @@ namespace Analysis
 
                 /* A new context: the defaults from the specification, and one identity matrix on each matrix stack. */
                 static GLContextState get_initial_context_state();
-
-                /* True for non-texture calls that are not followed (framebuffer writes outside draws, glCallLists); they end the process. */
-                static bool is_unsupported_function(const APIInterceptor::APIFunction& in_function);
 
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
                 GLContextState*                          m_cached_context_state_ptr;      /* last find_current_context_ptr() result, for m_cached_thread_id; nullptr: none */
