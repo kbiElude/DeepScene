@@ -1827,13 +1827,14 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
         Analysis::Recipe::FramePacingMode       mode;
     };
 
-    /* Direct3D 8 and OpenGL were never held; Direct3D 7 was held to 60 frames a second. Tesla (OpenGL) is new: its music is tied to time. */
+    /* Direct3D 8 and OpenGL were never held; Direct3D 7 was held to 60 frames a second. Tesla and Propaganda (OpenGL) are new: their music is tied to time. */
     const Expected expected_array[] =
     {
-        {"fr08.json",     60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
-        {"gerbera.json",  60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
-        {"kasparov.json", 60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE },
-        {"tesla.json",    60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE }
+        {"fr08.json",        60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
+        {"gerbera.json",     60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
+        {"kasparov.json",    60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE },
+        {"propaganda.json",  60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE },
+        {"tesla.json",       60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE }
     };
 
     for (const auto& expected : expected_array)
@@ -1852,7 +1853,8 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
 
         /* Only the OpenGL apps are pushed with no VR player to say so. */
         EXPECT_EQ(recipe.comfort.pushes_by_default,
-                  (std::string(expected.filename) == "gerbera.json" ||
+                  (std::string(expected.filename) == "gerbera.json"    ||
+                   std::string(expected.filename) == "propaganda.json" ||
                    std::string(expected.filename) == "tesla.json") ) << expected.filename;
     }
 }

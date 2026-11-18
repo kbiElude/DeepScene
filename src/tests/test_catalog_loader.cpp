@@ -314,15 +314,14 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_NE(m_catalog.app_vec.at(2).install_spec.install_directory.find("\\apps\\kasparov"),
               std::string::npos);
 
-    /* Propaganda (OpenGL): the archive is listed; its recipe does not exist yet, so the entry is unavailable, and the catalog lists
-     * an unavailable entry after the available ones.
+    /* Propaganda (OpenGL): a recipe which is valid, started like the others (Fullscreen unticked, Start pressed), and an archive to download.
+     * The catalog is sorted by name, so it comes before Tesla.
      */
     EXPECT_EQ(m_catalog.app_vec.at(3).id,
               "propaganda");
     EXPECT_EQ(m_catalog.app_vec.at(3).name,
               "Propaganda by INF (2001)");
-    EXPECT_NE(m_catalog.app_vec.at(3).unavailable_reason.find("recipe"),
-              std::string::npos) << m_catalog.app_vec.at(3).unavailable_reason;
+    EXPECT_TRUE(m_catalog.app_vec.at(3).unavailable_reason.empty() ) << m_catalog.app_vec.at(3).unavailable_reason;
     EXPECT_EQ(m_catalog.app_vec.at(3).launch_button_text,
               "Start");
     EXPECT_EQ(m_catalog.app_vec.at(3).untick_checkbox_text,
