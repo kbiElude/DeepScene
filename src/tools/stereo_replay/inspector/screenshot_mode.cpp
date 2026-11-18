@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "screenshot_mode.h"
-#include "capture/api_dump_loader/workload_index.h"
-#include "frame_hash_sink.h"
+#include "analysis/api_dump_index/workload_index.h"
 #include "contact_sheet_frame_picker.h"
+#include "frame_hash_sink.h"
 #include "replay_runner.h"
+#include "screenshot_mode.h"
 #include "utils/images/image_composer.h"
 #include "utils/images/png_writer.h"
 #include <cmath>
@@ -20,7 +20,7 @@ bool Stereo::Replay::Inspector::take_contact_sheet(const Stereo::Replay::Inspect
     constexpr uint32_t N_INDEX_READER_THREADS = 2;
 
     uint32_t                                    n_columns       = 0;
-    Capture::APIDumpLoader::WorkloadIndex       index;
+    Analysis::APIDumpIndex::WorkloadIndex       index;
     bool                                        is_index_built  = false;
     std::string                                 index_error;
     const bool                                  uses_recipe     = (in_options.recipe_filename.empty() == false);
@@ -35,7 +35,7 @@ bool Stereo::Replay::Inspector::take_contact_sheet(const Stereo::Replay::Inspect
     Stereo::Replay::Inspector::FrameHashSink sink(true); /* in_keeps_images */
 
     /* The last frame of the workload; the range of the options may extend past it. */
-    const bool is_index_loaded = Capture::APIDumpLoader::WorkloadIndex::load_or_build(in_options.workload_filename.c_str(),
+    const bool is_index_loaded = Analysis::APIDumpIndex::WorkloadIndex::load_or_build(in_options.workload_filename.c_str(),
                                                                                       N_INDEX_READER_THREADS,
                                                                                      &index,
                                                                                      &is_index_built,

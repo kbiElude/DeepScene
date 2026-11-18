@@ -174,6 +174,7 @@
 <tr><td><a href="#analysis-core">APIDumpAnalysis</a></td><td>The analysis itself, with nothing of one API: session, model builder, keys, queries, the <code>.passes</code> file, and the flow the programs share.</td></tr>
 <tr><td><a href="#analysis-frontends">APIDumpAnalysis/frontends</a></td><td>One front end for each API (Direct3D 7, Direct3D 8, OpenGL), with what they share.</td></tr>
 <tr><td><a href="#analysis-deps">APIDumpDependencies</a></td><td>What each frame does with what the frames before it left in the resources.</td></tr>
+<tr><td><a href="#analysis-index">APIDumpIndex</a></td><td>The index of a workload: where its segments and frames are, and a state frame of each, for the seeks.</td></tr>
 <tr><td><a href="#analysis-slicing">APIDumpSlicing</a></td><td>The writer of a workload file and the cut of the first frames.</td></tr>
 <tr><td><a href="#analysis-textures">APIDumpTextures</a></td><td>What a workload does to the textures, and where their pixels are.</td></tr>
 <tr><td><a href="#analysis-recipe">Recipe</a></td><td>The recipe as data, its loader and its applier.</td></tr>
@@ -295,6 +296,17 @@
 <tr><td><code>PerEyeCandidates</code></td><td>The one rule that says which resources each eye is to have a copy of.</td></tr>
 <tr><td><code>FrameSlicePlanner</code></td><td>Works out which frames a seek to a frame has to play, and how much of each (see <a href="replay.html#seek">Replay</a>).</td></tr>
 <tr><td><code>RectangleCoverage</code></td><td>Says whether a set of rectangles leaves a part of another rectangle uncovered. The planner uses it to tell that the last writes to a resource cover what was written.</td></tr>
+</table>
+
+<h4 id="analysis-index">APIDumpIndex</h4>
+<p>The index of a workload, kept in a file next to it, with what is needed to make it. The loader of the interceptor reads segments from the places it is given; what says where they are, and which calls a dead frame still has to make, is here (see <a href="replay.html#seek-state">Replay</a>).</p>
+<table>
+<tr><th>Class</th><th>What it does</th></tr>
+<tr><td><code>WorkloadIndex</code></td><td>Builds, saves and loads the index: the segments, their calls and frames, and the state frames. It is of one workload only.</td></tr>
+<tr><td><code>StateSegmentBuilder</code></td><td>Writes the state frame of a segment.</td></tr>
+<tr><td><code>StateCoalescer</code>, <code>StateCoalescerVerifier</code></td><td>Choose the calls of a state frame, and check the choice on a model of state.</td></tr>
+<tr><td><code>IStateEffectDescriber</code> and its describers</td><td>Say what the calls of one API do to state (OpenGL, the window system, Direct3D 7 and 8).</td></tr>
+<tr><td><code>CallDescriberSet</code>, <code>ICallDescriber</code> and its describers</td><td>Say whether a call is content, state or conditional (<code>CallClass</code>).</td></tr>
 </table>
 
 <h4 id="analysis-slicing">APIDumpSlicing</h4>

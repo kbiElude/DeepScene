@@ -263,7 +263,7 @@
 <svg viewBox="0 0 900 250" role="img" aria-label="Inputs and classes of a seek">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box3" x="20" y="20" width="220" height="50" rx="6"/><text x="130" y="42" text-anchor="middle">.deps of the workload</text><text class="small" x="130" y="58" text-anchor="middle">APIDumpDependencyExtractor</text>
-  <rect class="box3" x="20" y="90" width="220" height="50" rx="6"/><text x="130" y="112" text-anchor="middle">.index of the workload</text><text class="small" x="130" y="128" text-anchor="middle">APIDumpPrinter --index</text>
+  <rect class="box3" x="20" y="90" width="220" height="50" rx="6"/><text x="130" y="112" text-anchor="middle">.index of the workload</text><text class="small" x="130" y="128" text-anchor="middle">StereoReplayInspector --index</text>
   <rect class="box" x="300" y="20" width="220" height="50" rx="6"/><text x="410" y="42" text-anchor="middle">FrameSlicePlanner</text><text class="small" x="410" y="58" text-anchor="middle">makes the plan (Analysis)</text>
   <rect class="box" x="300" y="90" width="220" height="50" rx="6"/><text x="410" y="112" text-anchor="middle">SliceSkipper</text><text class="small" x="410" y="128" text-anchor="middle">carries it out in the reader</text>
   <rect class="box" x="300" y="160" width="220" height="50" rx="6"/><text x="410" y="182" text-anchor="middle">HurriedFrameSelector</text><text class="small" x="410" y="198" text-anchor="middle">runs the frames before T unpaced</text>
@@ -276,7 +276,7 @@
 <table>
 <tr><th>Part</th><th>What it is</th></tr>
 <tr><td><code>.deps</code></td><td>The dependencies of the workload (<code>APIDumpDependencyExtractor</code>).</td></tr>
-<tr><td><code>.index</code></td><td>Where the segments are, and a state frame of each (below). Made by <code>APIDumpPrinter --index</code>; without it every segment is read in full.</td></tr>
+<tr><td><code>.index</code></td><td>Where the segments are, and a state frame of each (below). Kept and made by <code>Analysis::APIDumpIndex::WorkloadIndex</code>: <code>StereoReplayInspector --index</code> makes it, and so do the replay player and the slicer when they need it. Without it every segment is read in full.</td></tr>
 <tr><td><code>FrameSlicePlanner</code></td><td>In <code>Analysis</code>; makes the plan.</td></tr>
 <tr><td><code>SliceSkipper</code></td><td>Carries the plan out. It hands each call to the handler of its API (<code>ISliceCallHandler</code>): <code>ContentSliceCallHandler</code> for Direct3D 7 and 8, <code>GLSliceCallHandler</code> for OpenGL.</td></tr>
 <tr><td><code>HurriedFrameSelector</code></td><td>Runs the frames before the target unpaced.</td></tr>
@@ -288,14 +288,14 @@
 </ul>
 
 <h3 id="seek-state">State frames in the index</h3>
-<p>A segment whose frames are all dead is not decompressed from the workload. The <code>.index</code> holds, for each segment, a <em>state frame</em>: the calls of the segment that a dead frame still makes, in the layout of the workload, with the data chunks they use. The reader takes such a segment from it, so a seek skips the decompression of most of the file. The calls it keeps are still filtered as before (the attribute pushes of OpenGL), so the images are the same.</p>
+<p>The index and what is in it belong to the analysis (<code>src/libs/analysis/api_dump_index</code>, namespace <code>Analysis::APIDumpIndex</code>), not to the interceptor: the replay engine does not read the index, its host does. The stereo replay engine loads it the first time a seek needs it, and gives the engine where the segments start (<code>set_segment_starts</code>). A segment whose frames are all dead is not decompressed from the workload. The <code>.index</code> holds, for each segment, a <em>state frame</em>: the calls of the segment that a dead frame still makes, in the layout of the workload, with the data chunks they use. The reader takes such a segment from it, so a seek skips the decompression of most of the file. The calls it keeps are still filtered as before (the attribute pushes of OpenGL), so the images are the same.</p>
 <table>
 <tr><th>Part</th><th>What it does</th></tr>
 <tr><td><code>CallDescriberSet</code></td><td>Asks the describer of the API of each call whether it is content, state or conditional (<code>CallClass</code>). One describer each for OpenGL, Direct3D 7 and Direct3D 8; a call of any other API is state.</td></tr>
 <tr><td><code>StateSegmentBuilder</code></td><td>Writes the state frame of a segment when the index is made.</td></tr>
 <tr><td><code>WorkloadReader</code></td><td>Reads a segment from its state frame when <code>state_only_func</code> says its frames are wanted as state only.</td></tr>
 </table>
-<p>An index of an older version is not used (every segment is read in full): make it again with <code>APIDumpPrinter --index</code>. It is about 1 % of the workload (53 MB for 4.4 GB).</p>
+<p>An index of an older version is not used (every segment is read in full) until it is made again: <code>StereoReplayInspector --index</code> does. It is about 1 % of the workload (53 MB for 4.4 GB).</p>
 
 <p>The calls of a state frame are coalesced when the index is made. A dead frame makes no content, so nothing reads the state that its calls set until a call that reads state; of the calls that set the same piece of state (a capability, a client array, a texture parameter), only the last before such a call is kept. Each call says what it does to state (<code>StateEffect</code>): it <em>assigns</em> a piece of state, <em>selects</em> what later calls act on (the active texture unit, the matrix mode), is <em>ordered</em> (made in place, such as a matrix call), is a <em>barrier</em> (a context, a display list, a pushed attribute), or is <em>recorded</em> into a display list. The calls that a kept call needs are made again where they are needed (a copy of the call that chose the unit), and the selectors are as they were at every barrier, frame and segment end.</p>
 <table>

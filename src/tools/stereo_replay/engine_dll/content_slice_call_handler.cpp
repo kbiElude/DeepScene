@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "capture/api_dump_loader/call_describer_set.h"
+#include "analysis/api_dump_index/call_describer_set.h"
 #include "content_slice_call_handler.h"
 
 Stereo::Replay::EngineDLL::ContentSliceCallHandler::ContentSliceCallHandler(const Capture::APIDumpLoader::APIGroup& in_group)
@@ -25,16 +25,16 @@ Capture::APIDumpLoader::APIGroup Stereo::Replay::EngineDLL::ContentSliceCallHand
 
 bool Stereo::Replay::EngineDLL::ContentSliceCallHandler::is_chunk_wanted_in_dead_frame(const Capture::APIDumpLoader::DumpedAPICall& in_call) const
 {
-    const auto call_class = Capture::APIDumpLoader::CallDescriberSet::get_function_class(in_call.func);
+    const auto call_class = Analysis::APIDumpIndex::CallDescriberSet::get_function_class(in_call.func);
 
-    return (call_class != Capture::APIDumpLoader::CallClass::CONTENT);
+    return (call_class != Analysis::APIDumpIndex::CallClass::CONTENT);
 }
 
 bool Stereo::Replay::EngineDLL::ContentSliceCallHandler::should_execute_call(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                              const bool&                                  in_is_dead_frame)
 {
-    const auto call_class = Capture::APIDumpLoader::CallDescriberSet::get_function_class(in_call.func);
+    const auto call_class = Analysis::APIDumpIndex::CallDescriberSet::get_function_class(in_call.func);
 
     return (in_is_dead_frame == false                                        ||
-            call_class       != Capture::APIDumpLoader::CallClass::CONTENT);
+            call_class       != Analysis::APIDumpIndex::CallClass::CONTENT);
 }

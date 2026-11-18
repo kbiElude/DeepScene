@@ -5,10 +5,8 @@
  * Replays a workload file. This is the front end of StereoReplayEngineDLL.dll. It offers a window with the playback controls, or a
  * console mode (--console) that also lets the user set the speed.
  */
-#include "utils/command_line/number_parser.h"
+#include "analysis/api_dump_index/workload_index.h"
 #include "analysis/recipe/recipe_loader.h"
-#include "capture/api_dump_loader/workload_index.h"
-#include "tools/stereo_replay/engine_dll/entrypoints.h"
 #include "command_line.h"
 #include "control_window.h"
 #include "frame_range_player.h"
@@ -16,6 +14,8 @@
 #include "preview_window.h"
 #include "quit_handler.h"
 #include "state_names.h"
+#include "tools/stereo_replay/engine_dll/entrypoints.h"
+#include "utils/command_line/number_parser.h"
 #include "workload_picker.h"
 #include <algorithm>
 #include <iostream>
@@ -182,7 +182,7 @@ int Stereo::Replay::Player::run(int   in_argc,
     std::string                                     error;
     int                                             exit_code          = EXIT_FAILURE;
     bool                                            has_deps_file      = false;
-    Capture::APIDumpLoader::WorkloadIndex           index;
+    Analysis::APIDumpIndex::WorkloadIndex           index;
     bool                                            is_index_built     = false;
     bool                                            is_recipe_loaded   = true;
     bool                                            is_workload_picked = true;
@@ -422,7 +422,7 @@ int Stereo::Replay::Player::run(int   in_argc,
         /* The seek slider needs the number of frames, which the workload index provides. The index is built the first time and stored
          * next to the workload.
          */
-        if (Capture::APIDumpLoader::WorkloadIndex::load_or_build(options.workload_path.c_str(),
+        if (Analysis::APIDumpIndex::WorkloadIndex::load_or_build(options.workload_path.c_str(),
                                                                  N_INDEX_READER_THREADS,
                                                                 &index,
                                                                 &is_index_built,

@@ -2,11 +2,11 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_index/workload_index.h"
 #include "analysis/api_dump_slicing/head_slicer.h"
 #include "analysis/api_dump_slicing/workload_writer.h"
-#include "capture/api_dump_loader/workload_index.h"
-#include "capture/api_dump_loader/workload_reader.h"
 #include "capture/api_dump_loader/api_info.h"
+#include "capture/api_dump_loader/workload_reader.h"
 #include <algorithm>
 #include <stdio.h>
 #include <string.h>
@@ -87,7 +87,7 @@ size_t Analysis::APIDumpSlicing::HeadSlicer::cut_segment(const uint64_t&        
     return n_calls_kept;
 }
 
-bool Analysis::APIDumpSlicing::HeadSlicer::find_slice_end(const Capture::APIDumpLoader::WorkloadIndex& in_index,
+bool Analysis::APIDumpSlicing::HeadSlicer::find_slice_end(const Analysis::APIDumpIndex::WorkloadIndex& in_index,
                                                           const uint64_t&                              in_last_frame,
                                                           SliceEnd*                                    out_end_ptr)
 {
@@ -134,7 +134,7 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
 {
     APIInterceptor::WorkloadFormat::WorkloadFileHeader header           = {};
     FILE*                                              input_handle     = nullptr;
-    Capture::APIDumpLoader::WorkloadIndex              index;
+    Analysis::APIDumpIndex::WorkloadIndex              index;
     bool                                               is_index_built   = false;
     Capture::APIDumpLoader::WorkloadReader::Options    reader_options;
     Capture::APIDumpLoader::WorkloadReaderUniquePtr    reader_ptr;
@@ -145,7 +145,7 @@ bool Analysis::APIDumpSlicing::HeadSlicer::slice(const std::string&  in_workload
 
     *out_report_ptr = SliceReport();
 
-    if (Capture::APIDumpLoader::WorkloadIndex::load_or_build(in_workload_filename.c_str(),
+    if (Analysis::APIDumpIndex::WorkloadIndex::load_or_build(in_workload_filename.c_str(),
                                                              in_options.n_reader_threads,
                                                             &index,
                                                             &is_index_built,

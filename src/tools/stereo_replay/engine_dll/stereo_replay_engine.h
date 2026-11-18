@@ -53,18 +53,24 @@ namespace Stereo
                 void                 set_windows_visible        (const bool&                     in_are_visible)              override;
 
             private:
+                /* Gives the engine where the segments of the loaded workload start, from the index file kept next to it (the filters of a seek need that), once; does
+                 * nothing while there is no index of this workload, so that the engine reads the workload in full.
+                 */
+                void set_segment_starts_of_workload();
+
                 /* The members are declared so that m_engine is destroyed first. Its thread uses the other members, so it must stop
                  * before they are destroyed.
                  */
                 Analysis::APIDumpDependencies::DependencyFileContent m_dependencies;
                 HurriedFrameSelector                                 m_hurry;
                 bool                                                 m_has_dependencies;
-                bool                                                 m_has_seek_target;   /* a seek that uses the dependencies was requested; m_seek_target_frame is its target frame */
+                bool                                                 m_has_seek_target;    /* a seek that uses the dependencies was requested; m_seek_target_frame is its target frame */
+                bool                                                 m_has_segment_starts; /* the engine was given the segment starts of the loaded workload */
                 PresentSkipper                                       m_present_skipper;
                 uint32_t                                             m_seek_target_frame;
                 SliceSkipper                                         m_slice_skipper;
                 GLTextureParameterCache                              m_texture_parameter_cache;
-                std::string                                          m_workload_filename; /* the loaded workload; the dependencies file is checked against it */
+                std::string                                          m_workload_filename;  /* the loaded workload; the dependencies file is checked against it */
                 StereoFrameExecutor                                  m_stereo_executor;
                 PacedFrameExecutor                                   m_paced_executor;
 

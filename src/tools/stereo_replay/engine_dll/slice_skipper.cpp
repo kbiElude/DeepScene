@@ -3,8 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "analysis/api_dump_dependencies/frame_slice_planner.h"
+#include "analysis/api_dump_index/call_describer_set.h"
 #include "capture/api_dump_loader/api_info.h"
-#include "capture/api_dump_loader/call_describer_set.h"
 #include "content_slice_call_handler.h"
 #include "gl_slice_call_handler.h"
 #include "slice_skipper.h"
@@ -189,7 +189,7 @@ Capture::APIDumpLoader::StateOnlyFunc Stereo::Replay::EngineDLL::SliceSkipper::g
 
 bool Stereo::Replay::EngineDLL::SliceSkipper::is_content_call(const APIInterceptor::APIFunction& in_function)
 {
-    return (Capture::APIDumpLoader::CallDescriberSet::get_function_class(in_function) != Capture::APIDumpLoader::CallClass::STATE);
+    return (Analysis::APIDumpIndex::CallDescriberSet::get_function_class(in_function) != Analysis::APIDumpIndex::CallClass::STATE);
 }
 
 bool Stereo::Replay::EngineDLL::SliceSkipper::is_dead_frame(const uint32_t& in_n_frame) const

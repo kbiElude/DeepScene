@@ -6,6 +6,7 @@
 #include "command_line.h"
 #include "comparison.h"
 #include "frame_hash_sink.h"
+#include "index_mode.h"
 #include "overlay_report_mode.h"
 #include "profile_mode.h"
 #include "redundant_state_counter_mode.h"
@@ -66,6 +67,23 @@ int main(int   in_argc,
 
             goto end;
         }
+    }
+
+    if (options.is_making_index)
+    {
+        std::string error;
+
+        if (Stereo::Replay::Inspector::make_index(options,
+                                                 &error) == false)
+        {
+            fprintf(stdout,
+                    "%s\n",
+                    error.c_str() );
+
+            exit_code = Stereo::Replay::Inspector::ExitCode::REPLAY_FAILED;
+        }
+
+        goto end;
     }
 
     if (options.is_profiling)

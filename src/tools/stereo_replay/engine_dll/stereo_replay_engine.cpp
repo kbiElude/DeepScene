@@ -5,16 +5,18 @@
 #include "analysis/api_dump_analysis/workload_identity.h"
 #include "analysis/api_dump_dependencies/deps_file.h"
 #include "analysis/api_dump_dependencies/frame_slice_planner.h"
+#include "analysis/api_dump_index/workload_index.h"
 #include "stereo_d3d7_call_executor.h"
 #include "stereo_gl_call_executor.h"
 #include "stereo_replay_engine.h"
 
 Stereo::Replay::EngineDLL::StereoReplayEngine::StereoReplayEngine()
-    :m_has_dependencies(false),
-     m_has_seek_target(false),
-     m_present_skipper(&m_hurry),
-     m_paced_executor (&m_stereo_executor,
-                       &m_hurry)
+    :m_has_dependencies  (false),
+     m_has_seek_target   (false),
+     m_has_segment_starts(false),
+     m_present_skipper   (&m_hurry),
+     m_paced_executor    (&m_stereo_executor,
+                          &m_hurry)
 {
     m_stereo_executor.set_hurry        (&m_hurry);
     m_stereo_executor.set_slice_skipper(&m_slice_skipper);
@@ -88,8 +90,9 @@ Stereo::Replay::EngineDLL::PlaybackStatus Stereo::Replay::EngineDLL::StereoRepla
 bool Stereo::Replay::EngineDLL::StereoReplayEngine::load(const char*  in_filename_ptr,
                                                          std::string* out_error_ptr)
 {
-    /* Dependencies and a seek target from another workload do not apply to this one. */
-    m_has_dependencies = false;
+    /* Dependencies, a seek target and segment starts from another workload do not apply to this one. */
+    m_has_dependencies   = false;
+    m_has_segment_starts = false;
 
     m_has_seek_target = false;
 
@@ -145,6 +148,8 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::play_to_frame(const uint32_t
 
         m_slice_skipper.set_slice(Analysis::APIDumpDependencies::FrameSlicePlanner::plan(m_dependencies,
                                                                                          in_n_frame) );
+
+        set_segment_starts_of_workload();
 
         /* Set these before the reset, because the replay thread restarts the reader as soon as the reset is requested. */
         m_engine.set_call_kept_func_factory(m_slice_skipper.get_call_kept_func_factory() );
@@ -245,6 +250,40 @@ void Stereo::Replay::EngineDLL::StereoReplayEngine::set_frame_image_sink(IFrameI
 void Stereo::Replay::EngineDLL::StereoReplayEngine::set_recipe(const Analysis::Recipe::Recipe& in_recipe)
 {
     m_stereo_executor.set_recipe(in_recipe);
+}
+
+void Stereo::Replay::EngineDLL::StereoReplayEngine::set_segment_starts_of_workload()
+{
+    Analysis::APIDumpIndex::WorkloadIndex index;
+    std::string                           index_error;
+    std::string                           index_filename;
+
+    if (m_has_segment_starts)
+    {
+        goto end;
+    }
+
+    index_filename = Analysis::APIDumpIndex::WorkloadIndex::get_default_filename(m_workload_filename);
+
+    if (Analysis::APIDumpIndex::WorkloadIndex::load(index_filename.c_str(),
+                                                   &index,
+                                                   &index_error) == false)
+    {
+        goto end;
+    }
+
+    if (index.is_of(m_workload_filename.c_str() ) == false)
+    {
+        goto end;
+    }
+
+    m_engine.set_segment_starts(index.make_segment_start_vec(),
+                                index_filename);
+
+    m_has_segment_starts = true;
+
+end:
+    return;
 }
 
 void Stereo::Replay::EngineDLL::StereoReplayEngine::set_speed(const double& in_speed)

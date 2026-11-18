@@ -6,9 +6,9 @@
  * cut are the bytes of the workload, and that the slice ends with the frame it was asked to.
  */
 #include <gtest/gtest.h>
+#include "analysis/api_dump_index/workload_index.h"
 #include "analysis/api_dump_slicing/head_slicer.h"
 #include "analysis/api_dump_slicing/workload_writer.h"
-#include "capture/api_dump_loader/workload_index.h"
 #include "capture/api_dump_loader/workload_reader.h"
 #include "temp_directory.h"
 #include "workload_file_builder.h"
@@ -34,7 +34,7 @@ namespace
         ~SegmentedFile()
         {
             ::remove(Tests::WorkloadFileBuilder::get_filename_ptr() );
-            ::remove(Capture::APIDumpLoader::WorkloadIndex::get_default_filename(Tests::WorkloadFileBuilder::get_filename_ptr() ).c_str() );
+            ::remove(Analysis::APIDumpIndex::WorkloadIndex::get_default_filename(Tests::WorkloadFileBuilder::get_filename_ptr() ).c_str() );
         }
     };
 
@@ -274,9 +274,9 @@ TEST(HeadSlicer, TheSliceEndsWithTheCallThatEndsTheFrameItWasAskedFor)
     EXPECT_TRUE(Capture::APIDumpLoader::is_frame_boundary(last_call) );
 
     /* The frames are numbered as they were, and the workload has no frame after the last. */
-    Capture::APIDumpLoader::WorkloadIndex slice_index;
+    Analysis::APIDumpIndex::WorkloadIndex slice_index;
 
-    ASSERT_TRUE(Capture::APIDumpLoader::WorkloadIndex::build(slice_filename.c_str(),
+    ASSERT_TRUE(Analysis::APIDumpIndex::WorkloadIndex::build(slice_filename.c_str(),
                                                              0,
                                                             &slice_index,
                                                             &error) ) << error;
@@ -296,7 +296,7 @@ TEST(HeadSlicer, TheSegmentsBeforeTheOneThatIsCutAreTheBytesOfTheWorkload)
     SegmentedFile                           file(file_u8_vec);
     const Tests::TempDirectory              directory;
     std::string                             error;
-    Capture::APIDumpLoader::WorkloadIndex   index;
+    Analysis::APIDumpIndex::WorkloadIndex   index;
     Analysis::APIDumpSlicing::SliceOptions  options;
     Analysis::APIDumpSlicing::SliceReport   report;
     const std::string                       slice_filename = directory.get_path() + "/slice.workload";
@@ -308,7 +308,7 @@ TEST(HeadSlicer, TheSegmentsBeforeTheOneThatIsCutAreTheBytesOfTheWorkload)
                                                             options,
                                                            &report,
                                                            &error) ) << error;
-    ASSERT_TRUE(Capture::APIDumpLoader::WorkloadIndex::build(Tests::WorkloadFileBuilder::get_filename_ptr(),
+    ASSERT_TRUE(Analysis::APIDumpIndex::WorkloadIndex::build(Tests::WorkloadFileBuilder::get_filename_ptr(),
                                                              0,
                                                             &index,
                                                             &error) ) << error;

@@ -52,6 +52,7 @@ namespace Stereo
                 std::string              overlay_report_result_filename;               /* a part of an overlay report writes its findings here for the process that merges the parts     */
                 uint32_t                 overlay_report_shard_count      = 0;          /* the number of parts of the report; 0: this process is not one of them */
                 uint32_t                 overlay_report_shard_index      = 0;          /* the index of this part */
+                bool                     is_making_index                = false;      /* the index of the workload is made and said, nothing is replayed */
                 bool                     is_parallel                    = false;      /* the ways are replayed at the same time */
                 bool                     is_profiling                   = false;      /* the frames are replayed once, and where the time goes is reported */
                 bool                     is_redundant_state_count                = false;      /* the frames are replayed once, and what the dead frames of the seek do to the state is reported */

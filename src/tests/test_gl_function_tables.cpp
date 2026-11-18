@@ -10,8 +10,8 @@
 #include <gtest/gtest.h>
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_function_policy.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/opengl_frontend.h"
-#include "capture/api_dump_loader/gl_call_describer.h"
-#include "capture/api_dump_loader/gl_state_effect_describer.h"
+#include "analysis/api_dump_index/gl_call_describer.h"
+#include "analysis/api_dump_index/gl_state_effect_describer.h"
 #include "capture/api_dump_names/function_names.h"
 #include "common/fatal_error.h"
 #include "frontend_harness.h"
@@ -78,10 +78,10 @@ namespace
             constexpr size_t N_ARGUMENTS = 6;
 
             Capture::APIDumpLoader::DumpedAPICall            call;
-            Capture::APIDumpLoader::GLStateEffectDescriber   describer;
+            Analysis::APIDumpIndex::GLStateEffectDescriber   describer;
             bool                                             result = true;
 
-            if (Capture::APIDumpLoader::GLCallDescriber::get_function_class(in_function) == Capture::APIDumpLoader::CallClass::CONTENT)
+            if (Analysis::APIDumpIndex::GLCallDescriber::get_function_class(in_function) == Analysis::APIDumpIndex::CallClass::CONTENT)
             {
                 goto end;
             }

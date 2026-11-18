@@ -2,7 +2,7 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
-#include "capture/api_dump_loader/gl_call_describer.h"
+#include "analysis/api_dump_index/gl_call_describer.h"
 #include "common/argument_reader.h"
 #include "common/macros.h"
 #include "gl_attribute_coverage.h"
@@ -61,10 +61,10 @@ Capture::APIDumpLoader::CallKeptFunc Stereo::Replay::EngineDLL::GLSliceCallHandl
                                                             if (is_recording == false                       &&
                                                                 in_call.func != APIInterceptor::APIFUNCTION_GL_GLCALLLIST)
                                                             {
-                                                                const auto call_class = Capture::APIDumpLoader::GLCallDescriber::get_function_class(in_call.func);
+                                                                const auto call_class = Analysis::APIDumpIndex::GLCallDescriber::get_function_class(in_call.func);
                                                                 const bool is_live    = in_is_live_func(in_frame_index);
 
-                                                                is_kept = (call_class == Capture::APIDumpLoader::CallClass::STATE ||
+                                                                is_kept = (call_class == Analysis::APIDumpIndex::CallClass::STATE ||
                                                                            is_live);
 
                                                                 /* In a frame that is left out, the calls between a push of attributes and its pop that the pop undoes need not be kept,
@@ -194,9 +194,9 @@ bool Stereo::Replay::EngineDLL::GLSliceCallHandler::should_execute_call(const Ca
     if (in_is_dead_frame &&
         was_recording == false)
     {
-        const auto call_class = Capture::APIDumpLoader::GLCallDescriber::get_function_class(in_call.func);
+        const auto call_class = Analysis::APIDumpIndex::GLCallDescriber::get_function_class(in_call.func);
 
-        result = (call_class == Capture::APIDumpLoader::CallClass::STATE);
+        result = (call_class == Analysis::APIDumpIndex::CallClass::STATE);
 
         if (in_call.func == APIInterceptor::APIFUNCTION_GL_GLCALLLIST)
         {

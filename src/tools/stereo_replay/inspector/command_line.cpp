@@ -50,6 +50,7 @@ const char* Stereo::Replay::Inspector::CommandLine::get_usage_ptr()
            "StereoReplayInspector_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
            "StereoReplayInspector_x86 file.workload --overlay-report candidates.json --recipe FILE --dump-dir DIR [--deps FILE] [--eye-separation D]\n"
            "StereoReplayInspector_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
+           "StereoReplayInspector_x86 file.workload --index\n"
            "\n"
            "Replays frames A to B (default 0 to 999) of a workload in four ways: as they are, as they are again (to\n"
            "see how much a replay differs from itself), executed twice, and executed twice with the state of the device put\n"
@@ -97,7 +98,11 @@ const char* Stereo::Replay::Inspector::CommandLine::get_usage_ptr()
            "  --same-frames-as FILE  Instead of the check: replay frames A to B of this workload and of FILE as they are, and say whether the images are the\n"
            "                   same (exit code 3 if not). For a slice of a workload (APIDumpSlicer): it has to replay to the images of the workload.\n"
            "  --contact-sheet K  Instead of the check: one PNG with K frames spread evenly from A to B (or the end of the workload), each as a screenshot\n"
-           "                   is, and the numbers of the frames in the order they are shown.\n";
+           "                   is, and the numbers of the frames in the order they are shown.\n"
+           "  --index          Instead of the check: make the index of the workload (it is kept in a file next to it, says where its segments and frames are, and has a\n"
+           "                   state frame of each segment) and say what it holds. The seeks (--screenshot with --deps, the replay player) use it to read only the\n"
+           "                   segments that they need; without it every segment is read in full. It is made by one read of the whole workload, unless the file is of the\n"
+           "                   workload as it is.\n";
 }
 
 bool Stereo::Replay::Inspector::CommandLine::parse(const std::vector<std::string>& in_argument_vec,
@@ -130,6 +135,7 @@ bool Stereo::Replay::Inspector::CommandLine::parse(const std::vector<std::string
     static const FlagOption FLAG_OPTION_ARRAY[] =
     {
         {"--history",              &Options::has_history},
+        {"--index",                &Options::is_making_index},
         {"--overlay-report-exact", &Options::overlay_report_is_exact},
         {"--parallel",             &Options::is_parallel},
         {"--profile",              &Options::is_profiling},

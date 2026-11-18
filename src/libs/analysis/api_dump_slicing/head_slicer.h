@@ -12,8 +12,8 @@
 #ifndef ANALYSIS_APIDUMPSLICING_HEAD_SLICER_H
 #define ANALYSIS_APIDUMPSLICING_HEAD_SLICER_H
 
+#include "analysis/api_dump_index/workload_index.h"
 #include "analysis/api_dump_slicing/types.h"
-#include "capture/api_dump_loader/workload_index.h"
 #include "capture/api_dump_loader/workload_reader.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -58,7 +58,7 @@ namespace Analysis
                                       Capture::APIDumpLoader::Workload* inout_segment_ptr);
 
             /* Finds where the slice ends. Returns false if the workload has no frame in_last_frame. */
-            static bool find_slice_end(const Capture::APIDumpLoader::WorkloadIndex& in_index,
+            static bool find_slice_end(const Analysis::APIDumpIndex::WorkloadIndex& in_index,
                                        const uint64_t&                              in_last_frame,
                                        SliceEnd*                                    out_end_ptr);
         };
