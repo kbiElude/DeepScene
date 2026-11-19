@@ -124,6 +124,11 @@ const Analysis::APIDumpAnalysis::Model& Analysis::APIDumpAnalysis::Frontends::An
     return m_builder.get_model();
 }
 
+const Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend& Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_opengl_frontend() const
+{
+    return m_opengl_frontend;
+}
+
 Analysis::APIDumpAnalysis::Frontends::SessionProgress Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_progress() const
 {
     const auto&     model  = m_builder.get_model();

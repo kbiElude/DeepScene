@@ -51,6 +51,9 @@ namespace Analysis
 
                 const Analysis::APIDumpAnalysis::Model& get_model() const;
 
+                /* The front end of OpenGL, for what it tracks of the state of the contexts. */
+                const OpenGLFrontend& get_opengl_frontend() const;
+
                 /* What the workload contains and how it was read. Final once the analysis is over. */
                 WorkloadSummary get_summary() const;
 

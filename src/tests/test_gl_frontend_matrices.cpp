@@ -15,6 +15,20 @@ namespace
     };
 }
 
+TEST_F(GLFrontendMatrices, TheMatrixModeIsTheOneTheApplicationSelected)
+{
+    start(640,
+          480);
+
+    m_builder.matrix_mode(PROJECTION);
+
+    feed         ();
+    read_matrices();
+
+    EXPECT_EQ(m_matrix_mode,
+              static_cast<uint32_t>(PROJECTION) );
+}
+
 TEST_F(GLFrontendMatrices, TheModelViewAndTheProjectionAreKeptApart)
 {
     start(640,

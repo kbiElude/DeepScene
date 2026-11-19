@@ -38,6 +38,9 @@ namespace Stereo
             /* Finds the data an argument refers to (draw indices, texture names) in the chunks the call analyzer took. */
             typedef std::function<bool(const uint32_t&, const void**, uint32_t*)> GetChunkFunc;
 
+            /* Finds the model-view and projection matrices and the matrix mode that the analysis tracked for the application's context; returns false if it has none. */
+            typedef std::function<bool(std::array<float, 16>*, std::array<float, 16>*, uint32_t*)> GetMatricesFunc;
+
             /* Counters for the log. */
             struct Statistics
             {
@@ -90,7 +93,8 @@ namespace Stereo
                         const Analysis::Recipe::DrawClass&         in_draw_class,
                         const bool&                                in_is_pushed);
 
-            void set_get_chunk_func(const GetChunkFunc& in_get_chunk_func);
+            void set_get_chunk_func   (const GetChunkFunc&    in_get_chunk_func);
+            void set_get_matrices_func(const GetMatricesFunc& in_get_matrices_func);
 
             /* Log notes: what was not made for the right eye or could not be made. Each note is given once. */
             std::vector<std::string> take_notes();
@@ -169,6 +173,12 @@ namespace Stereo
             void select_textures(const TextureSelection& in_selection,
                                  const bool&             in_are_twins);
 
+            /* Takes the matrices of the draw from the analysis instead of asking the driver. Every so often it also asks the driver and compares; the first
+             * difference makes it give up tracking for good (noted in the log). Returns false if the matrices must be read from the driver. */
+            bool read_tracked_matrices(std::array<float, 16>* out_modelview_f32mat_ptr,
+                                       std::array<float, 16>* out_projection_f32mat_ptr,
+                                       int32_t*               out_matrix_mode_ptr);
+
             /* Serves a one-pixel glReadPixels that is part of a run of such reads from the left eye's picture (see PictureReadbackCache),
              * writing to the application's memory. Returns true if the call is not to be made. */
             bool serve_pixel_read(const uint32_t&                            in_n_arguments,
@@ -194,6 +204,7 @@ namespace Stereo
             Stereo::Core::RecipeStereoPlanner*    m_core_ptr;
             GLFrameReader                         m_frame_reader;
             GetChunkFunc                          m_get_chunk_func;
+            GetMatricesFunc                       m_get_matrices_func;
             bool                                  m_has_failed;
             InvisibleWindowManager                m_invisible_window_manager;
             bool                                  m_is_in_app_list;
@@ -201,6 +212,7 @@ namespace Stereo
             bool                                  m_is_shown_elsewhere;
             bool                                  m_measures_depth;
             uint32_t                              m_n_failed_attempts;
+            uint64_t                              m_n_tracked_matrix_reads;
             std::vector<std::string>              m_note_vec;
             std::vector<std::string>              m_noted_key_vec;
             std::array<float, 16>                 m_pass_projection_f32mat; /* projection of the first affected draw of the pass */
@@ -209,6 +221,7 @@ namespace Stereo
             GLResolutionScaler                    m_scaler;
             Statistics                            m_statistics;
             GLEyeTargets                          m_targets;
+            bool                                  m_trusts_tracked_matrices; /* false once the tracked matrices differed from the driver's */
             GLTextureTwinTable                    m_twin_table;
         };
     }

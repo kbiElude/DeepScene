@@ -206,6 +206,18 @@ bool Stereo::ConverterDLL::LiveCallAnalyzer::get_last_call_chunk(const uint32_t&
     return result;
 }
 
+bool Stereo::ConverterDLL::LiveCallAnalyzer::get_current_gl_matrices(std::array<float, 16>* out_modelview_f32mat_ptr,
+                                                                     std::array<float, 16>* out_projection_f32mat_ptr,
+                                                                     uint32_t*              out_matrix_mode_ptr) const
+{
+    const uint32_t thread_id = static_cast<uint32_t>(::GetCurrentThreadId() );
+
+    return m_session.get_opengl_frontend().get_current_matrices(thread_id,
+                                                                out_modelview_f32mat_ptr,
+                                                                out_projection_f32mat_ptr,
+                                                                out_matrix_mode_ptr);
+}
+
 const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& Stereo::ConverterDLL::LiveCallAnalyzer::get_last_call_draw_key_vec() const
 {
     return m_session.get_call_draw_key_vec();

@@ -248,6 +248,17 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
 
         m_live_state.gl_renderer_ptr->set_get_chunk_func(get_gl_chunk_func);
 
+        const auto get_gl_matrices_func = [this](std::array<float, 16>* out_modelview_f32mat_ptr,
+                                                 std::array<float, 16>* out_projection_f32mat_ptr,
+                                                 uint32_t*              out_matrix_mode_ptr)
+        {
+            return m_live_state.call_analyzer.get_current_gl_matrices(out_modelview_f32mat_ptr,
+                                                                      out_projection_f32mat_ptr,
+                                                                      out_matrix_mode_ptr);
+        };
+
+        m_live_state.gl_renderer_ptr->set_get_matrices_func(get_gl_matrices_func);
+
         {
             std::unique_ptr<Stereo::Transport::IFrameExporter> gl_exporter_ptr(new GLHostMemoryExporter(m_channel_ptr.get(),
                                                                                                         frame_pacing) );

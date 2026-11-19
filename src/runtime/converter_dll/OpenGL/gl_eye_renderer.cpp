@@ -7,9 +7,11 @@
 #include "gl_eye_renderer.h"
 #include "gl_driver_functions.h"
 #include "analysis/api_dump_analysis/draw_measurer.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
 #include "own_call_scope.h"
 #include "stereo/core/push_shift_planner.h"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPlanner* in_core_ptr,
@@ -30,12 +32,14 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPla
      m_depth_lag          (0),
      m_fast_depth_range_measurer     (true),
      m_get_chunk_func     (),
+     m_get_matrices_func  (),
      m_has_failed         (false),
      m_is_in_app_list     (false),
      m_is_in_block        (false),
      m_is_shown_elsewhere (in_is_shown_elsewhere),
      m_measures_depth     (in_core_ptr->get_measures_depth() ),
      m_n_failed_attempts  (0),
+     m_n_tracked_matrix_reads(0),
      m_pass_has_affected_draws(false),
      m_scaler             (in_target_width,
                            in_target_height,
@@ -43,7 +47,8 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPla
                            [this](const std::string& in_message)
                            {
                                m_note_vec.push_back(in_message);
-                           })
+                           }),
+     m_trusts_tracked_matrices(true)
 {
     if (m_caches_pixel_reads)
     {
@@ -1054,6 +1059,41 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
     std::array<float, 16> part_projection;
     std::array<float, 16> saved_matrix;
     std::array<GLint, 4>  saved_viewport     = {};
+    std::array<float, 16> tracked_modelview;
+    std::array<float, 16> tracked_projection;
+
+    /* The matrices come from the analysis, which follows the calls of the application; the driver is asked only if it does not have them. */
+    const bool has_tracked_matrices = (is_affected                         ||
+                                       (in_is_pushed && is_last_draw_part) ) ? read_tracked_matrices(&tracked_modelview,
+                                                                                                     &tracked_projection,
+                                                                                                     &matrix_mode)
+                                                                             : false;
+
+    const auto get_modelview_func = [&](std::array<float, 16>* out_f32mat_ptr)
+    {
+        if (has_tracked_matrices)
+        {
+            *out_f32mat_ptr = tracked_modelview;
+        }
+        else
+        {
+            GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
+                                                         out_f32mat_ptr->data() );
+        }
+    };
+
+    const auto get_projection_func = [&](std::array<float, 16>* out_f32mat_ptr)
+    {
+        if (has_tracked_matrices)
+        {
+            *out_f32mat_ptr = tracked_projection;
+        }
+        else
+        {
+            GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
+                                                         out_f32mat_ptr->data() );
+        }
+    };
 
     /* The viewport is the one the draw is made with. A pushed draw is moved by shifting the origin of the viewport, which works with any projection. */
     if (in_is_pushed)
@@ -1066,10 +1106,8 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
     if (in_is_pushed &&
         is_last_draw_part)
     {
-        GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
-                                                     part_matrix.data() );
-        GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
-                                                     part_projection.data() );
+        get_modelview_func (&part_matrix);
+        get_projection_func(&part_projection);
 
         is_part = true;
     }
@@ -1078,8 +1116,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
         m_measures_depth                    &&
         m_pass_has_affected_draws == false)
     {
-        GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
-                                                     m_pass_projection_f32mat.data() );
+        get_projection_func(&m_pass_projection_f32mat);
 
         /* A projection that is not perspective carries no depth information. */
         m_pass_has_affected_draws = Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(m_pass_projection_f32mat);
@@ -1087,8 +1124,11 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
 
     if (is_affected)
     {
-        GLDriverFunctions::get().get_integerv_func_ptr(GL_MATRIX_MODE,
-                                                       &matrix_mode);
+        if (has_tracked_matrices == false)
+        {
+            GLDriverFunctions::get().get_integerv_func_ptr(GL_MATRIX_MODE,
+                                                           &matrix_mode);
+        }
 
         has_read_matrix = true;
 
@@ -1097,8 +1137,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
             GLDriverFunctions::get().matrix_mode_func_ptr(MODELVIEW);
         }
 
-        GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
-                                                     saved_matrix.data() );
+        get_modelview_func(&saved_matrix);
 
         /* The core decides whether the draw is attached to the camera from the distance of its origin in front of the camera. */
         const float origin_depth = -saved_matrix.at(MATRIX_Z_TRANSLATION);
@@ -1119,8 +1158,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
     {
         std::array<float, 16> projection_f32mat;
 
-        GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
-                                                     projection_f32mat.data() );
+        get_projection_func(&projection_f32mat);
 
         layer_parallax = m_core_ptr->get_eye_parallax(-saved_matrix.at(MATRIX_Z_TRANSLATION),
                                                       projection_f32mat.at(MATRIX_X_SCALE),
@@ -1142,10 +1180,12 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
 
         if (is_affected)
         {
-            const auto eye_matrix = m_core_ptr->make_eye_shift_matrix(eye);
+            /* The eye matrix times the draw's own, loaded at once. */
+            const auto eye_matrix      = m_core_ptr->make_eye_shift_matrix(eye);
+            const auto combined_matrix = Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::multiply(eye_matrix,
+                                                                                                      saved_matrix);
 
-            GLDriverFunctions::get().load_matrixf_func_ptr(eye_matrix.data() );
-            GLDriverFunctions::get().mult_matrixf_func_ptr(saved_matrix.data() );
+            GLDriverFunctions::get().load_matrixf_func_ptr(combined_matrix.data() );
         }
 
         select_textures(texture_selection,
@@ -1228,6 +1268,81 @@ void Stereo::ConverterDLL::GLEyeRenderer::read_depth_at_once()
                                           m_pass_projection_f32mat.at(0) );
         }
     }
+}
+
+bool Stereo::ConverterDLL::GLEyeRenderer::read_tracked_matrices(std::array<float, 16>* out_modelview_f32mat_ptr,
+                                                                std::array<float, 16>* out_projection_f32mat_ptr,
+                                                                int32_t*               out_matrix_mode_ptr)
+{
+    /* The first reads are all checked, then one in N_READS_BETWEEN_CHECKS. Matrices are equal if they differ by less than MATRIX_TOLERANCE of their scale. */
+    constexpr uint64_t N_READS_BETWEEN_CHECKS = 256;
+    constexpr uint64_t N_READS_CHECKED_AT_ONCE = 64;
+    constexpr float    MATRIX_TOLERANCE        = 1e-3f;
+    constexpr GLenum   PROJECTION_MATRIX       = 0x0BA7;
+
+    uint32_t tracked_mode = 0;
+    bool     result       = false;
+
+    if (m_trusts_tracked_matrices &&
+        m_get_matrices_func       != nullptr)
+    {
+        result = m_get_matrices_func(out_modelview_f32mat_ptr,
+                                     out_projection_f32mat_ptr,
+                                     &tracked_mode);
+    }
+
+    if (result)
+    {
+        *out_matrix_mode_ptr = static_cast<int32_t>(tracked_mode);
+
+        if (m_n_tracked_matrix_reads <  N_READS_CHECKED_AT_ONCE ||
+            m_n_tracked_matrix_reads % N_READS_BETWEEN_CHECKS == 0)
+        {
+            std::array<float, 16> driver_modelview_f32mat;
+            std::array<float, 16> driver_projection_f32mat;
+            GLint                 driver_mode = 0;
+            bool                  is_equal    = true;
+
+            GLDriverFunctions::get().get_integerv_func_ptr(GL_MATRIX_MODE,
+                                                           &driver_mode);
+            GLDriverFunctions::get().get_floatv_func_ptr  (GL_MODELVIEW_MATRIX,
+                                                           driver_modelview_f32mat.data() );
+            GLDriverFunctions::get().get_floatv_func_ptr  (PROJECTION_MATRIX,
+                                                           driver_projection_f32mat.data() );
+
+            is_equal = (driver_mode == static_cast<GLint>(tracked_mode) );
+
+            for (size_t n_element = 0;
+                        n_element < driver_modelview_f32mat.size();
+                      ++n_element)
+            {
+                const float modelview_scale  = (std::max)(1.0f,
+                                                          std::fabs(driver_modelview_f32mat.at(n_element) ) );
+                const float projection_scale = (std::max)(1.0f,
+                                                          std::fabs(driver_projection_f32mat.at(n_element) ) );
+
+                if (std::fabs(driver_modelview_f32mat.at (n_element) - out_modelview_f32mat_ptr->at (n_element) ) > MATRIX_TOLERANCE * modelview_scale ||
+                    std::fabs(driver_projection_f32mat.at(n_element) - out_projection_f32mat_ptr->at(n_element) ) > MATRIX_TOLERANCE * projection_scale)
+                {
+                    is_equal = false;
+                }
+            }
+
+            if (is_equal == false)
+            {
+                m_trusts_tracked_matrices = false;
+
+                note_once("tracked_matrices",
+                          "The matrices that the analysis tracked differ from the ones of the driver: the driver is asked for them from now on");
+
+                result = false;
+            }
+        }
+
+        m_n_tracked_matrix_reads++;
+    }
+
+    return result;
 }
 
 const void* Stereo::ConverterDLL::GLEyeRenderer::resolve_pointer(const APIInterceptor::APIFunctionArgument& in_argument) const
@@ -1318,6 +1433,11 @@ bool Stereo::ConverterDLL::GLEyeRenderer::serve_pixel_read(const uint32_t&      
 void Stereo::ConverterDLL::GLEyeRenderer::set_get_chunk_func(const GetChunkFunc& in_get_chunk_func)
 {
     m_get_chunk_func = in_get_chunk_func;
+}
+
+void Stereo::ConverterDLL::GLEyeRenderer::set_get_matrices_func(const GetMatricesFunc& in_get_matrices_func)
+{
+    m_get_matrices_func = in_get_matrices_func;
 }
 
 void Stereo::ConverterDLL::GLEyeRenderer::start_depth_read()

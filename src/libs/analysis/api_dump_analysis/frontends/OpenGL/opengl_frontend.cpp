@@ -140,7 +140,8 @@ const Analysis::APIDumpAnalysis::Frontends::GLBlobStore& Analysis::APIDumpAnalys
 
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_matrices(const uint32_t& in_thread_id,
                                                                                 GLMatrix*       out_modelview_f32mat_ptr,
-                                                                                GLMatrix*       out_projection_f32mat_ptr) const
+                                                                                GLMatrix*       out_projection_f32mat_ptr,
+                                                                                uint32_t*       out_matrix_mode_ptr) const
 {
     const auto thread_iterator = m_current_context_by_thread_map.find(in_thread_id);
     const auto thread_end      = m_current_context_by_thread_map.end();
@@ -152,6 +153,7 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_matrices(
 
         *out_modelview_f32mat_ptr  = state.modelview_f32mat_vec.back();
         *out_projection_f32mat_ptr = state.projection_f32mat_vec.back();
+        *out_matrix_mode_ptr       = state.attributes.matrix_mode;
 
         result = true;
     }

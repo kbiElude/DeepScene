@@ -50,10 +50,11 @@ namespace Analysis
                 /* The data that the draws read from the memory of the application, kept while it is worth keeping (see GLBlobStore). */
                 const GLBlobStore& get_blob_store() const;
 
-                /* The current model-view and projection matrices of the thread's current context; false if none. */
+                /* The current model-view and projection matrices of the thread's current context, and the matrix mode; false if none. */
                 bool get_current_matrices(const uint32_t& in_thread_id,
                                           GLMatrix*       out_modelview_f32mat_ptr,
-                                          GLMatrix*       out_projection_f32mat_ptr) const;
+                                          GLMatrix*       out_projection_f32mat_ptr,
+                                          uint32_t*       out_matrix_mode_ptr) const;
 
                 const std::map<Analysis::APIDumpAnalysis::ResolutionHazard, uint64_t>& get_n_resolution_hazards() const override;
                 uint64_t                                                               get_n_unfollowed_calls  () const override;

@@ -470,6 +470,8 @@
 <figcaption>The list is made after <code>glEnd</code>; a block whose class is skipped is not played.</figcaption>
 </figure>
 
+<p>The model-view and projection matrices of a draw and the matrix mode come from the analysis, which follows the matrix calls of the application; the driver is not asked for them. The first 64 draws and then one in 256 are also checked against the driver. The first difference makes the converter ask the driver from then on and says so in the log. Each eye gets one matrix, the eye matrix times the draw's own, loaded at once.</p>
+
 <h3>Clears and textures</h3>
 <ul>
   <li>A <code>glClear</code> is made for the right eye as well.</li>

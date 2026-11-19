@@ -89,11 +89,13 @@ namespace Tests
         {
             ASSERT_TRUE(m_harness.get_frontend().get_current_matrices(1,
                                                                      &m_modelview_f32mat,
-                                                                     &m_projection_f32mat) );
+                                                                     &m_projection_f32mat,
+                                                                     &m_matrix_mode) );
         }
 
         GLCallBuilder                                  m_builder;
         Harness                                        m_harness;
+        uint32_t                                       m_matrix_mode = 0;
         Analysis::APIDumpAnalysis::Frontends::GLMatrix m_modelview_f32mat;
         Analysis::APIDumpAnalysis::Frontends::GLMatrix m_projection_f32mat;
     };

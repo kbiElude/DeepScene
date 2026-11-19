@@ -9,6 +9,7 @@
 #include "common/api_function_argument.h"
 #include "common/callbacks.h"
 #include "common/chunk_pool.h"
+#include <array>
 #include <functional>
 #include <map>
 #include <stdint.h>
@@ -37,6 +38,12 @@ namespace Stereo
             bool get_last_call_chunk(const uint32_t& in_chunk_id,
                                      const void**    out_data_ptr_ptr,
                                      uint32_t*       out_n_bytes_ptr) const;
+
+            /* Returns the model-view and projection matrices that the analysis tracked for the OpenGL context of the calling thread,
+             * and its matrix mode. Returns false if the thread has no current context. */
+            bool get_current_gl_matrices(std::array<float, 16>* out_modelview_f32mat_ptr,
+                                         std::array<float, 16>* out_projection_f32mat_ptr,
+                                         uint32_t*              out_matrix_mode_ptr) const;
 
             /* Returns the keys of each draw of the last analysed call (see ModelBuilder::get_call_draw_key_vec); a display list call
              * can make several or none. Valid until the next call is analysed. */
