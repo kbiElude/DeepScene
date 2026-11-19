@@ -188,11 +188,14 @@ namespace Analysis
             DrawStructure                             m_draw_signature_scratch; /* on_draw() scratch, avoids allocation */
             DrawStructure                             m_draw_structure_scratch;
             FrameInProgress                           m_frame;
+            bool                                      m_has_last_draw;          /* the m_last_draw_* values are those of a draw */
             bool                                      m_is_orthographic;        /* as of m_orthographic_epoch */
             bool                                      m_keeps_history;
             ResourceKeyTable                          m_key_table;
             uint64_t                                  m_last_draw_cover_key;
             uint64_t                                  m_last_draw_signature_key;
+            PrimitiveTopology                         m_last_draw_topology;
+            uint32_t                                  m_last_draw_vertex_count;
             Model                                     m_model;
             uint64_t                                  m_n_frames;
             uint64_t                                  m_orthographic_epoch;

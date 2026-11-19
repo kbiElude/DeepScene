@@ -16,10 +16,13 @@ Analysis::APIDumpAnalysis::ModelBuilder::ModelBuilder(const bool& in_keeps_histo
      m_caches_draw_keys         (true),
      m_call_index               (0),
      m_constant_state_epoch     (1),
+     m_has_last_draw            (false),
      m_is_orthographic          (false),
      m_keeps_history            (in_keeps_history),
      m_last_draw_cover_key      (0),
      m_last_draw_signature_key  (0),
+     m_last_draw_topology       (PrimitiveTopology::POINT_LIST),
+     m_last_draw_vertex_count   (0),
      m_n_frames                 (0),
      m_orthographic_epoch       (0),
      m_texture_sink_ptr         (nullptr),
@@ -596,14 +599,26 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         const auto     signature_pair = open_pass_ptr->draw_signature_map.emplace(key,
                                                                                   signature_key);
 
-        m_last_draw_signature_key = signature_key;
-
         /* A draw is identified by signature and size, as draws of one signature differ (quads sharing a dynamic buffer). A key that
          * covered the view once stays covering, even if other draws with that key do not.
          */
-        m_last_draw_cover_key = MatchKeyBuilder::compute_draw_cover_key(signature_key,
-                                                                        in_draw.vertex_count,
-                                                                        in_draw.primitive_topology);
+        const bool is_repeat = (m_has_last_draw                                         &&
+                                m_last_draw_signature_key == signature_key              &&
+                                m_last_draw_topology      == in_draw.primitive_topology &&
+                                m_last_draw_vertex_count  == in_draw.vertex_count);
+
+        /* A draw that repeats the one before it (same signature, size and topology) has its cover key. */
+        if (is_repeat == false)
+        {
+            m_last_draw_cover_key = MatchKeyBuilder::compute_draw_cover_key(signature_key,
+                                                                            in_draw.vertex_count,
+                                                                            in_draw.primitive_topology);
+        }
+
+        m_has_last_draw           = true;
+        m_last_draw_signature_key = signature_key;
+        m_last_draw_topology      = in_draw.primitive_topology;
+        m_last_draw_vertex_count  = in_draw.vertex_count;
 
         const DrawFactsKey draw_facts_key(key,
                                           m_last_draw_cover_key);

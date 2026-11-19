@@ -179,3 +179,48 @@ TEST(GLPipelineStateSummary, ACopyDescribesTheSameAsTheOriginalAndThenFollowsIts
                                      3).state_key,
               before.state_key);
 }
+
+TEST(GLPipelineStateSummary, SettingWhatIsAlreadySetKeepsTheKeyAndSettingSomethingElseChangesIt)
+{
+    GLPipelineState state;
+
+    state.set_capability(BLEND,
+                         true);
+    state.set_value(GLStateValue::BLEND_SOURCE,
+                    1);
+
+    const auto first = state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST,
+                                           3);
+
+    /* The same calls again, and the disabling of something that was never enabled, change nothing. */
+    state.set_capability(BLEND,
+                         true);
+    state.set_capability(DEPTH_TEST,
+                         false);
+    state.set_value(GLStateValue::BLEND_SOURCE,
+                    1);
+
+    EXPECT_EQ(state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST,
+                                  3).state_key,
+              first.state_key);
+
+    state.set_value(GLStateValue::BLEND_SOURCE,
+                    2);
+
+    EXPECT_NE(state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST,
+                                  3).state_key,
+              first.state_key);
+
+    state.set_value(GLStateValue::BLEND_SOURCE,
+                    1);
+
+    EXPECT_EQ(state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST,
+                                  3).state_key,
+              first.state_key);
+
+    state.set_capability(BLEND,
+                         false);
+
+    EXPECT_FALSE(state.describe_draw(Analysis::APIDumpAnalysis::PrimitiveTopology::TRIANGLE_LIST,
+                                     3).reads_color_attachments);
+}

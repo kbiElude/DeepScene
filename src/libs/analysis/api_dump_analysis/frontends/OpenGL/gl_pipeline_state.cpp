@@ -337,15 +337,21 @@ void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_capability(const
 void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_key(const uint64_t& in_key,
                                                                     const bool&     in_is_enabled)
 {
-    m_is_summary_valid = false;
+    /* A call that sets what is already set leaves the summary as it is. */
+    bool is_changed = false;
 
     if (in_is_enabled)
     {
-        m_enabled_capability_set.insert(in_key);
+        is_changed = m_enabled_capability_set.insert(in_key).second;
     }
     else
     {
-        m_enabled_capability_set.erase(in_key);
+        is_changed = (m_enabled_capability_set.erase(in_key) != 0);
+    }
+
+    if (is_changed)
+    {
+        m_is_summary_valid = false;
     }
 }
 
@@ -363,7 +369,21 @@ void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_unit_capability(
 void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_value(const GLStateValue& in_value,
                                                                       const uint32_t&     in_setting)
 {
-    m_is_summary_valid = false;
+    const auto value_iterator = m_value_map.find(in_value);
 
-    m_value_map[in_value] = in_setting;
+    /* A call that sets what is already set leaves the summary as it is. */
+    if (value_iterator == m_value_map.end() )
+    {
+        m_value_map.emplace(in_value,
+                            in_setting);
+
+        m_is_summary_valid = false;
+    }
+    else
+    if (value_iterator->second != in_setting)
+    {
+        value_iterator->second = in_setting;
+
+        m_is_summary_valid = false;
+    }
 }
