@@ -319,6 +319,7 @@
 <p>The <strong>draw signature key</strong> is the one the whole project leans on. The pass a draw belongs to is not known until the pass ends, so the signature uses the <em>unwritten</em> keys of the structure and the targets: it is made as if nothing had been rendered yet.</p>
 <p>That is exactly what a live converter can know when the draw is issued. The same code makes the keys offline and in the running program, so a rule baked from a capture matches a draw of the program as it runs.</p>
 <p>Two different structures with the same key are possible in principle. They are counted and compared when interned, so a collision does no harm beyond the count.</p>
+<p>A draw that repeats one of the last four draws, with the same description, render targets, projection kind and resource keys, has the same keys, so the model builder takes them from a small cache instead of hashing them again. Every input of a key is compared and the keys of the resources carry a counter that changes whenever one can change, so the cache cannot return a stale key. It is in the neutral model builder, so every API gets it.</p>
 
 <h2 id="depth"><span class="no">7</span>How far away is it?</h2>
 <div class="story">

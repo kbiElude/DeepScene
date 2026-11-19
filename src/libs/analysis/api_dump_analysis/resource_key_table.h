@@ -26,6 +26,9 @@ namespace Analysis
 
             void forget_resource(const ResourceId& in_id);
 
+            /* A number that changes whenever any key of the table can have changed: a key read at one epoch is the key at every later read of the same epoch. */
+            uint64_t get_epoch() const;
+
             /* Returns 0 for a resource that has not been registered. */
             uint64_t get_key(const ResourceId& in_id) const;
 
@@ -67,6 +70,7 @@ namespace Analysis
                                         const uint64_t& in_writer_pass_key);
 
             std::vector<Entry>    m_entry_vec;           /* indexed by ID - 1                      */
+            uint64_t              m_epoch;
             std::vector<uint32_t> m_written_index_vec;   /* the entries that have a writer now     */
         };
     }

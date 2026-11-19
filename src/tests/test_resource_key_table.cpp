@@ -233,3 +233,54 @@ TEST(ResourceKeyTable, TheResourceNoneAndResourcesPastTheEndHaveNoKeyAndAreNotWr
     EXPECT_EQ(table.get_key(Analysis::APIDumpAnalysis::make_resource_id(50) ),
               0u);
 }
+
+TEST(ResourceKeyTable, TheEpochChangesWheneverAKeyCanChange)
+{
+    Analysis::APIDumpAnalysis::ResourceKeyTable table;
+    const auto                                  id = Analysis::APIDumpAnalysis::make_resource_id(1);
+
+    uint64_t epoch = table.get_epoch();
+
+    table.register_resource(id,
+                            0x1234);
+
+    EXPECT_NE(table.get_epoch(),
+              epoch);
+
+    epoch = table.get_epoch();
+
+    /* Reading keys changes nothing. */
+    table.get_key               (id);
+    table.get_unwritten_key     (id);
+    table.get_view_key          (Analysis::APIDumpAnalysis::ResourceView() );
+    table.get_unwritten_view_key(Analysis::APIDumpAnalysis::ResourceView() );
+
+    EXPECT_EQ(table.get_epoch(),
+              epoch);
+
+    table.record_write(id,
+                       0x77);
+
+    EXPECT_NE(table.get_epoch(),
+              epoch);
+
+    epoch = table.get_epoch();
+
+    table.begin_frame();
+
+    EXPECT_NE(table.get_epoch(),
+              epoch);
+
+    /* A frame that follows a frame with no writes leaves every key as it was. */
+    epoch = table.get_epoch();
+
+    table.begin_frame();
+
+    EXPECT_EQ(table.get_epoch(),
+              epoch);
+
+    table.forget_resource(id);
+
+    EXPECT_NE(table.get_epoch(),
+              epoch);
+}

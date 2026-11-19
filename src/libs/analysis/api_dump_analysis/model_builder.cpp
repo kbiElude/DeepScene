@@ -13,11 +13,15 @@
 
 Analysis::APIDumpAnalysis::ModelBuilder::ModelBuilder(const bool& in_keeps_history)
     :m_access_sink_ptr          (nullptr),
+     m_caches_draw_keys         (true),
      m_call_index               (0),
+     m_constant_state_epoch     (1),
+     m_is_orthographic          (false),
      m_keeps_history            (in_keeps_history),
      m_last_draw_cover_key      (0),
      m_last_draw_signature_key  (0),
      m_n_frames                 (0),
+     m_orthographic_epoch       (0),
      m_texture_sink_ptr         (nullptr),
      m_timestamp_qpc            (0)
 {
@@ -63,7 +67,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::close_pass_if_rendered_to(const Re
     }
 }
 
-uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(const DrawDescription& in_draw)
+uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(const DrawDescription& in_draw,
+                                                                             const bool&            in_is_orthographic)
 {
     std::vector<uint64_t> color_view_key_vec;
     uint64_t              depth_stencil_view_key = 0;
@@ -71,6 +76,7 @@ uint64_t Analysis::APIDumpAnalysis::ModelBuilder::compute_draw_signature_key(con
 
     fill_draw_structure(in_draw,
                         true, /* in_uses_unwritten_keys */
+                        in_is_orthographic,
                        &m_draw_signature_scratch);
 
     for (const auto& color_view : open_pass_ptr->attachments.color_view_vec)
@@ -130,6 +136,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::emit_access(const ResourceId&     
 
 void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDescription& in_draw,
                                                                   const bool&            in_uses_unwritten_keys,
+                                                                  const bool&            in_is_orthographic,
                                                                   DrawStructure*         out_structure_ptr) const
 {
     constexpr uint32_t SINGLE_INSTANCE = 1;
@@ -137,12 +144,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::fill_draw_structure(const DrawDesc
     /* A draw with an orthographic projection (where distance does not make things smaller) is a different kind of draw than one with a
      * perspective projection, because the same state is used by the panels of a screen and by the scene.
      */
-    DrawMatrices matrices;
-
-    DrawMeasurer::find_draw_matrices(m_constant_state_map,
-                                    &matrices);
-
-    const bool is_orthographic = matrices.is_orthographic;
+    const bool is_orthographic = in_is_orthographic;
 
     const auto get_key_func      = [this, in_uses_unwritten_keys](const ResourceId& in_id)
                                    {
@@ -283,6 +285,23 @@ end:
 const Analysis::APIDumpAnalysis::CompletedFrame& Analysis::APIDumpAnalysis::ModelBuilder::get_completed_frame() const
 {
     return m_completed_frame;
+}
+
+bool Analysis::APIDumpAnalysis::ModelBuilder::get_is_orthographic()
+{
+    /* The constants only change in on_update_constant(), which counts the updates, so the answer is found again only after one. */
+    if (m_orthographic_epoch != m_constant_state_epoch)
+    {
+        DrawMatrices matrices;
+
+        DrawMeasurer::find_draw_matrices(m_constant_state_map,
+                                        &matrices);
+
+        m_is_orthographic    = matrices.is_orthographic;
+        m_orthographic_epoch = m_constant_state_epoch;
+    }
+
+    return m_is_orthographic;
 }
 
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_cover_key() const
@@ -521,27 +540,61 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         }
     }
 
-    fill_draw_structure(in_draw,
-                        false, /* in_uses_unwritten_keys */
-                       &structure);
-
     {
-        const uint64_t key            = MatchKeyBuilder::compute_draw_structure_key   (structure);
-        const auto     known_entry    = m_model.draw_structure_map.find          (key);
-        const uint64_t signature_key  = compute_draw_signature_key               (in_draw);
-        const auto     signature_pair = open_pass_ptr->draw_signature_map.emplace(key,
-                                                                                  signature_key);
+        const bool     is_orthographic = get_is_orthographic();
+        DrawKeyResult  keys;
+        const uint64_t key_table_epoch = m_key_table.get_epoch();
 
-        if (known_entry == m_model.draw_structure_map.end() )
+        /* The keys are a function of the draw, the render targets, the keys of the resources and the projection kind, so a draw that repeats an earlier one has its keys. */
+        const bool is_cached = (m_caches_draw_keys                                 &&
+                                m_draw_key_cache.find(in_draw,
+                                                      open_pass_ptr->attachments,
+                                                      key_table_epoch,
+                                                      is_orthographic,
+                                                     &keys) );
+
+        if (is_cached == false)
         {
-            m_model.draw_structure_map.emplace(key,
-                                               structure);
+            fill_draw_structure(in_draw,
+                                false, /* in_uses_unwritten_keys */
+                                is_orthographic,
+                               &structure);
+
+            keys.structure_key = MatchKeyBuilder::compute_draw_structure_key(structure);
+            keys.signature_key = compute_draw_signature_key                 (in_draw,
+                                                                             is_orthographic);
+
+            const auto known_entry = m_model.draw_structure_map.find(keys.structure_key);
+
+            if (known_entry == m_model.draw_structure_map.end() )
+            {
+                m_model.draw_structure_map.emplace(keys.structure_key,
+                                                   structure);
+            }
+            else
+            {
+                keys.is_collision = ((known_entry->second == structure) == false);
+            }
+
+            if (m_caches_draw_keys)
+            {
+                m_draw_key_cache.store(in_draw,
+                                       open_pass_ptr->attachments,
+                                       key_table_epoch,
+                                       is_orthographic,
+                                       keys);
+            }
         }
-        else
-        if ((known_entry->second == structure) == false)
+
+        if (keys.is_collision)
         {
             m_model.n_key_collisions++;
         }
+
+        const uint64_t key            = keys.structure_key;
+        const uint64_t signature_key  = keys.signature_key;
+        const auto     signature_pair = open_pass_ptr->draw_signature_map.emplace(key,
+                                                                                  signature_key);
 
         m_last_draw_signature_key = signature_key;
 
@@ -787,6 +840,8 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_update_constant(const ConstantU
         /* Assigned in place, so the buffers of the previous update are reused. */
         state.block_key = m_key_table.get_unwritten_key(in_update.location.block_id);
         state.update    = in_update;
+
+        m_constant_state_epoch++;
     }
 }
 
@@ -938,6 +993,11 @@ void Analysis::APIDumpAnalysis::ModelBuilder::record_draw_access(const DrawDescr
 void Analysis::APIDumpAnalysis::ModelBuilder::set_access_sink(IAccessSink* in_sink_ptr)
 {
     m_access_sink_ptr = in_sink_ptr;
+}
+
+void Analysis::APIDumpAnalysis::ModelBuilder::set_caches_draw_keys(const bool& in_caches_draw_keys)
+{
+    m_caches_draw_keys = in_caches_draw_keys;
 }
 
 void Analysis::APIDumpAnalysis::ModelBuilder::set_texture_sink(Analysis::APIDumpTextures::ITextureSink* in_sink_ptr)

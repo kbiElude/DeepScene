@@ -6,12 +6,18 @@
 #include "utils/hashing/stable_hasher.h"
 
 Analysis::APIDumpAnalysis::ResourceKeyTable::ResourceKeyTable()
+    :m_epoch(0)
 {
     /* Stub */
 }
 
 void Analysis::APIDumpAnalysis::ResourceKeyTable::begin_frame()
 {
+    if (m_written_index_vec.empty() == false)
+    {
+        m_epoch++;
+    }
+
     for (const auto& index : m_written_index_vec)
     {
         auto& entry = m_entry_vec.at(index);
@@ -39,6 +45,8 @@ uint64_t Analysis::APIDumpAnalysis::ResourceKeyTable::compute_key(const uint64_t
 
 void Analysis::APIDumpAnalysis::ResourceKeyTable::forget_resource(const ResourceId& in_id)
 {
+    m_epoch++;
+
     const uint32_t value = get_resource_id_value(in_id);
 
     if (value != 0 &&
@@ -46,6 +54,11 @@ void Analysis::APIDumpAnalysis::ResourceKeyTable::forget_resource(const Resource
     {
         m_entry_vec.at(value - 1) = Entry();
     }
+}
+
+uint64_t Analysis::APIDumpAnalysis::ResourceKeyTable::get_epoch() const
+{
+    return m_epoch;
 }
 
 const Analysis::APIDumpAnalysis::ResourceKeyTable::Entry* Analysis::APIDumpAnalysis::ResourceKeyTable::get_entry_ptr(const ResourceId& in_id) const
@@ -104,6 +117,8 @@ uint64_t Analysis::APIDumpAnalysis::ResourceKeyTable::get_view_key(const Resourc
 void Analysis::APIDumpAnalysis::ResourceKeyTable::record_write(const ResourceId& in_id,
                                                                const uint64_t&   in_writer_pass_key)
 {
+    m_epoch++;
+
     const uint32_t value = get_resource_id_value(in_id);
 
     if (get_entry_ptr(in_id) != nullptr)
@@ -126,6 +141,8 @@ void Analysis::APIDumpAnalysis::ResourceKeyTable::record_write(const ResourceId&
 void Analysis::APIDumpAnalysis::ResourceKeyTable::register_resource(const ResourceId& in_id,
                                                                     const uint64_t&   in_description_key)
 {
+    m_epoch++;
+
     const uint32_t value = get_resource_id_value(in_id);
 
     if (value != 0)

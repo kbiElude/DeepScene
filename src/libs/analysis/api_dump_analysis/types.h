@@ -637,6 +637,14 @@ namespace Analysis
             uint64_t signature_key = 0;
         };
 
+        /* What the model builder works out for a draw from the draw alone (see DrawKeyCache). */
+        struct DrawKeyResult
+        {
+            bool     is_collision  = false; /* another structure has the structure key */
+            uint64_t signature_key = 0;
+            uint64_t structure_key = 0;
+        };
+
         /* One draw of a frame: where it is, and the key of its structure (see DrawStructure), which is the same in every run. */
         struct DrawInstance
         {

@@ -13,6 +13,7 @@
 #ifndef APIDUMPANALYSIS_MODEL_BUILDER_H
 #define APIDUMPANALYSIS_MODEL_BUILDER_H
 
+#include "analysis/api_dump_analysis/draw_key_cache.h"
 #include "analysis/api_dump_analysis/i_access_sink.h"
 #include "analysis/api_dump_analysis/model.h"
 #include "analysis/api_dump_analysis/pass_tracker.h"
@@ -104,6 +105,9 @@ namespace Analysis
             /* Sets the sink for resource accesses (see IAccessSink); nullptr (default) means none. Not owned: it must outlive the builder. */
             void set_access_sink(IAccessSink* in_sink_ptr);
 
+            /* On by default. Off, every draw works out its keys from scratch: a check that the cache changes nothing. */
+            void set_caches_draw_keys(const bool& in_caches_draw_keys);
+
             /* Sets the sink for texture events (see ITextureSink); nullptr (default) means none. Not owned: it must outlive the builder. */
             void set_texture_sink(Analysis::APIDumpTextures::ITextureSink* in_sink_ptr);
 
@@ -134,7 +138,8 @@ namespace Analysis
             void close_pass_if_rendered_to(const ResourceView& in_view);
 
             /* The signature key of the draw in the open pass, as MatchKeyBuilder::compute_draw_signature_key() defines it. */
-            uint64_t compute_draw_signature_key(const DrawDescription& in_draw);
+            uint64_t compute_draw_signature_key(const DrawDescription& in_draw,
+                                                const bool&            in_is_orthographic);
 
             /* Tells the sink, if there is one, about an access to a resource at the current call. A resource that is NONE is not an access. */
             void emit_access(const ResourceId&       in_resource_id,
@@ -147,11 +152,15 @@ namespace Analysis
             /* Fills the structure with the resource keys at draw time, or as if no pass had written to them. */
             void fill_draw_structure(const DrawDescription& in_draw,
                                      const bool&            in_uses_unwritten_keys,
+                                     const bool&            in_is_orthographic,
                                      DrawStructure*         out_structure_ptr) const;
 
             /* How much of the view a clear reaches: all of it, or what the viewport and the clear rectangles leave of it. */
             AccessCoverage get_clear_coverage(const ClearOperation& in_clear,
                                               const ResourceView&   in_view) const;
+
+            /* Whether the projection of the constants is orthographic; found again only when a constant has been updated since. */
+            bool get_is_orthographic();
 
             /* The part of a resource that a view covers. */
             static SubresourceRange get_subresource_range(const ResourceView& in_view);
@@ -168,20 +177,25 @@ namespace Analysis
             IAccessSink*                              m_access_sink_ptr;
             ResourceAccessTracker                     m_access_tracker;
             AttachmentSet                             m_attachments;
+            bool                                      m_caches_draw_keys;
             std::vector<DrawKeys>                     m_call_draw_key_vec;
             uint64_t                                  m_call_index;
             std::set<ResourceId>                      m_color_copy_target_set; /* the resources that received a copy of the color of the picture */
             CompletedFrame                            m_completed_frame;
+            uint64_t                                  m_constant_state_epoch;   /* counts the updates of the constants */
             ConstantStateMap                          m_constant_state_map;
+            DrawKeyCache                              m_draw_key_cache;
             DrawStructure                             m_draw_signature_scratch; /* on_draw() scratch, avoids allocation */
             DrawStructure                             m_draw_structure_scratch;
             FrameInProgress                           m_frame;
+            bool                                      m_is_orthographic;        /* as of m_orthographic_epoch */
             bool                                      m_keeps_history;
             ResourceKeyTable                          m_key_table;
             uint64_t                                  m_last_draw_cover_key;
             uint64_t                                  m_last_draw_signature_key;
             Model                                     m_model;
             uint64_t                                  m_n_frames;
+            uint64_t                                  m_orthographic_epoch;
             PassTracker                               m_pass_tracker;
             std::vector<ResourceId>                   m_pending_forget_vec;
             Analysis::APIDumpTextures::ITextureSink*  m_texture_sink_ptr;
