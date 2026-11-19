@@ -119,6 +119,39 @@ void Stereo::ConverterDLL::GLEyeRenderer::copy_framebuffer(const bool&          
     }
 }
 
+Stereo::ConverterDLL::TextureSelection Stereo::ConverterDLL::GLEyeRenderer::find_texture_selection() const
+{
+    TextureSelection result;
+
+    if (m_twin_table.is_empty() == false)
+    {
+        result.texture = m_bound_texture_array.at(m_active_unit);
+
+        if (result.texture != 0)
+        {
+            result.has_twin = m_twin_table.find(result.texture,
+                                               &result.twin);
+        }
+
+        for (uint32_t n_unit = 0;
+                      n_unit < N_TEXTURE_UNITS && result.has_twin_in_another_unit == false;
+                    ++n_unit)
+        {
+            const uint32_t texture = m_bound_texture_array.at(n_unit);
+            uint32_t       twin    = 0;
+
+            if (n_unit  != m_active_unit &&
+                texture != 0)
+            {
+                result.has_twin_in_another_unit = m_twin_table.find(texture,
+                                                                   &twin);
+            }
+        }
+    }
+
+    return result;
+}
+
 void Stereo::ConverterDLL::GLEyeRenderer::forget_lost_depth_reads()
 {
     const uint32_t generation = m_targets.get_generation();
@@ -235,7 +268,9 @@ bool Stereo::ConverterDLL::GLEyeRenderer::make_twin(const uint32_t& in_texture,
     GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
                                                    in_texture);
 
-    m_twin_map[in_texture] = twin;
+    m_twin_table.set(in_texture,
+                     twin);
+
     m_statistics.n_twin_textures++;
 
     result = true;
@@ -321,8 +356,9 @@ bool Stereo::ConverterDLL::GLEyeRenderer::mirror_copy(const APIInterceptor::APIF
         if (is_read && target == GL_TEXTURE_2D)
         {
             const OwnCallScope own_call_scope;
-            const auto         twin_iterator = m_twin_map.find(texture);
-            bool               has_twin      = (twin_iterator != m_twin_map.end() );
+            uint32_t           twin          = 0;
+            bool               has_twin      = m_twin_table.find(texture,
+                                                                &twin);
             const bool         is_scaled     = (m_scaler.is_identity() == false);
 
             /* The framebuffer is larger than the application knows, so the sizes of the copy are scaled up by the same factor. */
@@ -338,12 +374,16 @@ bool Stereo::ConverterDLL::GLEyeRenderer::mirror_copy(const APIInterceptor::APIF
                 has_twin = make_twin(texture,
                                      is_sub,
                                      value_array.at(1) );
+
+                if (has_twin)
+                {
+                    m_twin_table.find(texture,
+                                     &twin);
+                }
             }
 
             if (has_twin)
             {
-                const uint32_t twin = m_twin_map.at(texture);
-
                 m_targets.bind_eye(Analysis::Recipe::Eye::RIGHT);
 
                 GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
@@ -390,13 +430,16 @@ void Stereo::ConverterDLL::GLEyeRenderer::mirror_texture_parameter(const APIInte
     constexpr uint32_t N_ARGUMENTS = 3;
 
     const uint32_t texture = m_bound_texture_array.at(m_active_unit);
-    const auto     twin_it = m_twin_map.find(texture);
 
     uint32_t target = 0;
+    uint32_t twin   = 0;
     uint32_t name   = 0;
     float    value  = 0.0f;
 
-    if (twin_it     != m_twin_map.end() &&
+    const bool has_twin = m_twin_table.find(texture,
+                                           &twin);
+
+    if (has_twin                   &&
         in_n_arguments == N_ARGUMENTS   &&
         APIInterceptor::read_number(in_arguments_ptr[0],
                                    &target)                       &&
@@ -409,7 +452,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::mirror_texture_parameter(const APIInte
         const OwnCallScope own_call_scope;
 
         GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
-                                                       twin_it->second);
+                                                       twin);
 
         if (in_function == APIInterceptor::APIFUNCTION_GL_GLTEXPARAMETERI)
         {
@@ -775,18 +818,20 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                              n_name < count;
                            ++n_name)
                 {
-                    const auto twin_it = m_twin_map.find(name_ptr[n_name]);
+                    uint32_t   twin_name = 0;
+                    const bool has_twin  = m_twin_table.find(name_ptr[n_name],
+                                                            &twin_name);
 
                     m_scaler.forget_texture(name_ptr[n_name]);
 
-                    if (twin_it != m_twin_map.end() )
+                    if (has_twin)
                     {
-                        const GLuint twin = twin_it->second;
+                        const GLuint twin = twin_name;
 
                         GLDriverFunctions::get().delete_textures_func_ptr(1,
                                                                           &twin);
 
-                        m_twin_map.erase(twin_it);
+                        m_twin_table.erase(name_ptr[n_name]);
                     }
 
                     for (auto& bound_texture : m_bound_texture_array)
@@ -832,7 +877,10 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
         case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE2D:
         {
-            if (m_twin_map.find(m_bound_texture_array.at(m_active_unit) ) != m_twin_map.end() )
+            uint32_t twin = 0;
+
+            if (m_twin_table.find(m_bound_texture_array.at(m_active_unit),
+                                 &twin) )
             {
                 m_statistics.n_unmirrored_calls++;
 
@@ -1079,6 +1127,15 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
                                                       Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(projection_f32mat) );
     }
 
+    /* The textures do not change between the eyes, so what each needs is looked up once. */
+    const TextureSelection texture_selection = find_texture_selection();
+
+    if (texture_selection.has_twin_in_another_unit)
+    {
+        note_once("units",
+                  "A texture that has a twin is bound to a unit other than the one that is active: it is not bound to its twin for the right eye");
+    }
+
     for (const auto eye : {Analysis::Recipe::Eye::RIGHT, Analysis::Recipe::Eye::LEFT})
     {
         m_targets.bind_eye(eye);
@@ -1091,7 +1148,8 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
             GLDriverFunctions::get().mult_matrixf_func_ptr(saved_matrix.data() );
         }
 
-        select_textures(eye == Analysis::Recipe::Eye::RIGHT);
+        select_textures(texture_selection,
+                        eye == Analysis::Recipe::Eye::RIGHT);
 
         if (in_is_pushed)
         {
@@ -1133,7 +1191,8 @@ void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&
                                                    saved_viewport.at(VIEWPORT_HEIGHT) );
     }
 
-    select_textures(false);
+    select_textures(texture_selection,
+                    false);
 
     if (is_affected)
     {
@@ -1197,38 +1256,15 @@ const void* Stereo::ConverterDLL::GLEyeRenderer::resolve_pointer(const APIInterc
     return result;
 }
 
-void Stereo::ConverterDLL::GLEyeRenderer::select_textures(const bool& in_are_twins)
+void Stereo::ConverterDLL::GLEyeRenderer::select_textures(const TextureSelection& in_selection,
+                                                          const bool&             in_are_twins)
 {
-    if (m_twin_map.empty() == false)
+    /* Only the active unit can be bound without calling the function that changes the active unit. The caller holds an OwnCallScope. */
+    if (in_selection.has_twin)
     {
-        const OwnCallScope own_call_scope;
-
-        for (uint32_t n_unit = 0;
-                      n_unit < N_TEXTURE_UNITS;
-                    ++n_unit)
-        {
-            const uint32_t texture = m_bound_texture_array.at(n_unit);
-            const auto     twin_it = m_twin_map.find(texture);
-
-            if (texture == 0                  ||
-                twin_it == m_twin_map.end() )
-            {
-                continue;
-            }
-
-            /* Only the active unit can be bound without calling the function that changes the active unit. */
-            if (n_unit == m_active_unit)
-            {
-                GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
-                                                               (in_are_twins) ? twin_it->second
-                                                               : texture);
-            }
-            else
-            {
-                note_once("units",
-                          "A texture that has a twin is bound to a unit other than the one that is active: it is not bound to its twin for the right eye");
-            }
-        }
+        GLDriverFunctions::get().bind_texture_func_ptr(GL_TEXTURE_2D,
+                                                       (in_are_twins) ? in_selection.twin
+                                                                      : in_selection.texture);
     }
 }
 

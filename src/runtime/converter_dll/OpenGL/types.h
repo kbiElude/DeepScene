@@ -36,6 +36,15 @@ namespace Stereo
             int64_t  x          = 0;
             int64_t  y          = 0;
         };
+
+        /* What the textures that are bound for a draw need for each eye (see GLEyeRenderer::find_texture_selection()). */
+        struct TextureSelection
+        {
+            bool     has_twin                 = false; /* the texture of the active unit has a twin for the right eye */
+            bool     has_twin_in_another_unit = false; /* another unit has a texture that has one, which cannot be bound without changing the active unit */
+            uint32_t texture                  = 0;     /* of the active unit */
+            uint32_t twin                     = 0;
+        };
     }
 }
 

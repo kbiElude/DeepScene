@@ -15,11 +15,11 @@
 #include "gl_eye_targets.h"
 #include "gl_frame_reader.h"
 #include "gl_resolution_scaler.h"
+#include "gl_texture_twin_table.h"
 #include "invisible_window_manager.h"
 #include "types.h"
 #include <array>
 #include <functional>
-#include <map>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -103,6 +103,9 @@ namespace Stereo
                                   const uint32_t&               in_target,
                                   const std::array<int32_t, 8>& in_value_array) const;
 
+            /* Looks up the twins of the textures that are bound: once for a draw, which binds them for each eye and again for the application. */
+            TextureSelection find_texture_selection() const;
+
             /* Calls the function per eye, right first, with that eye's target bound (and its matrix applied for an affected draw). */
             void play_eyes(const std::function<void()>&      in_draw_func,
                            const Analysis::Recipe::DrawClass& in_draw_class,
@@ -163,7 +166,8 @@ namespace Stereo
                              const bool&                                in_is_pushed);
 
             /* Binds the twins (in_are_twins) or the original textures to the texture units, for the draws of one eye. */
-            void select_textures(const bool& in_are_twins);
+            void select_textures(const TextureSelection& in_selection,
+                                 const bool&             in_are_twins);
 
             /* Serves a one-pixel glReadPixels that is part of a run of such reads from the left eye's picture (see PictureReadbackCache),
              * writing to the application's memory. Returns true if the call is not to be made. */
@@ -205,7 +209,7 @@ namespace Stereo
             GLResolutionScaler                    m_scaler;
             Statistics                            m_statistics;
             GLEyeTargets                          m_targets;
-            std::map<uint32_t, uint32_t>          m_twin_map;
+            GLTextureTwinTable                    m_twin_table;
         };
     }
 }
