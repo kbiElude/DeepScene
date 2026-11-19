@@ -6,6 +6,7 @@
 #define STEREO_CONVERTERDLL_OPENGL_TYPES_H
 
 #include "stereo/core/types.h"
+#include <array>
 #include <memory>
 #include <stdint.h>
 
@@ -13,6 +14,17 @@ namespace Stereo
 {
     namespace ConverterDLL
     {
+        /* What a call that is recorded sets for the vertices of a block (see GLBlockRecorder). */
+        enum class RecordedCallKind
+        {
+            COLOR3,
+            COLOR4,
+            NORMAL3,
+            TEXCOORD2,
+            VERTEX2,
+            VERTEX3
+        };
+
         /* The eye images of one frame of an OpenGL application, as OpenGL reads them: rows from the bottom up, 8 bits each of B, G, R and A (the
          * order of the channel's images). The pixels are in memory that is mapped from the buffers they were read into. The memory stays valid
          * while anything holds the token. The code that passes the images on keeps a copy of this struct until it is done with them.
@@ -25,6 +37,21 @@ namespace Stereo
             Stereo::Core::PixelRect     picture;        /* the picture in each eye image */
             const uint8_t*              right_bgra_ptr  = nullptr;
             uint32_t                    width           = 0;
+        };
+
+        /* A call between glBegin and glEnd, kept to be made again for each eye. */
+        struct RecordedCall
+        {
+            RecordedCallKind     kind           = RecordedCallKind::COLOR3;
+            std::array<float, 4> value_fp32vec4 = {};
+        };
+
+        /* What a function that can be recorded sets: the kind, how many numbers, and whether it gives them in memory (the functions that end in v). */
+        struct RecordedCallLayout
+        {
+            bool             is_vector = false;
+            RecordedCallKind kind      = RecordedCallKind::COLOR3;
+            uint32_t         n_values  = 0;
         };
 
         /* A glReadPixels call of the application that reads one pixel of the colors, in bytes, into the application's own memory. It is the only read that the converter makes itself (see GLResolutionScaler). */

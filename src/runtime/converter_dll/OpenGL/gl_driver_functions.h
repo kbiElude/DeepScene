@@ -17,9 +17,12 @@ namespace Stereo
          */
         struct GLDriverFunctions
         {
+            PFNGLBEGINPROC                   begin_func_ptr                      = nullptr;
             PFNGLBINDTEXTUREPROC             bind_texture_func_ptr               = nullptr;
             PFNGLCALLLISTPROC                call_list_func_ptr                  = nullptr;
             PFNGLCLEARPROC                   clear_func_ptr                      = nullptr;
+            PFNGLCOLOR3FPROC                 color3f_func_ptr                    = nullptr;
+            PFNGLCOLOR4FPROC                 color4f_func_ptr                    = nullptr;
             PFNGLCOPYTEXIMAGE2DPROC          copy_tex_image_2d_func_ptr          = nullptr;
             PFNGLCOPYTEXSUBIMAGE2DPROC       copy_tex_sub_image_2d_func_ptr      = nullptr;
             PFNGLDELETETEXTURESPROC          delete_textures_func_ptr            = nullptr;
@@ -27,6 +30,7 @@ namespace Stereo
             PFNGLDRAWARRAYSPROC              draw_arrays_func_ptr                = nullptr;
             PFNGLDRAWELEMENTSPROC            draw_elements_func_ptr              = nullptr;
             PFNGLENABLEPROC                  enable_func_ptr                     = nullptr;
+            PFNGLENDPROC                     end_func_ptr                        = nullptr;
             PFNGLENDLISTPROC                 end_list_func_ptr                   = nullptr;
             PFNGLGENLISTSPROC                gen_lists_func_ptr                  = nullptr;
             PFNGLGENTEXTURESPROC             gen_textures_func_ptr               = nullptr;
@@ -40,13 +44,17 @@ namespace Stereo
             PFNGLMATRIXMODEPROC              matrix_mode_func_ptr                = nullptr;
             PFNGLMULTMATRIXFPROC             mult_matrixf_func_ptr               = nullptr;
             PFNGLNEWLISTPROC                 new_list_func_ptr                   = nullptr;
+            PFNGLNORMAL3FPROC                normal3f_func_ptr                   = nullptr;
             PFNGLPIXELSTOREIPROC             pixel_storei_func_ptr               = nullptr;
             PFNGLPOINTSIZEPROC               point_size_func_ptr                 = nullptr;
             PFNGLREADPIXELSPROC              read_pixels_func_ptr                = nullptr;
             PFNGLSCISSORPROC                 scissor_func_ptr                    = nullptr;
+            PFNGLTEXCOORD2FPROC              tex_coord2f_func_ptr                = nullptr;
             PFNGLTEXIMAGE2DPROC              tex_image_2d_func_ptr               = nullptr;
             PFNGLTEXPARAMETERFPROC           tex_parameterf_func_ptr             = nullptr;
             PFNGLTEXPARAMETERIPROC           tex_parameteri_func_ptr             = nullptr;
+            PFNGLVERTEX2FPROC                vertex2f_func_ptr                   = nullptr;
+            PFNGLVERTEX3FPROC                vertex3f_func_ptr                   = nullptr;
             PFNGLVIEWPORTPROC                viewport_func_ptr                   = nullptr;
 
             /* The functions, found once. */

@@ -7,6 +7,8 @@
 #include "gl_eye_renderer.h"
 #include "gl_driver_functions.h"
 #include "analysis/api_dump_analysis/draw_measurer.h"
+#include "capture/api_dump_loader/api_info.h"
+#include "capture/api_dump_names/function_names.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
 #include "own_call_scope.h"
 #include "stereo/core/push_shift_planner.h"
@@ -36,11 +38,13 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPla
      m_has_failed         (false),
      m_is_in_app_list     (false),
      m_is_in_block        (false),
+     m_is_recording       (false),
      m_is_shown_elsewhere (in_is_shown_elsewhere),
      m_measures_depth     (in_core_ptr->get_measures_depth() ),
      m_n_failed_attempts  (0),
      m_n_tracked_matrix_reads(0),
      m_pass_has_affected_draws(false),
+     m_records_blocks     (false),
      m_scaler             (in_target_width,
                            in_target_height,
                            in_core_ptr,
@@ -124,6 +128,32 @@ void Stereo::ConverterDLL::GLEyeRenderer::copy_framebuffer(const bool&          
     }
 }
 
+void Stereo::ConverterDLL::GLEyeRenderer::fall_back_to_list(const APIInterceptor::APIFunction& in_function)
+{
+    const OwnCallScope own_call_scope;
+
+    if (m_block_list == 0)
+    {
+        m_block_list = GLDriverFunctions::get().gen_lists_func_ptr(1);
+    }
+
+    GLDriverFunctions::get().new_list_func_ptr(m_block_list,
+                                               GL_COMPILE);
+    GLDriverFunctions::get().begin_func_ptr   (m_block_recorder.get_mode() );
+
+    m_block_recorder.play_calls();
+
+    m_is_in_block  = true;
+    m_is_recording = false;
+
+    m_statistics.n_fallback_blocks++;
+
+    note_once("block_fallback_" + std::to_string(static_cast<uint32_t>(in_function) ),
+              std::string("A block had a call that cannot be recorded (")                       +
+              Capture::APIDumpNames::get_function_name(in_function)                              +
+              "): the block was compiled into a display list instead");
+}
+
 Stereo::ConverterDLL::TextureSelection Stereo::ConverterDLL::GLEyeRenderer::find_texture_selection() const
 {
     TextureSelection result;
@@ -155,6 +185,36 @@ Stereo::ConverterDLL::TextureSelection Stereo::ConverterDLL::GLEyeRenderer::find
     }
 
     return result;
+}
+
+void Stereo::ConverterDLL::GLEyeRenderer::finish_recorded_block(const bool&                        in_has_draws,
+                                                                const Analysis::Recipe::DrawClass& in_draw_class,
+                                                                const bool&                        in_is_pushed)
+{
+    m_is_recording = false;
+
+    m_statistics.n_recorded_blocks++;
+
+    if (in_has_draws == false ||
+        in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
+    {
+        const auto replay_func = [this]()
+        {
+            m_block_recorder.play();
+        };
+
+        play_eyes(replay_func,
+                  (in_has_draws) ? in_draw_class
+                                 : Analysis::Recipe::DrawClass::UNAFFECTED,
+                  (in_has_draws &&
+                   in_is_pushed) );
+
+        m_statistics.n_block_draws++;
+    }
+    else
+    {
+        m_statistics.n_skipped_draws++;
+    }
 }
 
 void Stereo::ConverterDLL::GLEyeRenderer::forget_lost_depth_reads()
@@ -489,6 +549,29 @@ void Stereo::ConverterDLL::GLEyeRenderer::note_once(const std::string& in_key,
     }
 }
 
+bool Stereo::ConverterDLL::GLEyeRenderer::on_attribute(const APIInterceptor::APIFunction&         in_function,
+                                                       const uint32_t&                            in_n_arguments,
+                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
+{
+    bool result = true;
+
+    if (m_is_recording)
+    {
+        if (record_call(in_function,
+                        in_n_arguments,
+                        in_arguments_ptr) )
+        {
+            result = false;
+        }
+        else
+        {
+            fall_back_to_list(in_function);
+        }
+    }
+
+    return result;
+}
+
 bool Stereo::ConverterDLL::GLEyeRenderer::on_frame_ending(GLFrameImages* out_images_ptr)
 {
     bool result = false;
@@ -656,6 +739,35 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
         goto end;
     }
 
+    /* A block that is being recorded keeps the calls that it can, and does not make them. Its glEnd makes it for both eyes. Any other call hands the
+     * block to a display list (the call is then made, into the list).
+     */
+    if (m_is_recording                                                                 &&
+        Capture::APIDumpLoader::get_api_group(in_function) == Capture::APIDumpLoader::APIGroup::GL)
+    {
+        if (in_function == APIInterceptor::APIFUNCTION_GL_GLEND)
+        {
+            finish_recorded_block(in_has_draws,
+                                  in_draw_class,
+                                  in_is_pushed);
+
+            result = false;
+
+            goto end;
+        }
+
+        if (record_call(in_function,
+                        in_n_arguments,
+                        in_arguments_ptr) )
+        {
+            result = false;
+
+            goto end;
+        }
+
+        fall_back_to_list(in_function);
+    }
+
     if (m_targets.is_ready() == false)
     {
         if (in_function == APIInterceptor::APIFUNCTION_GL_GLBEGIN ||
@@ -700,20 +812,38 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
 
         case APIInterceptor::APIFUNCTION_GL_GLBEGIN:
         {
-            /* The block is compiled, not executed. It is executed once for each eye when the block ends, when the class that the recipe gives it is known. */
+            /* The block is not executed. It is executed once for each eye when the block ends, when the class that the recipe gives it is known: from the calls
+             * that were recorded, or from a display list that it was compiled into.
+             */
             if (m_targets.is_ready() )
             {
-                const OwnCallScope own_call_scope;
+                uint32_t mode = 0;
 
-                if (m_block_list == 0)
+                if (m_records_blocks                                     &&
+                    in_n_arguments > 0                                   &&
+                    APIInterceptor::read_number(in_arguments_ptr[0],
+                                               &mode) )
                 {
-                    m_block_list = GLDriverFunctions::get().gen_lists_func_ptr(1);
+                    m_block_recorder.begin(mode);
+
+                    m_is_recording = true;
+
+                    result = false;
                 }
+                else
+                {
+                    const OwnCallScope own_call_scope;
 
-                GLDriverFunctions::get().new_list_func_ptr(m_block_list,
-                                                           GL_COMPILE);
+                    if (m_block_list == 0)
+                    {
+                        m_block_list = GLDriverFunctions::get().gen_lists_func_ptr(1);
+                    }
 
-                m_is_in_block = true;
+                    GLDriverFunctions::get().new_list_func_ptr(m_block_list,
+                                                               GL_COMPILE);
+
+                    m_is_in_block = true;
+                }
             }
 
             break;
@@ -1345,6 +1475,88 @@ bool Stereo::ConverterDLL::GLEyeRenderer::read_tracked_matrices(std::array<float
     return result;
 }
 
+bool Stereo::ConverterDLL::GLEyeRenderer::record_call(const APIInterceptor::APIFunction&         in_function,
+                                                      const uint32_t&                            in_n_arguments,
+                                                      const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
+{
+    RecordedCallLayout   layout;
+    bool                 result            = GLBlockRecorder::find_layout(in_function,
+                                                                          &layout);
+    std::array<float, 4> value_fp32vec4    = {};
+
+    if (result)
+    {
+        if (layout.is_vector)
+        {
+            const void* data_ptr = nullptr;
+            uint32_t    n_bytes  = 0;
+            bool        is_taken = false;
+
+            result = (in_n_arguments > 0                                                &&
+                      in_arguments_ptr[0].type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID);
+
+            if (result)
+            {
+                const uint32_t chunk_id = in_arguments_ptr[0].get_data_chunk_id();
+
+                /* A vertex call is analysed before it is made: the analysis holds its chunk. The calls that set an attribute are not analysed, so their chunk is in the store, and is
+                 * released when its numbers are read.
+                 */
+                result = (m_get_chunk_func != nullptr                         &&
+                          m_get_chunk_func(chunk_id,
+                                          &data_ptr,
+                                          &n_bytes) );
+
+                if (result == false)
+                {
+                    result = APIInterceptor::get_data_chunk(chunk_id,
+                                                           &data_ptr,
+                                                           &n_bytes);
+
+                    is_taken = result;
+                }
+
+                if (result                                                                   &&
+                    n_bytes >= layout.n_values * static_cast<uint32_t>(sizeof(float) ) )
+                {
+                    ::memcpy(value_fp32vec4.data(),
+                             data_ptr,
+                             layout.n_values * sizeof(float) );
+                }
+                else
+                {
+                    result = false;
+                }
+
+                if (is_taken)
+                {
+                    APIInterceptor::release_data_chunk(chunk_id);
+                }
+            }
+        }
+        else
+        {
+            result = (in_n_arguments >= layout.n_values);
+
+            for (uint32_t n_value = 0;
+                          n_value < layout.n_values && result;
+                        ++n_value)
+            {
+                result = APIInterceptor::read_number(in_arguments_ptr[n_value],
+                                                    &value_fp32vec4.at(n_value) );
+            }
+        }
+    }
+
+    if (result)
+    {
+        m_block_recorder.add(layout.kind,
+                             value_fp32vec4);
+    }
+
+    return result;
+}
+
 const void* Stereo::ConverterDLL::GLEyeRenderer::resolve_pointer(const APIInterceptor::APIFunctionArgument& in_argument) const
 {
     const void* result = nullptr;
@@ -1438,6 +1650,11 @@ void Stereo::ConverterDLL::GLEyeRenderer::set_get_chunk_func(const GetChunkFunc&
 void Stereo::ConverterDLL::GLEyeRenderer::set_get_matrices_func(const GetMatricesFunc& in_get_matrices_func)
 {
     m_get_matrices_func = in_get_matrices_func;
+}
+
+void Stereo::ConverterDLL::GLEyeRenderer::set_records_blocks(const bool& in_records_blocks)
+{
+    m_records_blocks = in_records_blocks;
 }
 
 void Stereo::ConverterDLL::GLEyeRenderer::start_depth_read()

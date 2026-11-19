@@ -12,6 +12,7 @@
 #include "stereo/core/frame_depth_ledger.h"
 #include "stereo/core/picture_readback_cache.h"
 #include "stereo/core/recipe_stereo_planner.h"
+#include "gl_block_recorder.h"
 #include "gl_eye_targets.h"
 #include "gl_frame_reader.h"
 #include "gl_resolution_scaler.h"
@@ -48,7 +49,9 @@ namespace Stereo
                 uint64_t n_camera_attached_draws = 0; /* affected draws left unmoved: attached to the camera */
                 uint64_t n_block_draws       = 0; /* blocks from glBegin to glEnd */
                 uint64_t n_clears            = 0;
+                uint64_t n_fallback_blocks   = 0; /* recorded blocks that a call which cannot be recorded handed to a display list */
                 uint64_t n_list_draws        = 0; /* glCallList calls */
+                uint64_t n_recorded_blocks   = 0; /* blocks made again from the calls that were recorded */
                 uint64_t n_skipped_draws     = 0;
                 uint64_t n_texture_copies    = 0; /* framebuffer-to-texture copies, both eyes */
                 uint64_t n_twin_textures     = 0;
@@ -68,6 +71,12 @@ namespace Stereo
             const Statistics& get_statistics() const;
 
             bool is_ready() const;
+
+            /* A call that sets a color, a normal or a texture coordinate is about to be made. Inside a block that is being recorded it is recorded and not made; returns false then.
+             * Any other call that the recording cannot hold hands the block to a display list instead (see fall_back_to_list()), and the call is made. */
+            bool on_attribute(const APIInterceptor::APIFunction&         in_function,
+                              const uint32_t&                            in_n_arguments,
+                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
 
             /* Takes the depth of a frame (pass depths, x scale of the last projection); the frame lags by get_depth_lag().
              * Returns false if the recipe does not measure depth (see Comfort::measures_depth) or the frame has none. Given once per frame. */
@@ -96,6 +105,9 @@ namespace Stereo
             void set_get_chunk_func   (const GetChunkFunc&    in_get_chunk_func);
             void set_get_matrices_func(const GetMatricesFunc& in_get_matrices_func);
 
+            /* Whether the blocks between glBegin and glEnd are recorded and made again for each eye, or compiled into a display list that the driver calls. */
+            void set_records_blocks(const bool& in_records_blocks);
+
             /* Log notes: what was not made for the right eye or could not be made. Each note is given once. */
             std::vector<std::string> take_notes();
 
@@ -106,6 +118,15 @@ namespace Stereo
             void copy_framebuffer(const bool&                   in_is_sub,
                                   const uint32_t&               in_target,
                                   const std::array<int32_t, 8>& in_value_array) const;
+
+            /* The block that is being recorded cannot be held by the recording (a call that it does not record came in): the calls so far are given to a display list, which the
+             * rest of the block is compiled into, and the block ends as one that was compiled from its glBegin. */
+            void fall_back_to_list(const APIInterceptor::APIFunction& in_function);
+
+            /* The recorded block ends: it is made for both eyes. */
+            void finish_recorded_block(const bool&                       in_has_draws,
+                                       const Analysis::Recipe::DrawClass& in_draw_class,
+                                       const bool&                       in_is_pushed);
 
             /* Looks up the twins of the textures that are bound: once for a draw, which binds them for each eye and again for the application. */
             TextureSelection find_texture_selection() const;
@@ -179,6 +200,11 @@ namespace Stereo
                                        std::array<float, 16>* out_projection_f32mat_ptr,
                                        int32_t*               out_matrix_mode_ptr);
 
+            /* Records a call of the block. Returns false if the call is not one that is recorded. */
+            bool record_call(const APIInterceptor::APIFunction&         in_function,
+                             const uint32_t&                            in_n_arguments,
+                             const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
+
             /* Serves a one-pixel glReadPixels that is part of a run of such reads from the left eye's picture (see PictureReadbackCache),
              * writing to the application's memory. Returns true if the call is not to be made. */
             bool serve_pixel_read(const uint32_t&                            in_n_arguments,
@@ -200,6 +226,7 @@ namespace Stereo
             bool                                  m_block_has_draws;
             bool                                  m_block_is_pushed;
             uint32_t                              m_block_list;
+            GLBlockRecorder                       m_block_recorder;
             bool                                  m_caches_pixel_reads; /* the recipe serves runs of one-pixel reads from one picture */
             Stereo::Core::RecipeStereoPlanner*    m_core_ptr;
             GLFrameReader                         m_frame_reader;
@@ -209,6 +236,7 @@ namespace Stereo
             InvisibleWindowManager                m_invisible_window_manager;
             bool                                  m_is_in_app_list;
             bool                                  m_is_in_block;
+            bool                                  m_is_recording;      /* a block is being recorded */
             bool                                  m_is_shown_elsewhere;
             bool                                  m_measures_depth;
             uint32_t                              m_n_failed_attempts;
@@ -218,6 +246,7 @@ namespace Stereo
             std::array<float, 16>                 m_pass_projection_f32mat; /* projection of the first affected draw of the pass */
             bool                                  m_pass_has_affected_draws;
             Stereo::Core::PictureReadbackCache    m_readback_cache;
+            bool                                  m_records_blocks;    /* see set_records_blocks() */
             GLResolutionScaler                    m_scaler;
             Statistics                            m_statistics;
             GLEyeTargets                          m_targets;

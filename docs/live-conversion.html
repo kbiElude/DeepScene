@@ -458,6 +458,8 @@
 
 <h3>A block of glBegin to glEnd</h3>
 <p>Whether a block is affected is known at <code>glEnd</code>, after its vertices were given. The block is therefore compiled to a display list that the converter owns, and the list is called for each eye like a draw.</p>
+
+<p>The block can also be recorded: <code>GLBlockRecorder</code> keeps the calls between <code>glBegin</code> and <code>glEnd</code> that set a vertex, a color, a normal or a texture coordinate (<code>glVertex2f</code>, <code>glVertex3f</code>, <code>glColor3f</code>, <code>glColor4f</code>, <code>glNormal3f</code>, <code>glTexCoord2f</code> and their <code>v</code> forms), the application's calls are not made, and at <code>glEnd</code> the block is made for each eye with the driver's own functions. This costs about what the application pays for the block natively, where a display list that the driver compiles for every block costs more than the whole analysis. A call between the two that the recorder does not hold (any other function, or another type of number, such as <code>glVertex3d</code>) hands the block to a display list: the calls so far are compiled into it, and the rest of the block follows. The log counts both kinds of block. It is on with <code>APISTEREO_RECORD_BLOCKS</code>, and not with a recipe that serves pixel reads from one picture.</p>
 <figure>
 <svg viewBox="0 0 900 110" role="img" aria-label="A glBegin to glEnd block is compiled to a list and played for each eye">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
@@ -675,6 +677,7 @@
 <tr><td><code>APISTEREO_FRAME_RATE</code></td><td>Overrides the <code>frame_pacing</code> of the recipe for a run, for every API: when no screen keeps time, the application is held to that many frames a second. 0 means it is not held.</td></tr>
 <tr><td><code>APISTEREO_NO_FRAME_LIMIT</code></td><td>The application is never held (the <code>screen_only</code> pacing), to measure the cost of a frame.</td></tr>
 <tr><td><code>APISTEREO_NO_RIGHT_EYE</code></td><td>To measure with Direct3D 7: the right eye is not drawn.</td></tr>
+<tr><td><code>APISTEREO_RECORD_BLOCKS</code></td><td>OpenGL: the blocks between <code>glBegin</code> and <code>glEnd</code> are recorded and made for each eye, instead of being compiled into a display list.</td></tr>
 </table>
 <p>Holding to a rate, in short: an application whose music runs on the clock should behave as it does when a screen shows its frames, not as in a run of a thousand frames a second. Every API is held the same way (<code>HostMemoryExporterBase::pace</code>): by the <code>frame_pacing</code> of the recipe, 60 frames a second unless it says otherwise, and never when a screen keeps time.</p>
 <p>The launcher sets <code>APISTEREO_SESSION</code>, <code>APISTEREO_RECIPE</code> and <code>APISTEREO_LOG</code> for the application.</p>

@@ -46,6 +46,12 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
      */
     const bool is_picture_dropped_by_any_call = m_live_state.core_ptr->get_caches_pixel_reads();
 
+    /* The blocks of an OpenGL application can be recorded and made again for each eye, instead of being compiled into a display list that the driver calls. A recipe that
+     * serves pixel reads from one picture needs a callback on every call, which the recording does not give.
+     */
+    const bool records_blocks = (is_picture_dropped_by_any_call == false &&
+                                 EnvironmentVariableReader::is_set("APISTEREO_RECORD_BLOCKS") );
+
     for (uint32_t n_api_func = 0;
                   n_api_func < APIInterceptor::APIFUNCTION_COUNT;
                 ++n_api_func)
@@ -54,9 +60,19 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
 
         if (LiveCallAnalyzer::is_followed(function) )
         {
-            const bool is_unneeded = (is_picture_dropped_by_any_call == false &&
-                                      LiveCallAnalyzer::is_attribute_call(function) );
+            const bool is_attribute = LiveCallAnalyzer::is_attribute_call(function);
+            const bool is_unneeded  = (is_picture_dropped_by_any_call == false &&
+                                       is_attribute                   &&
+                                       records_blocks == false);
 
+            if (is_attribute &&
+                records_blocks)
+            {
+                APIInterceptor::register_for_pre_callback(function,
+                                                         &LiveStereoConverter::on_attribute_callback,
+                                                          this);
+            }
+            else
             if (is_unneeded == false)
             {
                 if (LiveCallAnalyzer::is_analyzed_before_the_call(function) == false)
@@ -247,6 +263,12 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
         };
 
         m_live_state.gl_renderer_ptr->set_get_chunk_func(get_gl_chunk_func);
+        m_live_state.gl_renderer_ptr->set_records_blocks (records_blocks);
+
+        if (records_blocks)
+        {
+            m_log.write("The blocks between glBegin and glEnd are recorded and made again for each eye (APISTEREO_RECORD_BLOCKS)");
+        }
 
         const auto get_gl_matrices_func = [this](std::array<float, 16>* out_modelview_f32mat_ptr,
                                                  std::array<float, 16>* out_projection_f32mat_ptr,
@@ -434,7 +456,11 @@ std::string Stereo::ConverterDLL::LiveStereoConverter::make_statistics_line() co
                                                                                     std::to_string(gl_stats.n_twin_textures)           +
                                                                                     " twin textures, "                                  +
                                                                                     std::to_string(gl_stats.n_unmirrored_calls)        +
-                                                                                    " calls made for the left eye only"
+                                                                                    " calls made for the left eye only, "                +
+                                                                                    std::to_string(gl_stats.n_recorded_blocks)         +
+                                                                                    " blocks made from a recording, "                    +
+                                                                                    std::to_string(gl_stats.n_fallback_blocks)         +
+                                                                                    " of them handed to a display list"
                                                                                   : std::string();
 
     return "After "                                                       +
@@ -550,6 +576,24 @@ bool Stereo::ConverterDLL::LiveStereoConverter::on_gl_draws(Analysis::Recipe::Dr
     }
 
     return has_draws;
+}
+
+void Stereo::ConverterDLL::LiveStereoConverter::on_attribute_callback(APIInterceptor::APIFunction                in_api_func,
+                                                                      uint32_t                                   in_n_arguments,
+                                                                      const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                                      void*                                      in_user_arg_ptr,
+                                                                      bool*                                      out_should_pass_through_ptr)
+{
+    auto* this_ptr = static_cast<LiveStereoConverter*>(in_user_arg_ptr);
+
+    if (OwnCallScope::is_active() == false)
+    {
+        std::lock_guard<Utils::Parallel::SrwMutex> lock(this_ptr->m_live_state.mutex);
+
+        *out_should_pass_through_ptr = this_ptr->m_live_state.gl_renderer_ptr->on_attribute(in_api_func,
+                                                                                            in_n_arguments,
+                                                                                            in_arguments_ptr);
+    }
 }
 
 void Stereo::ConverterDLL::LiveStereoConverter::on_post_callback(APIInterceptor::APIFunction                in_api_func,
