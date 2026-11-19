@@ -16,6 +16,7 @@
 #include "gl_eye_targets.h"
 #include "gl_frame_reader.h"
 #include "gl_resolution_scaler.h"
+#include "gl_run_call_classifier.h"
 #include "gl_run_recorder.h"
 #include "gl_texture_twin_table.h"
 #include "invisible_window_manager.h"

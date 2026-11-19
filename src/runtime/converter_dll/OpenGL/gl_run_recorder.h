@@ -5,7 +5,6 @@
 #ifndef STEREO_CONVERTERDLL_GL_RUN_RECORDER_H
 #define STEREO_CONVERTERDLL_GL_RUN_RECORDER_H
 
-#include "common/api_function_argument.h"
 #include "types.h"
 #include <stdint.h>
 #include <vector>
@@ -17,7 +16,7 @@ namespace Stereo
         /* Keeps what the right eye does for a run of the application's calls (the blocks that are drawn, and the state calls between them), so that it is done once
          * for the whole run instead of once for each block. The left eye is live: the application's calls reach the driver as they are made, and the blocks are drawn
          * for the left eye when they end. The right eye needs the framebuffer of the right eye bound, and a bind is costly because the driver pays for it at the
-         * next draw. Only what the converter can give back with the driver's functions is kept: classify() says which calls those are.
+         * next draw. Only what the converter can give back with the driver's functions is kept (see GLRunCallClassifier).
          */
         class GLRunRecorder
         {
@@ -44,15 +43,6 @@ namespace Stereo
              * is that of the start of the run. A draw loads its own matrices, so the matrix state when the run was played is not what the application had.
              */
             void play() const;
-
-            /* What the right eye does about a call of the application while a run is kept. */
-            static RunCallClass classify(const APIInterceptor::APIFunction& in_function);
-
-            /* Reads the numbers of a call that classify() says is RECORDED. Returns false if its arguments are not numbers. */
-            static bool read_state_call(const APIInterceptor::APIFunction&         in_function,
-                                        const uint32_t&                            in_n_arguments,
-                                        const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
-                                        RunStateCall*                              out_call_ptr);
 
         private:
             static void play_state(const RunStateCall& in_call);

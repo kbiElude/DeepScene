@@ -443,7 +443,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::follow_run_call(const APIInterceptor::
     constexpr uint32_t MODELVIEW  = 0x1700;
     constexpr uint32_t PROJECTION = 0x1701;
 
-    switch (GLRunRecorder::classify(in_function) )
+    switch (GLRunCallClassifier::classify(in_function) )
     {
         case RunCallClass::FLUSH:
         {
@@ -489,7 +489,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::follow_run_call(const APIInterceptor::
                 open_run();
             }
 
-            if (GLRunRecorder::read_state_call(in_function,
+            if (GLRunCallClassifier::read_state_call(in_function,
                                                in_n_arguments,
                                                in_arguments_ptr,
                                               &call) )
