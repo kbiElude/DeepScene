@@ -55,6 +55,9 @@ namespace Analysis
             private:
                 uint64_t compute_state_key() const;
 
+                /* Works out what describe_draw() takes from the state: the key and the flags. The state changes far less often than draws are made. */
+                void refresh_summary() const;
+
                 void set_key(const uint64_t& in_key,
                              const bool&     in_is_enabled);
 
@@ -67,7 +70,15 @@ namespace Analysis
 
                 static uint32_t get_value_groups(const GLStateValue& in_value);
 
+                /* The m_summary_* values are what describe_draw() takes from the state, kept until the state changes (every function that changes the
+                 * state clears m_is_summary_valid). Not thread-safe, like the rest of the state: one thread at a time uses a front end.
+                 */
                 std::set<uint64_t>               m_enabled_capability_set;
+                mutable bool                     m_is_summary_valid           = false;
+                mutable bool                     m_summary_is_blend_enabled   = false;
+                mutable bool                     m_summary_is_depth_enabled   = false;
+                mutable bool                     m_summary_is_stencil_enabled = false;
+                mutable uint64_t                 m_summary_state_key          = 0;
                 std::map<GLStateValue, uint32_t> m_value_map;
             };
         }

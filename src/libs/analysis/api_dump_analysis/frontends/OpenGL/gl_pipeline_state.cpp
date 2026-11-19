@@ -27,22 +27,19 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::GLPipelineState::compute_state_ke
 Analysis::APIDumpAnalysis::DrawDescription Analysis::APIDumpAnalysis::Frontends::GLPipelineState::describe_draw(const Analysis::APIDumpAnalysis::PrimitiveTopology& in_topology,
                                                                                                                 const uint32_t&                                     in_vertex_count) const
 {
-    constexpr uint32_t BLEND        = 0x0BE2;
-    constexpr uint32_t DEPTH_TEST   = 0x0B71;
-    constexpr uint32_t STENCIL_TEST = 0x0B90;
-
-    const bool is_blend_enabled   = (m_enabled_capability_set.count(BLEND)        != 0);
-    const bool is_depth_enabled   = (m_enabled_capability_set.count(DEPTH_TEST)   != 0);
-    const bool is_stencil_enabled = (m_enabled_capability_set.count(STENCIL_TEST) != 0);
-
     Analysis::APIDumpAnalysis::DrawDescription result;
+
+    if (m_is_summary_valid == false)
+    {
+        refresh_summary();
+    }
 
     result.is_camera_right_handed  = true;
     result.primitive_topology      = in_topology;
-    result.reads_color_attachments = is_blend_enabled;
-    result.reads_depth_stencil     = (is_depth_enabled ||
-                                      is_stencil_enabled);
-    result.state_key               = compute_state_key();
+    result.reads_color_attachments = m_summary_is_blend_enabled;
+    result.reads_depth_stencil     = (m_summary_is_depth_enabled ||
+                                      m_summary_is_stencil_enabled);
+    result.state_key               = m_summary_state_key;
     result.vertex_count            = in_vertex_count;
 
     return result;
@@ -269,9 +266,25 @@ bool Analysis::APIDumpAnalysis::Frontends::GLPipelineState::is_unit_capability_e
     return (m_enabled_capability_set.count(key) != 0);
 }
 
+void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::refresh_summary() const
+{
+    constexpr uint32_t BLEND        = 0x0BE2;
+    constexpr uint32_t DEPTH_TEST   = 0x0B71;
+    constexpr uint32_t STENCIL_TEST = 0x0B90;
+
+    m_summary_is_blend_enabled   = (m_enabled_capability_set.count(BLEND)        != 0);
+    m_summary_is_depth_enabled   = (m_enabled_capability_set.count(DEPTH_TEST)   != 0);
+    m_summary_is_stencil_enabled = (m_enabled_capability_set.count(STENCIL_TEST) != 0);
+    m_summary_state_key          = compute_state_key();
+
+    m_is_summary_valid = true;
+}
+
 void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::restore(const GLPipelineState& in_saved,
                                                                     const uint32_t&        in_mask)
 {
+    m_is_summary_valid = false;
+
     std::set<uint64_t>               capability_set = m_enabled_capability_set;
     std::map<GLStateValue, uint32_t> value_map      = m_value_map;
 
@@ -324,6 +337,8 @@ void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_capability(const
 void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_key(const uint64_t& in_key,
                                                                     const bool&     in_is_enabled)
 {
+    m_is_summary_valid = false;
+
     if (in_is_enabled)
     {
         m_enabled_capability_set.insert(in_key);
@@ -348,5 +363,7 @@ void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_unit_capability(
 void Analysis::APIDumpAnalysis::Frontends::GLPipelineState::set_value(const GLStateValue& in_value,
                                                                       const uint32_t&     in_setting)
 {
+    m_is_summary_valid = false;
+
     m_value_map[in_value] = in_setting;
 }
