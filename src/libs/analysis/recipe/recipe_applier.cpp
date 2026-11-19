@@ -497,9 +497,9 @@ bool Analysis::Recipe::RecipeApplier::get_records_immediate_mode_blocks() const
     return m_recipe.records_immediate_mode_blocks;
 }
 
-bool Analysis::Recipe::RecipeApplier::get_renders_right_then_left_eye() const
+bool Analysis::Recipe::RecipeApplier::get_renders_left_then_right_eye() const
 {
-    return m_recipe.renders_right_then_left_eye;
+    return m_recipe.renders_left_then_right_eye;
 }
 
 float Analysis::Recipe::RecipeApplier::get_scene_convergence_distance(const uint64_t& in_shape_key) const

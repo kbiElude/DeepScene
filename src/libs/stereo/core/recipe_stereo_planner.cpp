@@ -204,9 +204,9 @@ bool Stereo::Core::RecipeStereoPlanner::get_records_immediate_mode_blocks() cons
     return m_applier.get_records_immediate_mode_blocks();
 }
 
-bool Stereo::Core::RecipeStereoPlanner::get_renders_right_then_left_eye() const
+bool Stereo::Core::RecipeStereoPlanner::get_renders_left_then_right_eye() const
 {
-    return m_applier.get_renders_right_then_left_eye();
+    return m_applier.get_renders_left_then_right_eye();
 }
 
 bool Stereo::Core::RecipeStereoPlanner::is_last_draw_attached_to_camera(const float& in_origin_depth) const

@@ -296,15 +296,15 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
 
         m_live_state.gl_renderer_ptr->set_records_immediate_mode_blocks(records_immediate_mode_blocks);
 
-        /* The right eye can be drawn once for a run of the application's calls, after the left eye was drawn for each block (see GLRunRecorder). The recipe says so (render_right_then_left_eye);
-         * a person can set APISTEREO_RENDER_RIGHT_THEN_LEFT_EYE to 1 or 0 to decide it for a run. The blocks must be recorded, because a run holds the calls that were recorded.
+        /* The right eye can be drawn once for a run of the application's calls, after the left eye was drawn for each block (see GLRunRecorder). The recipe says so (render_left_then_right_eye);
+         * a person can set APISTEREO_RENDER_LEFT_THEN_RIGHT_EYE to 1 or 0 to decide it for a run. The blocks must be recorded, because a run holds the calls that were recorded.
          */
         {
             bool  is_set_by_person = false;
             float value            = 0.0f;
-            bool  renders          = m_live_state.core_ptr->get_renders_right_then_left_eye();
+            bool  renders          = m_live_state.core_ptr->get_renders_left_then_right_eye();
 
-            if (EnvironmentVariableReader::get_number("APISTEREO_RENDER_RIGHT_THEN_LEFT_EYE",
+            if (EnvironmentVariableReader::get_number("APISTEREO_RENDER_LEFT_THEN_RIGHT_EYE",
                                                       &value) )
             {
                 renders          = (value != 0.0f);
@@ -323,8 +323,8 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
 
             if (renders)
             {
-                m_log.write( (is_set_by_person) ? "The right eye is drawn once for a run of the application's calls, after the left eye, from APISTEREO_RENDER_RIGHT_THEN_LEFT_EYE"
-                                                : "The right eye is drawn once for a run of the application's calls, after the left eye, from the render_right_then_left_eye of the recipe");
+                m_log.write( (is_set_by_person) ? "The right eye is drawn once for a run of the application's calls, after the left eye, from APISTEREO_RENDER_LEFT_THEN_RIGHT_EYE"
+                                                : "The right eye is drawn once for a run of the application's calls, after the left eye, from the render_left_then_right_eye of the recipe");
             }
         }
 

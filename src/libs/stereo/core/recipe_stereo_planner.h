@@ -106,8 +106,8 @@ namespace Stereo
             /* Whether the recipe has the blocks between glBegin and glEnd recorded and made again for each eye (see Recipe::records_immediate_mode_blocks). */
             bool get_records_immediate_mode_blocks() const;
 
-            /* Whether the recipe has the right eye drawn once for a run of the calls, after the left eye (see Recipe::renders_right_then_left_eye). */
-            bool get_renders_right_then_left_eye() const;
+            /* Whether the recipe has the right eye drawn once for a run of the calls, after the left eye (see Recipe::renders_left_then_right_eye). */
+            bool get_renders_left_then_right_eye() const;
 
             /* Whether the recipe has the converter measure how deep each frame is (see Comfort::measures_depth). */
             bool get_measures_depth() const;

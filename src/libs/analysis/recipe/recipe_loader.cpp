@@ -190,7 +190,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
     }
 
     if (check_keys(root,
-                   {"affected", "baked", "cache_pixel_reads", "comfort", "frame_pacing", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "record_immediate_mode_blocks", "render_right_then_left_eye", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
+                   {"affected", "baked", "cache_pixel_reads", "comfort", "frame_pacing", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "record_immediate_mode_blocks", "render_left_then_right_eye", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
                    "",
                    out_error_ptr) == false)
     {
@@ -209,7 +209,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
         const auto* pushed_ptr                       = root.find_ptr("pushed");
         const auto* recipe_version_ptr               = root.find_ptr("recipe_version");
         const auto* record_immediate_mode_blocks_ptr = root.find_ptr("record_immediate_mode_blocks");
-        const auto* render_right_then_left_eye_ptr   = root.find_ptr("render_right_then_left_eye");
+        const auto* render_left_then_right_eye_ptr   = root.find_ptr("render_left_then_right_eye");
         const auto* rule_array_ptr                   = root.find_ptr("rules");
         const auto* screen_parallax_ptr              = root.find_ptr("screen_parallax");
         const auto* skipped_ptr                      = root.find_ptr("skipped");
@@ -547,16 +547,16 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             out_recipe_ptr->records_immediate_mode_blocks = record_immediate_mode_blocks_ptr->bool_value;
         }
 
-        if (render_right_then_left_eye_ptr != nullptr)
+        if (render_left_then_right_eye_ptr != nullptr)
         {
-            if (render_right_then_left_eye_ptr->type != Utils::Json::JsonValueType::BOOL)
+            if (render_left_then_right_eye_ptr->type != Utils::Json::JsonValueType::BOOL)
             {
-                *out_error_ptr = "render_right_then_left_eye: expected true or false";
+                *out_error_ptr = "render_left_then_right_eye: expected true or false";
 
                 goto end;
             }
 
-            out_recipe_ptr->renders_right_then_left_eye = render_right_then_left_eye_ptr->bool_value;
+            out_recipe_ptr->renders_left_then_right_eye = render_left_then_right_eye_ptr->bool_value;
         }
 
         if (on_unknown_frame_ptr != nullptr)
