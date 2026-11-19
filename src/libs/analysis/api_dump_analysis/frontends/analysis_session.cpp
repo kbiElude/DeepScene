@@ -62,6 +62,13 @@ bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::find_resource_view(c
     return result;
 }
 
+void Analysis::APIDumpAnalysis::Frontends::AnalysisSession::add_block_vertices(const uint32_t& in_thread_id,
+                                                                              const uint32_t& in_n_vertices)
+{
+    m_opengl_frontend.add_block_vertices(in_thread_id,
+                                         in_n_vertices);
+}
+
 const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_call_draw_key_vec() const
 {
     return m_builder.get_call_draw_key_vec();

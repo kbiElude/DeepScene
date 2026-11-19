@@ -119,6 +119,18 @@ Analysis::APIDumpAnalysis::Frontends::GLContextState* Analysis::APIDumpAnalysis:
     return result_ptr;
 }
 
+void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::add_block_vertices(const uint32_t& in_thread_id,
+                                                                              const uint32_t& in_n_vertices)
+{
+    GLContextState* state_ptr = find_current_context_ptr(in_thread_id);
+
+    if (state_ptr != nullptr)
+    {
+        m_draw_handler.add_block_vertices(in_n_vertices,
+                                          state_ptr);
+    }
+}
+
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_list_eye_dependence(const uint32_t&      in_list,
                                                                                     GLListEyeDependence* out_dependence_ptr) const
 {

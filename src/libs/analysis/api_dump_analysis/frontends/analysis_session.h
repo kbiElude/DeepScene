@@ -32,6 +32,10 @@ namespace Analysis
                 explicit AnalysisSession(const bool& in_keeps_history = true);
 
 
+                /* Counts vertices in the open OpenGL block of the thread that were not given as calls (see GLDrawHandler::add_block_vertices). */
+                void add_block_vertices(const uint32_t& in_thread_id,
+                                        const uint32_t& in_n_vertices);
+
                 /* The keys of each draw that the last call made (see ModelBuilder::get_call_draw_key_vec). */
                 const std::vector<Analysis::APIDumpAnalysis::DrawKeys>& get_call_draw_key_vec() const;
 

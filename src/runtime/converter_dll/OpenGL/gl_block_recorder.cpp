@@ -66,6 +66,12 @@ uint32_t Stereo::ConverterDLL::GLBlockRecorder::get_mode() const
     return m_mode;
 }
 
+bool Stereo::ConverterDLL::GLBlockRecorder::is_vertex(const RecordedCallKind& in_kind)
+{
+    return (in_kind == RecordedCallKind::VERTEX2 ||
+            in_kind == RecordedCallKind::VERTEX3);
+}
+
 void Stereo::ConverterDLL::GLBlockRecorder::play() const
 {
     const auto& driver = GLDriverFunctions::get();

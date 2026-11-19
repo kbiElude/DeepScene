@@ -206,6 +206,14 @@ bool Stereo::ConverterDLL::LiveCallAnalyzer::get_last_call_chunk(const uint32_t&
     return result;
 }
 
+void Stereo::ConverterDLL::LiveCallAnalyzer::add_block_vertices(const uint32_t& in_n_vertices)
+{
+    const uint32_t thread_id = static_cast<uint32_t>(::GetCurrentThreadId() );
+
+    m_session.add_block_vertices(thread_id,
+                                 in_n_vertices);
+}
+
 bool Stereo::ConverterDLL::LiveCallAnalyzer::get_current_gl_matrices(std::array<float, 16>* out_modelview_f32mat_ptr,
                                                                      std::array<float, 16>* out_projection_f32mat_ptr,
                                                                      uint32_t*              out_matrix_mode_ptr) const

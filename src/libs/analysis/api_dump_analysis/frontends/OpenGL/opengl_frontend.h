@@ -40,6 +40,10 @@ namespace Analysis
                 /* The builder must outlive the front end. */
                 explicit OpenGLFrontend(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
+                /* Counts vertices in the open block of the thread's current context that were not given as calls (see GLDrawHandler::add_block_vertices). */
+                void add_block_vertices(const uint32_t& in_thread_id,
+                                        const uint32_t& in_n_vertices);
+
                 /* Finds how the display list depends on the per-eye state (matrices, viewport, scissor box); false if the list does not exist. */
                 bool find_list_eye_dependence(const uint32_t&      in_list,
                                               GLListEyeDependence* out_dependence_ptr) const;

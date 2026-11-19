@@ -111,6 +111,10 @@ namespace Stereo
             /* Log notes: what was not made for the right eye or could not be made. Each note is given once. */
             std::vector<std::string> take_notes();
 
+            /* Returns how many vertices of the block that is being made were recorded or compiled without the analysis being given their calls (the recorded vertex calls are not analysed;
+             * see LiveStereoConverter), and starts counting again. The analysis needs the count when the block ends. */
+            uint32_t take_unanalyzed_vertex_count();
+
         private:
             static constexpr size_t N_TEXTURE_UNITS = 32;
 
@@ -241,6 +245,7 @@ namespace Stereo
             bool                                  m_measures_depth;
             uint32_t                              m_n_failed_attempts;
             uint64_t                              m_n_tracked_matrix_reads;
+            uint32_t                              m_n_unanalyzed_vertices; /* vertices of the block that the analysis did not see as calls */
             std::vector<std::string>              m_note_vec;
             std::vector<std::string>              m_noted_key_vec;
             std::array<float, 16>                 m_pass_projection_f32mat; /* projection of the first affected draw of the pass */

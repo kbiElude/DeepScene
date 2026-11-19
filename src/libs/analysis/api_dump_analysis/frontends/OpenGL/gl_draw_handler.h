@@ -32,6 +32,11 @@ namespace Analysis
                 /* The builder must outlive the handler. */
                 explicit GLDrawHandler(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr);
 
+                /* Counts vertices that the front end was not given as calls, in the open block: a program that records its own blocks counts them. Only for a front end that does not
+                 * keep positions (see ModelBuilder::wants_geometry), because the positions of these vertices are not given. */
+                void add_block_vertices(const uint32_t& in_n_vertices,
+                                        GLContextState* inout_state_ptr);
+
                 /* The data that draws read from application memory, kept only as long as it is worth keeping (see GLBlobStore). */
                 const GLBlobStore& get_blob_store() const;
 

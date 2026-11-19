@@ -18,8 +18,10 @@ namespace Tests
     class FrontendHarness
     {
     public:
-        FrontendHarness()
-            :m_frontend           (&m_builder),
+        /* With in_keeps_history false the model is built as the live converter builds it (no frames, no geometry). */
+        explicit FrontendHarness(const bool& in_keeps_history = true)
+            :m_builder            (in_keeps_history),
+             m_frontend           (&m_builder),
              m_n_builder_calls_fed(0),
              m_n_calls_fed        (0)
         {

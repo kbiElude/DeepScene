@@ -6,6 +6,7 @@
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_draw_handler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_geometry_sampler.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
+#include "common/macros.h"
 #include <array>
 
 Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::GLDrawHandler(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
@@ -20,6 +21,20 @@ void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::add_view_anchor(const 
                                                                          Analysis::APIDumpAnalysis::DrawDescription* out_description_ptr)
 {
     out_description_ptr->view_anchor_call_index = in_state.modelview_anchor_call_index_vec.back();
+}
+
+void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::add_block_vertices(const uint32_t& in_n_vertices,
+                                                                              GLContextState* inout_state_ptr)
+{
+    GLImmediateBlock& block = inout_state_ptr->immediate_block;
+
+    if (block.is_open)
+    {
+        AI_ASSERT_ALWAYS(block.wants_positions == false,
+                         "Vertices that are counted without being given cannot be part of a block whose positions are kept");
+
+        block.n_vertices += in_n_vertices;
+    }
 }
 
 const Analysis::APIDumpAnalysis::Frontends::GLBlobStore& Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::get_blob_store() const

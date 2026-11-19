@@ -106,7 +106,7 @@ namespace Stereo
             void read_channel_settings(std::vector<std::string>* out_log_line_vec_ptr);
 
 
-            /* A call that sets a color, a normal or a texture coordinate: a block that is being recorded keeps it. No other part of the converter looks at these calls. */
+            /* A call that sets a color, a normal or a texture coordinate, or gives a vertex that the recorder holds: a block that is being recorded keeps it. No other part of the converter looks at these calls. */
             static void on_attribute_callback(APIInterceptor::APIFunction                in_api_func,
                                               uint32_t                                   in_n_arguments,
                                               const APIInterceptor::APIFunctionArgument* in_arguments_ptr,

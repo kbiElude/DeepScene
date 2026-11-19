@@ -42,6 +42,9 @@ namespace Stereo
             static bool find_layout(const APIInterceptor::APIFunction& in_function,
                                     RecordedCallLayout*                out_layout_ptr);
 
+            /* Whether the kind of call gives a vertex (the others set an attribute of the vertices that follow). */
+            static bool is_vertex(const RecordedCallKind& in_kind);
+
         private:
             std::vector<RecordedCall> m_call_vec;
             uint32_t                  m_mode;

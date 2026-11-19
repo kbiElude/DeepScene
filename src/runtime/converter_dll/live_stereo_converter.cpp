@@ -60,13 +60,22 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
 
         if (LiveCallAnalyzer::is_followed(function) )
         {
+            /* A block that is recorded needs only the renderer to see its calls. The analysis is not given the vertex calls that the recorder holds: it is given how many
+             * there were when the block ends (see on_pre()).
+             */
+            RecordedCallLayout layout;
+
             const bool is_attribute = LiveCallAnalyzer::is_attribute_call(function);
+            const bool is_recorded  = (records_blocks                                     &&
+                                       (is_attribute                                      ||
+                                        (GLBlockRecorder::find_layout(function,
+                                                                     &layout)             &&
+                                         GLBlockRecorder::is_vertex(layout.kind) ) ) );
             const bool is_unneeded  = (is_picture_dropped_by_any_call == false &&
                                        is_attribute                   &&
                                        records_blocks == false);
 
-            if (is_attribute &&
-                records_blocks)
+            if (is_recorded)
             {
                 APIInterceptor::register_for_pre_callback(function,
                                                          &LiveStereoConverter::on_attribute_callback,
@@ -837,6 +846,18 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
         /* A followed call that is not Direct3D belongs to OpenGL. This includes the GDI32 SwapBuffers, which ends an OpenGL frame. */
         const bool is_gl     = (is_d3d8 == false                                      &&
                                 api_group != Capture::APIDumpLoader::APIGroup::D3D7);
+
+        /* The vertex calls that a block records are not analysed. The front end is given how many there were, before the call that ends the block is analysed. */
+        if (in_api_func == APIInterceptor::APIFUNCTION_GL_GLEND)
+        {
+            const uint32_t n_vertices = m_live_state.gl_renderer_ptr->take_unanalyzed_vertex_count();
+
+            if (n_vertices > 0)
+            {
+                m_live_state.call_analyzer.add_block_vertices(n_vertices);
+            }
+        }
+
         const bool is_draw   = m_live_state.call_analyzer.on_pre(in_api_func,
                                                                  in_n_arguments,
                                                                  in_arguments_ptr);

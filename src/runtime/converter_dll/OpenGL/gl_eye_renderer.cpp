@@ -43,6 +43,7 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPla
      m_measures_depth     (in_core_ptr->get_measures_depth() ),
      m_n_failed_attempts  (0),
      m_n_tracked_matrix_reads(0),
+     m_n_unanalyzed_vertices(0),
      m_pass_has_affected_draws(false),
      m_records_blocks     (false),
      m_scaler             (in_target_width,
@@ -553,8 +554,15 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_attribute(const APIInterceptor::API
                                                        const uint32_t&                            in_n_arguments,
                                                        const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    bool result = true;
+    RecordedCallLayout layout;
+    bool               result    = true;
+    const bool         is_vertex = (GLBlockRecorder::find_layout(in_function,
+                                                                &layout)                   &&
+                                    GLBlockRecorder::is_vertex(layout.kind) );
 
+    /* The analysis is not given the vertex calls that are recorded here, nor the ones that follow a fall back to a display list: it needs how many there were when the
+     * block ends (see take_unanalyzed_vertex_count()).
+     */
     if (m_is_recording)
     {
         if (record_call(in_function,
@@ -567,6 +575,17 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_attribute(const APIInterceptor::API
         {
             fall_back_to_list(in_function);
         }
+
+        if (is_vertex)
+        {
+            m_n_unanalyzed_vertices++;
+        }
+    }
+    else
+    if (is_vertex &&
+        m_is_in_block)
+    {
+        m_n_unanalyzed_vertices++;
     }
 
     return result;
@@ -826,7 +845,8 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                 {
                     m_block_recorder.begin(mode);
 
-                    m_is_recording = true;
+                    m_is_recording          = true;
+                    m_n_unanalyzed_vertices = 0;
 
                     result = false;
                 }
@@ -842,7 +862,8 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
                     GLDriverFunctions::get().new_list_func_ptr(m_block_list,
                                                                GL_COMPILE);
 
-                    m_is_in_block = true;
+                    m_is_in_block           = true;
+                    m_n_unanalyzed_vertices = 0;
                 }
             }
 
@@ -1693,6 +1714,15 @@ std::vector<std::string> Stereo::ConverterDLL::GLEyeRenderer::take_notes()
     std::vector<std::string> result;
 
     result.swap(m_note_vec);
+
+    return result;
+}
+
+uint32_t Stereo::ConverterDLL::GLEyeRenderer::take_unanalyzed_vertex_count()
+{
+    const uint32_t result = m_n_unanalyzed_vertices;
+
+    m_n_unanalyzed_vertices = 0;
 
     return result;
 }

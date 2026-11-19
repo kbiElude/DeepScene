@@ -178,6 +178,66 @@ TEST_F(GLCallsWithoutCallbacks, TheFrontEndFindsTheSameWithoutTheCallsThatSetAnA
               with_attributes);
 }
 
+TEST_F(GLCallsWithoutCallbacks, TheFrontEndFindsTheSameWhenTheVerticesOfABlockAreCountedAndNotGiven)
+{
+    make_frame();
+    feed();
+
+    ASSERT_EQ(m_harness.get_frontend().get_n_unsupported_calls(),
+              0u);
+
+    /* The model as the live converter builds it: no history, so no positions are kept. */
+    Harness reference(false); /* in_keeps_history */
+
+    reference.feed(m_builder);
+
+    const auto with_vertex_calls = summarize(reference.get_model() );
+
+    ASSERT_FALSE(with_vertex_calls.empty() );
+
+    /* The vertex calls that a block records are not given to the front end. It is given how many there were, before the call that ends the block. */
+    Harness harness(false); /* in_keeps_history */
+
+    {
+        const auto& call_vec    = *m_builder.get_workload().dumped_api_call_vec_ptr;
+        uint32_t    n_vertices  = 0;
+
+        for (size_t n_call = 0;
+                    n_call < call_vec.size();
+                  ++n_call)
+        {
+            const auto& call      = call_vec.at(n_call);
+            const bool  is_vertex = (call.func == APIInterceptor::APIFUNCTION_GL_GLVERTEX2F  ||
+                                     call.func == APIInterceptor::APIFUNCTION_GL_GLVERTEX2FV ||
+                                     call.func == APIInterceptor::APIFUNCTION_GL_GLVERTEX3F  ||
+                                     call.func == APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV);
+
+            if (is_vertex)
+            {
+                n_vertices++;
+            }
+            else
+            {
+                if (call.func == APIInterceptor::APIFUNCTION_GL_GLEND)
+                {
+                    harness.get_frontend().add_block_vertices(call.thread_id,
+                                                              n_vertices);
+
+                    n_vertices = 0;
+                }
+
+                harness.get_builder().begin_call(n_call,
+                                                 call.timestamp_qpc);
+                harness.get_frontend().on_call  (call,
+                                                 m_builder.get_workload() );
+            }
+        }
+    }
+
+    EXPECT_EQ(summarize(harness.get_model() ),
+              with_vertex_calls);
+}
+
 TEST(LiveCallAnalyzerPredicates, VertexCallsAreAnalysedBeforeTheyAreMadeAndNothingElseIs)
 {
     using Stereo::ConverterDLL::LiveCallAnalyzer;

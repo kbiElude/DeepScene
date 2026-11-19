@@ -33,6 +33,10 @@ namespace Stereo
 
             LiveCallAnalyzer();
 
+            /* Counts vertices of the open OpenGL block of the calling thread that the analysis was not given as calls (a program that records its blocks counts them itself). Call it
+             * before the call that ends the block is analysed. */
+            void add_block_vertices(const uint32_t& in_n_vertices);
+
             /* Returns a data chunk of the last analysed call (taken out of the interceptor). Returns false if there is no such chunk.
              * Valid until the next call is analysed. */
             bool get_last_call_chunk(const uint32_t& in_chunk_id,
