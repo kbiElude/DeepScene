@@ -140,7 +140,11 @@ Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Fronte
 {
     constexpr size_t N_COLUMNS = 4;
 
-    GLMatrix result = {};
+    /* Plain pointers: this runs for every draw of a live application, and the bounds checks of at() keep the loops from being unrolled. */
+    const float* left_ptr   = in_left.data();
+    const float* right_ptr  = in_right.data();
+    GLMatrix     result     = {};
+    float*       result_ptr = result.data();
 
     for (size_t n_column = 0;
                 n_column < N_COLUMNS;
@@ -156,10 +160,10 @@ Analysis::APIDumpAnalysis::Frontends::GLMatrix Analysis::APIDumpAnalysis::Fronte
                         n_term < N_COLUMNS;
                       ++n_term)
             {
-                sum += in_left.at(n_term * N_COLUMNS + n_row) * in_right.at(n_column * N_COLUMNS + n_term);
+                sum += left_ptr[n_term * N_COLUMNS + n_row] * right_ptr[n_column * N_COLUMNS + n_term];
             }
 
-            result.at(n_column * N_COLUMNS + n_row) = sum;
+            result_ptr[n_column * N_COLUMNS + n_row] = sum;
         }
     }
 

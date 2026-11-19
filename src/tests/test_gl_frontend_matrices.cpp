@@ -6,13 +6,77 @@
  * the others (texture and color) do not touch them.
  */
 #include <gtest/gtest.h>
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_matrix_math.h"
 #include "gl_frontend_fixture.h"
+#include <cstring>
 
 namespace
 {
     class GLFrontendMatrices : public Tests::GLFrontendFixture
     {
     };
+}
+
+/* The product keeps the order of its operations, so the keys that depend on it do not change. */
+TEST(GLMatrixMathProduct, MatchesTheTermByTermProductBitForBit)
+{
+    using Analysis::APIDumpAnalysis::Frontends::GLMatrix;
+    using Analysis::APIDumpAnalysis::Frontends::GLMatrixMath;
+
+    uint32_t seed = 12345;
+
+    const auto next_value_func = [&seed]()
+    {
+        seed = seed * 1664525u + 1013904223u;
+
+        return static_cast<float>(static_cast<int32_t>(seed >> 8) % 20001 - 10000) / 137.0f;
+    };
+
+    for (uint32_t n_pair = 0;
+                  n_pair < 500;
+                ++n_pair)
+    {
+        GLMatrix left;
+        GLMatrix right;
+        GLMatrix expected = {};
+
+        for (size_t n_element = 0;
+                    n_element < left.size();
+                  ++n_element)
+        {
+            left.at (n_element) = next_value_func();
+            right.at(n_element) = next_value_func();
+        }
+
+        for (size_t n_column = 0;
+                    n_column < 4;
+                  ++n_column)
+        {
+            for (size_t n_row = 0;
+                        n_row < 4;
+                      ++n_row)
+            {
+                float sum = 0.0f;
+
+                for (size_t n_term = 0;
+                            n_term < 4;
+                          ++n_term)
+                {
+                    sum += left.at(n_term * 4 + n_row) * right.at(n_column * 4 + n_term);
+                }
+
+                expected.at(n_column * 4 + n_row) = sum;
+            }
+        }
+
+        const GLMatrix actual = GLMatrixMath::multiply(left,
+                                                       right);
+
+        EXPECT_EQ(::memcmp(actual.data(),
+                           expected.data(),
+                           sizeof(GLMatrix) ),
+                  0);
+    }
 }
 
 TEST_F(GLFrontendMatrices, TheMatrixModeIsTheOneTheApplicationSelected)

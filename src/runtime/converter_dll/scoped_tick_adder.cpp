@@ -6,10 +6,12 @@
 #include <windows.h>
 
 Stereo::ConverterDLL::ScopedTickAdder::ScopedTickAdder(std::atomic<int64_t>* inout_total_ptr,
-                                                       const bool&           in_is_enabled)
+                                                       const bool&           in_is_enabled,
+                                                       const int64_t&        in_weight)
     :m_is_enabled (in_is_enabled),
      m_start_ticks(0),
-     m_total_ptr  (inout_total_ptr)
+     m_total_ptr  (inout_total_ptr),
+     m_weight     (in_weight)
 {
     if (m_is_enabled)
     {
@@ -29,6 +31,6 @@ Stereo::ConverterDLL::ScopedTickAdder::~ScopedTickAdder()
 
         ::QueryPerformanceCounter(&end);
 
-        *m_total_ptr += end.QuadPart - m_start_ticks;
+        *m_total_ptr += (end.QuadPart - m_start_ticks) * m_weight;
     }
 }

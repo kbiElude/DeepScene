@@ -495,15 +495,19 @@ bool Stereo::ConverterDLL::LiveStereoConverter::on_gl_draws(Analysis::Recipe::Dr
                                                             bool*                        out_is_pushed_ptr,
                                                             std::vector<std::string>*    out_log_line_vec_ptr)
 {
-    std::set<Analysis::Recipe::DrawClass> class_set;
-    bool                                  is_every_draw_pushed = true;
+    /* The classes the draws have, one bit per class: this runs for every block of a live application, so it must not allocate. */
+    constexpr uint32_t AFFECTED_BIT   = 1u << static_cast<uint32_t>(Analysis::Recipe::DrawClass::AFFECTED);
+    constexpr uint32_t UNAFFECTED_BIT = 1u << static_cast<uint32_t>(Analysis::Recipe::DrawClass::UNAFFECTED);
+
+    uint32_t class_bits           = 0;
+    bool     is_every_draw_pushed = true;
 
     for (const auto& draw_keys : m_live_state.call_analyzer.get_last_call_draw_key_vec() )
     {
         const auto draw_class = m_live_state.core_ptr->classify_draw(draw_keys.signature_key,
                                                                      draw_keys.cover_key);
 
-        class_set.insert(draw_class);
+        class_bits |= 1u << static_cast<uint32_t>(draw_class);
 
         count_draw(draw_class);
 
@@ -511,13 +515,16 @@ bool Stereo::ConverterDLL::LiveStereoConverter::on_gl_draws(Analysis::Recipe::Dr
                                m_live_state.core_ptr->get_is_last_draw_pushed();
     }
 
-    *out_is_pushed_ptr = (class_set.empty() == false &&
+    const bool has_draws        = (class_bits != 0);
+    const bool has_many_classes = ((class_bits & (class_bits - 1) ) != 0); /* more than one bit is set */
+
+    *out_is_pushed_ptr = (has_draws &&
                           is_every_draw_pushed);
 
     /* The driver makes all draws of a display list in one call, so they cannot be made for an eye one at a time. If the draws of a list do not all have the same
      * class, the first such list is logged and every one is counted.
      */
-    if (class_set.size() > 1)
+    if (has_many_classes)
     {
         if (m_live_state.n_mixed_class_calls == 0)
         {
@@ -528,12 +535,12 @@ bool Stereo::ConverterDLL::LiveStereoConverter::on_gl_draws(Analysis::Recipe::Dr
     }
 
     /* The call is AFFECTED if any of its draws is. A list that contains a draw of the scene belongs to the scene. */
-    if (class_set.find(Analysis::Recipe::DrawClass::AFFECTED) != class_set.end() )
+    if ((class_bits & AFFECTED_BIT) != 0)
     {
         *out_draw_class_ptr = Analysis::Recipe::DrawClass::AFFECTED;
     }
     else
-    if (class_set.find(Analysis::Recipe::DrawClass::UNAFFECTED) != class_set.end() )
+    if ((class_bits & UNAFFECTED_BIT) != 0)
     {
         *out_draw_class_ptr = Analysis::Recipe::DrawClass::UNAFFECTED;
     }
@@ -542,7 +549,7 @@ bool Stereo::ConverterDLL::LiveStereoConverter::on_gl_draws(Analysis::Recipe::Dr
         *out_draw_class_ptr = Analysis::Recipe::DrawClass::SKIPPED;
     }
 
-    return (class_set.empty() == false);
+    return has_draws;
 }
 
 void Stereo::ConverterDLL::LiveStereoConverter::on_post_callback(APIInterceptor::APIFunction                in_api_func,
@@ -809,9 +816,25 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
             Analysis::Recipe::DrawClass draw_class = Analysis::Recipe::DrawClass::UNAFFECTED;
             bool                        is_pushed  = false;
 
-            /* Everything in this block counts as draw time if the call is a draw. */
+            /* Everything in this block counts as draw time if the call is a draw. Reading the clock twice for each of thousands of blocks a frame is a cost
+             * of its own, so one draw in N_DRAWS_PER_TIMING is timed and counted that many times (a prime, like N_CALLS_PER_TIMING).
+             */
+            constexpr uint32_t N_DRAWS_PER_TIMING = 17;
+
+            static thread_local uint32_t n_draws_seen = 0;
+
+            bool is_timed_draw = false;
+
+            if (is_draw)
+            {
+                is_timed_draw = (n_draws_seen % N_DRAWS_PER_TIMING == 0);
+
+                n_draws_seen++;
+            }
+
             ScopedTickAdder draw_timing(&m_live_state.n_draw_ticks,
-                                        is_draw);
+                                        is_timed_draw,
+                                        N_DRAWS_PER_TIMING);
 
             /* The draws of an OpenGL call are the ones that the front end derived from it (a display list makes several draws, or none). */
             const bool has_draws = (is_draw) ? on_gl_draws(&draw_class,
@@ -894,7 +917,8 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
             if (is_d3d8)
             {
                 ScopedTickAdder draw_timing(&m_live_state.n_draw_ticks,
-                                            true); /* in_is_enabled */
+                                            true, /* in_is_enabled */
+                                            1);   /* in_weight */
 
                 *out_should_pass_through_ptr = m_live_state.d3d8_renderer_ptr->on_pre_draw(draw_class,
                                                                                            in_api_func,
@@ -904,7 +928,8 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
             else
             {
                 ScopedTickAdder draw_timing(&m_live_state.n_draw_ticks,
-                                            true); /* in_is_enabled */
+                                            true, /* in_is_enabled */
+                                            1);   /* in_weight */
 
                 const auto get_chunk_func = [this](const uint32_t& in_chunk_id,
                                                    const void**    out_data_ptr_ptr,
