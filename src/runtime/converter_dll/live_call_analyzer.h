@@ -51,6 +51,12 @@ namespace Stereo
             /* Returns the viewport that the application has set. The next draw is made with it. */
             const Analysis::APIDumpAnalysis::Viewport& get_viewport() const;
 
+            /* Returns true for the calls that on_pre() analyses before they are made, and that need no on_post(): the calls that pass a vertex (OpenGL), which have no result. */
+            static bool is_analyzed_before_the_call(const APIInterceptor::APIFunction& in_function);
+
+            /* Returns true for the calls that set a value for the vertices that follow (a color, a normal, a texture coordinate), which the analysis leaves out by design. */
+            static bool is_attribute_call(const APIInterceptor::APIFunction& in_function);
+
             /* Returns true for the calls on_pre() analyses at once (draws). */
             static bool is_draw(const APIInterceptor::APIFunction& in_function);
 
@@ -107,6 +113,7 @@ namespace Stereo
             std::vector<std::vector<uint8_t>*>                    m_destination_ptr_vec;         /* scratch of analyze()
  */
             bool                                                  m_has_completed_frame;
+            std::vector<uint8_t>                                  m_is_analyzed_before_the_call_u8_vec; /* indexed by function */
             std::vector<uint8_t>                                  m_is_taken_u8_vec;             /* scratch of analyze()
  */
             uint32_t                                              m_last_thread_id;              /* thread that owns m_last_thread_pending_calls_ptr

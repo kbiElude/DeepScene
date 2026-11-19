@@ -67,7 +67,7 @@
 <h3>The pieces</h3>
 <table>
 <tr><th>Piece</th><th>Job</th></tr>
-<tr><td><code>LiveStereoConverter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed.</td></tr>
+<tr><td><code>LiveStereoConverter</code></td><td>Registers the callbacks and orders the work of each call: feed the analysis, keep matrices, classify and render draws, take the settings the VR player changed. A call that nothing reads gets no callback: the OpenGL calls that set a color, a normal or a texture coordinate (unless the recipe serves pixel reads from one picture, which drops the picture on any call), and the callback after a vertex call, which has no result and is analysed before it is made.</td></tr>
 <tr><td><code>LiveCallAnalyzer</code></td><td>Gives the analysis each call as a dump would, for Direct3D 7, Direct3D 8 and OpenGL alike; keeps the calls that wait for results in per-thread pools, which hand their vectors back to the next call.</td></tr>
 <tr><td><code>RecipeStereoPlanner</code></td><td>The decisions: the class of a draw from the recipe and the view matrix, unknown draws and frames. Owns <code>ConvergenceModel</code> (where the eyes converge and how far apart they are) and <code>MatrixSlots</code> (the matrices a rule is about, and which to put in before a draw).</td></tr>
 <tr><td>The adapter for an API</td><td>Renders the second eye, scales the resolution, shows the program in a window or hides it, and exports the frames. The classes are listed below.</td></tr>

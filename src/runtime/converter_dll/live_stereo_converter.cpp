@@ -39,6 +39,13 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
     /* Register the callbacks for the calls that the call analyzer follows (Direct3D 7, Direct3D 8 and OpenGL). A Direct3D 8 frame is passed on before
      * the present, because the content of the back buffer after a present is undefined.
      */
+    /* A call that nothing in the converter reads gets no callback, so the application's call costs what it costs without the converter. The calls that set a value for
+     * the vertices that follow (a color, a normal, a texture coordinate) are such calls: the analysis leaves them out, and the renderer ignores them, except that a recipe
+     * which serves pixel reads from one picture drops the picture on any call. A call that passes a vertex is analysed before it is made and has no result, so it needs no
+     * callback after it.
+     */
+    const bool is_picture_dropped_by_any_call = m_live_state.core_ptr->get_caches_pixel_reads();
+
     for (uint32_t n_api_func = 0;
                   n_api_func < APIInterceptor::APIFUNCTION_COUNT;
                 ++n_api_func)
@@ -47,12 +54,22 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
 
         if (LiveCallAnalyzer::is_followed(function) )
         {
-            APIInterceptor::register_for_post_callback(function,
-                                                      &LiveStereoConverter::on_post_callback,
-                                                       this);
-            APIInterceptor::register_for_pre_callback (function,
-                                                      &LiveStereoConverter::on_pre_callback,
-                                                       this);
+            const bool is_unneeded = (is_picture_dropped_by_any_call == false &&
+                                      LiveCallAnalyzer::is_attribute_call(function) );
+
+            if (is_unneeded == false)
+            {
+                if (LiveCallAnalyzer::is_analyzed_before_the_call(function) == false)
+                {
+                    APIInterceptor::register_for_post_callback(function,
+                                                              &LiveStereoConverter::on_post_callback,
+                                                               this);
+                }
+
+                APIInterceptor::register_for_pre_callback(function,
+                                                         &LiveStereoConverter::on_pre_callback,
+                                                          this);
+            }
         }
     }
 

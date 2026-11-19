@@ -2,7 +2,9 @@
  *
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_vertex_reader.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_window_extents.h"
+#include "analysis/api_dump_index/gl_function_classifier.h"
 #include "capture/api_dump_loader/api_info.h"
 #include "live_call_analyzer.h"
 #include <algorithm>
@@ -11,6 +13,7 @@
 Stereo::ConverterDLL::LiveCallAnalyzer::LiveCallAnalyzer()
     :m_completed_frame_shape_key    (0),
      m_has_completed_frame          (false),
+     m_is_analyzed_before_the_call_u8_vec(APIInterceptor::APIFUNCTION_COUNT),
      m_last_thread_id               (0),
      m_last_thread_pending_calls_ptr(nullptr),
      m_qpc_frequency                (0),
@@ -24,6 +27,14 @@ Stereo::ConverterDLL::LiveCallAnalyzer::LiveCallAnalyzer()
 
     m_workload.pointer_n_bytes = sizeof(void*);
     m_workload.qpc_frequency   = m_qpc_frequency;
+
+    for (uint32_t n_api_func = 0;
+                  n_api_func < APIInterceptor::APIFUNCTION_COUNT;
+                ++n_api_func)
+    {
+        m_is_analyzed_before_the_call_u8_vec.at(n_api_func) = is_analyzed_before_the_call(static_cast<APIInterceptor::APIFunction>(n_api_func) ) ? 1
+                                                                                                                                               : 0;
+    }
 }
 
 Stereo::ConverterDLL::LiveCallAnalyzer::ReturnedValueUniquePtr Stereo::ConverterDLL::LiveCallAnalyzer::acquire_returned_value(const APIInterceptor::APIFunctionArgument& in_value)
@@ -230,6 +241,20 @@ const Analysis::APIDumpAnalysis::Viewport& Stereo::ConverterDLL::LiveCallAnalyze
     return m_session.get_viewport();
 }
 
+bool Stereo::ConverterDLL::LiveCallAnalyzer::is_analyzed_before_the_call(const APIInterceptor::APIFunction& in_function)
+{
+    Analysis::APIDumpAnalysis::Frontends::GLVertexLayout layout;
+
+    /* The front end reads the arguments of a vertex call, never what it returns, and it returns nothing. */
+    return Analysis::APIDumpAnalysis::Frontends::GLVertexReader::find_layout(in_function,
+                                                                            &layout);
+}
+
+bool Stereo::ConverterDLL::LiveCallAnalyzer::is_attribute_call(const APIInterceptor::APIFunction& in_function)
+{
+    return (Analysis::APIDumpIndex::GLFunctionClassifier::get_kind(in_function) == Analysis::APIDumpIndex::GLFunctionKind::CURRENT_VALUE);
+}
+
 bool Stereo::ConverterDLL::LiveCallAnalyzer::is_draw(const APIInterceptor::APIFunction& in_function)
 {
     return (in_function == APIInterceptor::APIFUNCTION_D3D7_IDIRECT3DDEVICE7_DRAWINDEXEDPRIMITIVE        ||
@@ -327,6 +352,12 @@ bool Stereo::ConverterDLL::LiveCallAnalyzer::on_pre(const APIInterceptor::APIFun
          */
         call.returned_value_ptr = acquire_returned_value(APIInterceptor::APIFunctionArgument::create_i32(0) );
 
+        analyze(call);
+    }
+    else
+    if (m_is_analyzed_before_the_call_u8_vec.at(in_function) != 0)
+    {
+        /* A call with no result is analysed as it is, and nobody calls on_post() for it. Its slot stays past n_calls. */
         analyze(call);
     }
     else
