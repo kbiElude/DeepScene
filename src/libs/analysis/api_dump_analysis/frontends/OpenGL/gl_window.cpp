@@ -8,7 +8,8 @@ Analysis::APIDumpAnalysis::Frontends::GLWindow::GLWindow(Analysis::APIDumpAnalys
     :m_builder_ptr          (in_builder_ptr),
      m_framebuffer_height   (0),
      m_framebuffer_width    (0),
-     m_has_default_framebuffer(false)
+     m_has_default_framebuffer(false),
+     m_render_target_tracker(in_builder_ptr)
 {
     /* Stub */
 }
@@ -17,8 +18,9 @@ void Analysis::APIDumpAnalysis::Frontends::GLWindow::ensure_default_framebuffer(
 {
     if (m_has_default_framebuffer == false)
     {
-        Analysis::APIDumpAnalysis::AttachmentSet       attachments;
         Analysis::APIDumpAnalysis::ResourceDescription color_description;
+        Analysis::APIDumpAnalysis::ResourceView        color_view;
+        Analysis::APIDumpAnalysis::ResourceView        depth_stencil_view;
         Analysis::APIDumpAnalysis::ResourceDescription depth_description;
         const Analysis::APIDumpAnalysis::Viewport      viewport = get_model_viewport(in_state);
 
@@ -37,17 +39,16 @@ void Analysis::APIDumpAnalysis::Frontends::GLWindow::ensure_default_framebuffer(
         depth_description.kind                = Analysis::APIDumpAnalysis::ResourceKind::TEXTURE_2D;
         depth_description.width               = m_framebuffer_width;
 
-        m_color_view.resource_id         = m_builder_ptr->on_create_resource(color_description,
-                                                                             "Default framebuffer: color");
-        m_depth_stencil_view.resource_id = m_builder_ptr->on_create_resource(depth_description,
-                                                                             "Default framebuffer: depth and stencil");
+        color_view.resource_id         = m_builder_ptr->on_create_resource(color_description,
+                                                                           "Default framebuffer: color");
+        depth_stencil_view.resource_id = m_builder_ptr->on_create_resource(depth_description,
+                                                                           "Default framebuffer: depth and stencil");
 
-        attachments.color_view_vec.push_back(m_color_view);
+        m_render_target_tracker.set(color_view,
+                                    depth_stencil_view,
+                                    true); /* in_tells_unchanged */
 
-        attachments.depth_stencil_view = m_depth_stencil_view;
-
-        m_builder_ptr->on_set_attachments(attachments);
-        m_builder_ptr->on_set_viewport   (viewport);
+        m_builder_ptr->on_set_viewport(viewport);
 
         m_has_default_framebuffer = true;
     }
@@ -55,12 +56,12 @@ void Analysis::APIDumpAnalysis::Frontends::GLWindow::ensure_default_framebuffer(
 
 const Analysis::APIDumpAnalysis::ResourceView& Analysis::APIDumpAnalysis::Frontends::GLWindow::get_color_view() const
 {
-    return m_color_view;
+    return m_render_target_tracker.get_color_view();
 }
 
 const Analysis::APIDumpAnalysis::ResourceView& Analysis::APIDumpAnalysis::Frontends::GLWindow::get_depth_stencil_view() const
 {
-    return m_depth_stencil_view;
+    return m_render_target_tracker.get_depth_stencil_view();
 }
 
 uint32_t Analysis::APIDumpAnalysis::Frontends::GLWindow::get_framebuffer_height() const

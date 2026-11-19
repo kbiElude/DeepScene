@@ -9,7 +9,8 @@
 Analysis::APIDumpAnalysis::Frontends::FixedFunctionFrontendBase::FixedFunctionFrontendBase(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
     :m_builder_ptr        (in_builder_ptr),
      m_n_unfollowed_calls (0),
-     m_n_unsupported_calls(0)
+     m_n_unsupported_calls(0),
+     m_render_target_tracker(in_builder_ptr)
 {
     /* Stub */
 }

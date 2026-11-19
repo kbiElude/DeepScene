@@ -37,16 +37,16 @@ Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::D3D8Frontend(Analysis::APIDu
 
 void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::create_swap_chain_resources(const Interception::Core::D3D8Utils::PresentParameters& in_parameters)
 {
-    Analysis::APIDumpAnalysis::AttachmentSet             attachments;
+    Analysis::APIDumpAnalysis::ResourceView              color_view;
+    Analysis::APIDumpAnalysis::ResourceView              depth_stencil_view;
     const Analysis::APIDumpAnalysis::ResourceDescription back_buffer_description = D3D8ResourceDescriber::describe_back_buffer(in_parameters);
 
     /* The device creates the back buffer, and the depth buffer if one is requested, and initially renders to them. */
     m_back_buffer_view             = Analysis::APIDumpAnalysis::ResourceView();
     m_back_buffer_view.resource_id = m_builder_ptr->on_create_resource      (back_buffer_description,
                                                                              "BackBuffer");
-    m_color_view                   = m_back_buffer_view;
+    color_view                     = m_back_buffer_view;
     m_auto_depth_stencil_id        = Analysis::APIDumpAnalysis::ResourceId::NONE;
-    m_depth_stencil_view           = Analysis::APIDumpAnalysis::ResourceView();
 
     if (in_parameters.enable_auto_depth_stencil)
     {
@@ -55,17 +55,15 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::create_swap_chain_resou
         m_auto_depth_stencil_id = m_builder_ptr->on_create_resource(auto_depth_stencil_description,
                                                                     "AutoDepthStencil");
 
-        m_depth_stencil_view.resource_id = m_auto_depth_stencil_id;
+        depth_stencil_view.resource_id = m_auto_depth_stencil_id;
     }
 
-    attachments.color_view_vec.push_back(m_color_view);
-
-    attachments.depth_stencil_view = m_depth_stencil_view;
-
-    m_builder_ptr->on_set_attachments(attachments);
+    m_render_target_tracker.set(color_view,
+                                depth_stencil_view,
+                                true); /* in_tells_unchanged */
 
     /* The viewport covers the whole back buffer until the application sets another one. */
-    m_builder_ptr->on_set_viewport(get_full_viewport(m_color_view) );
+    m_builder_ptr->on_set_viewport(get_full_viewport(m_render_target_tracker.get_color_view() ) );
 }
 
 void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::forget_resource(const Analysis::APIDumpAnalysis::ResourceId& in_id)
@@ -701,7 +699,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_depth_stenci
     }
     else
     if (address                          == 0                                           ||
-        m_depth_stencil_view.resource_id == Analysis::APIDumpAnalysis::ResourceId::NONE)
+        m_render_target_tracker.get_depth_stencil_view().resource_id == Analysis::APIDumpAnalysis::ResourceId::NONE)
     {
         m_n_unfollowed_calls++;
     }
@@ -709,7 +707,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_depth_stenci
     {
         ObjectTracker::TrackedObject tracked_object;
 
-        tracked_object.view = m_depth_stencil_view;
+        tracked_object.view = m_render_target_tracker.get_depth_stencil_view();
 
         m_tracker.track(address,
                         tracked_object);
@@ -735,7 +733,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_get_render_targe
     {
         ObjectTracker::TrackedObject tracked_object;
 
-        tracked_object.view = m_color_view;
+        tracked_object.view = m_render_target_tracker.get_color_view();
 
         m_tracker.track(address,
                         tracked_object);
@@ -910,29 +908,20 @@ void Analysis::APIDumpAnalysis::Frontends::D3D8Frontend::handle_set_render_targe
     }
     else
     {
-        Analysis::APIDumpAnalysis::AttachmentSet attachments;
-
         /* A surface that is not passed stays unchanged. */
-        if (render_target_ptr != nullptr)
-        {
-            m_color_view = render_target_ptr->view;
-        }
+        const Analysis::APIDumpAnalysis::ResourceView color_view         = (render_target_ptr != nullptr) ? render_target_ptr->view
+                                                                                                            : m_render_target_tracker.get_color_view();
+        const Analysis::APIDumpAnalysis::ResourceView depth_stencil_view = (depth_stencil_ptr != nullptr) ? depth_stencil_ptr->view
+                                                                                                            : m_render_target_tracker.get_depth_stencil_view();
 
-        if (depth_stencil_ptr != nullptr)
-        {
-            m_depth_stencil_view = depth_stencil_ptr->view;
-        }
-
-        attachments.color_view_vec.push_back(m_color_view);
-
-        attachments.depth_stencil_view = m_depth_stencil_view;
-
-        m_builder_ptr->on_set_attachments(attachments);
+        m_render_target_tracker.set(color_view,
+                                    depth_stencil_view,
+                                    true); /* in_tells_unchanged */
 
         /* The viewport covers the whole new render target. */
         if (render_target_ptr != nullptr)
         {
-            m_builder_ptr->on_set_viewport(get_full_viewport(m_color_view) );
+            m_builder_ptr->on_set_viewport(get_full_viewport(m_render_target_tracker.get_color_view() ) );
         }
     }
 }

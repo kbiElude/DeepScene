@@ -11,6 +11,7 @@
 
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_context_state.h"
 #include "analysis/api_dump_analysis/model_builder.h"
+#include "analysis/api_dump_analysis/render_target_tracker.h"
 #include <stdint.h>
 
 namespace Analysis
@@ -44,11 +45,10 @@ namespace Analysis
 
             private:
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
-                Analysis::APIDumpAnalysis::ResourceView  m_color_view;
-                Analysis::APIDumpAnalysis::ResourceView  m_depth_stencil_view;
                 uint32_t                                 m_framebuffer_height;
                 uint32_t                                 m_framebuffer_width;
                 bool                                     m_has_default_framebuffer;
+                Analysis::APIDumpAnalysis::RenderTargetTracker m_render_target_tracker;
             };
         }
     }

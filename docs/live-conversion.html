@@ -413,6 +413,7 @@
 
 <h3>The eyes</h3>
 <p><code>GLEyeTargets</code> makes two framebuffers of renderbuffers (color, and depth with stencil), plus a small one for reading the depth, and binds the one of the left eye for the application. The application never draws to its window, so it does not matter that the window cannot be seen.</p>
+<p>A program that makes a framebuffer object of its own (<code>glGenFramebuffers</code>, <code>glBindFramebuffer</code> and the calls that fill one) is not followed: the front end has no handler for those calls, so the process is ended and the log names the call, whatever else the recipe says. The converter therefore never has to give the program a framebuffer of its own back, and it binds the framebuffers of the eyes without keeping track of the program's binding.</p>
 <ul>
   <li>The functions of framebuffers are found through the <code>wglGetProcAddress</code> that the hooks call through, not the one the application sees. The hooked extension functions have no driver functions behind them until the application makes its context current.</li>
   <li>The functions of OpenGL 1.1 that the converter calls itself are the driver's too (<code>GLDriverFunctions</code>, from the cached pointers of the hooks). A hook also runs the callbacks and copies the data of a call (a read of pixels) for a program that watches the application, which the converter's own calls do not need.</li>

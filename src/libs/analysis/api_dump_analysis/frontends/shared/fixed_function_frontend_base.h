@@ -16,6 +16,7 @@
 #include "analysis/api_dump_analysis/frontends/shared/object_tracker.h"
 #include "analysis/api_dump_analysis/frontends/shared/resolution_hazard_counter.h"
 #include "analysis/api_dump_analysis/model_builder.h"
+#include "analysis/api_dump_analysis/render_target_tracker.h"
 #include <map>
 #include <stdint.h>
 #include <unordered_set>
@@ -70,12 +71,11 @@ namespace Analysis
 
 
                 Analysis::APIDumpAnalysis::ModelBuilder*        m_builder_ptr;
-                Analysis::APIDumpAnalysis::ResourceView         m_color_view;           /* the render target                    */
-                Analysis::APIDumpAnalysis::ResourceView         m_depth_stencil_view;   /* resource_id is NONE if there is none */
                 Capture::APIDumpLoader::ObjectNamer             m_namer;
                 uint64_t                                        m_n_unfollowed_calls;
                 uint64_t                                        m_n_unsupported_calls;
                 std::unordered_set<APIInterceptor::APIFunction> m_release_function_set; /* the Release methods; filled by the derived front end */
+                Analysis::APIDumpAnalysis::RenderTargetTracker  m_render_target_tracker; /* the color and the depth and stencil views that are rendered to */
                 ResolutionHazardCounter                         m_resolution_hazard_counter;
                 ObjectTracker                                   m_tracker;
                 Analysis::APIDumpAnalysis::ConstantUpdate       m_transform_update_scratch;

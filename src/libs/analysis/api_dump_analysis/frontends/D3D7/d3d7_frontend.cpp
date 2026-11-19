@@ -48,28 +48,14 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::apply_render_target(con
         depth_stencil_view = depth_iterator->second;
     }
 
-    const bool is_target_changed = ( (m_color_view == in_target) == false);
-    const bool is_changed        = (is_target_changed                               ||
-                                    (m_depth_stencil_view == depth_stencil_view) == false);
-
-    m_color_view         = in_target;
-    m_depth_stencil_view = depth_stencil_view;
-
-    if (is_changed)
-    {
-        Analysis::APIDumpAnalysis::AttachmentSet attachments;
-
-        attachments.color_view_vec.push_back(m_color_view);
-
-        attachments.depth_stencil_view = m_depth_stencil_view;
-
-        m_builder_ptr->on_set_attachments(attachments);
-    }
+    const bool is_target_changed = m_render_target_tracker.set(in_target,
+                                                               depth_stencil_view,
+                                                               false); /* in_tells_unchanged */
 
     /* A new render target starts with a viewport that covers all of it, until the application sets another one. */
     if (is_target_changed)
     {
-        m_builder_ptr->on_set_viewport(get_full_viewport(m_color_view) );
+        m_builder_ptr->on_set_viewport(get_full_viewport(m_render_target_tracker.get_color_view() ) );
     }
 }
 
@@ -316,9 +302,9 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_add_attached_sur
         {
             m_attached_depth_map[Analysis::APIDumpAnalysis::get_resource_id_value(surface_ptr->view.resource_id)] = attached_ptr->view;
 
-            if (surface_ptr->view.resource_id == m_color_view.resource_id)
+            if (surface_ptr->view.resource_id == m_render_target_tracker.get_color_view().resource_id)
             {
-                apply_render_target(m_color_view);
+                apply_render_target(m_render_target_tracker.get_color_view() );
             }
         }
     }
@@ -370,7 +356,7 @@ void Analysis::APIDumpAnalysis::Frontends::D3D7Frontend::handle_create_device(co
         /* A new device starts with the default state and initially renders to its surface. */
         m_pipeline_state.reset();
 
-        m_color_view = Analysis::APIDumpAnalysis::ResourceView();
+        m_render_target_tracker.forget_color_view();
 
         apply_render_target(target_ptr->view);
     }
