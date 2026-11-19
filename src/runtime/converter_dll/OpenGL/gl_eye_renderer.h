@@ -16,6 +16,7 @@
 #include "gl_eye_targets.h"
 #include "gl_frame_reader.h"
 #include "gl_resolution_scaler.h"
+#include "gl_run_recorder.h"
 #include "gl_texture_twin_table.h"
 #include "invisible_window_manager.h"
 #include "types.h"
@@ -52,6 +53,10 @@ namespace Stereo
                 uint64_t n_fallback_blocks   = 0; /* recorded blocks that a call which cannot be recorded handed to a display list */
                 uint64_t n_list_draws        = 0; /* glCallList calls */
                 uint64_t n_recorded_blocks   = 0; /* blocks made again from the calls that were recorded */
+                uint64_t n_run_draws         = 0; /* blocks drawn for the right eye when a run was played */
+                uint64_t n_run_mismatches    = 0; /* runs after which the state checked differed from the one the left eye left */
+                uint64_t n_run_states        = 0; /* state calls made again for the right eye when a run was played */
+                uint64_t n_runs              = 0; /* runs played for the right eye */
                 uint64_t n_skipped_draws     = 0;
                 uint64_t n_texture_copies    = 0; /* framebuffer-to-texture copies, both eyes */
                 uint64_t n_twin_textures     = 0;
@@ -102,6 +107,9 @@ namespace Stereo
                         const Analysis::Recipe::DrawClass&         in_draw_class,
                         const bool&                                in_is_pushed);
 
+            /* Whether the right eye is drawn when a run of the application's calls ends instead of at each block (see GLRunRecorder). Needs the blocks to be recorded. */
+            void set_defers_right_eye(const bool& in_defers_right_eye);
+
             void set_get_chunk_func   (const GetChunkFunc&    in_get_chunk_func);
             void set_get_matrices_func(const GetMatricesFunc& in_get_matrices_func);
 
@@ -117,6 +125,73 @@ namespace Stereo
 
         private:
             static constexpr size_t N_TEXTURE_UNITS = 32;
+
+            /* What the draw of one block needs of the application's state at the moment the block ends, for either eye (see make_eye_plan()). */
+            struct EyePlan
+            {
+                bool                  has_read_matrix     = false;
+                bool                  has_tracked_matrices = false;
+                bool                  is_affected         = false;
+                bool                  is_part             = false;
+                bool                  is_pushed           = false;
+                bool                  is_side_reaching    = false;
+                float                 layer_parallax      = 0.0f;
+                int32_t               matrix_mode         = 0;
+                std::array<float, 16> part_matrix         = {};
+                std::array<float, 16> part_projection     = {};
+                std::array<float, 16> saved_matrix        = {};
+                std::array<int32_t, 4> saved_viewport     = {};
+                TextureSelection      texture_selection;
+                std::array<float, 16> tracked_modelview   = {};
+                std::array<float, 16> tracked_projection  = {};
+            };
+
+            /* What one eye does before a draw: the matrix to load (if the draw is moved) and the viewport (if it is pushed). */
+            struct EyeSetup
+            {
+                bool                   has_matrix   = false;
+                bool                   has_viewport = false;
+                std::array<float, 16>  matrix       = {};
+                std::array<int32_t, 4> viewport     = {};
+            };
+
+            /* Makes the draw for one eye, with that eye's framebuffer bound. */
+            void apply_eye(const Analysis::Recipe::Eye&   in_eye,
+                           const EyePlan&                 in_plan,
+                           const std::function<void()>&   in_draw_func);
+
+            /* The block ends: the left eye is drawn at once, the right eye when the run is played. Returns false if the block cannot be kept (the matrices are not tracked). */
+            bool defer_block(const Analysis::Recipe::DrawClass& in_draw_class,
+                             const bool&                        in_is_pushed);
+
+            /* Puts back what the draw changed: the viewport, the textures and the matrix. */
+            void finish_eye_plan(const EyePlan& in_plan);
+
+            /* Plays the run for the right eye (see GLRunRecorder) and goes back to the left eye. Does nothing if no run is open. */
+            void flush_run();
+
+            /* Works out what the draw needs of the state: the class of the draw, the matrices and the textures. in_needs_matrices reads the matrices for any draw. */
+            EyePlan make_eye_plan(const Analysis::Recipe::DrawClass& in_draw_class,
+                                  const bool&                        in_is_pushed,
+                                  const bool&                        in_needs_matrices);
+
+            EyeSetup make_eye_setup(const Analysis::Recipe::Eye& in_eye,
+                                    const EyePlan&               in_plan);
+
+            /* A call of the application is about to be made while the right eye is deferred: it is kept, or it makes the run play first. */
+            void follow_run_call(const APIInterceptor::APIFunction&         in_function,
+                                 const uint32_t&                            in_n_arguments,
+                                 const APIInterceptor::APIFunctionArgument* in_arguments_ptr);
+
+            /* Saves the state that the run starts from, so that the right eye can start from it. */
+            void open_run();
+
+            /* Reads what a call that is recorded sets. Returns false if the call is not one that is recorded. */
+            bool read_recorded_call(const APIInterceptor::APIFunction&         in_function,
+                                    const uint32_t&                            in_n_arguments,
+                                    const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                    RecordedCallLayout*                        out_layout_ptr,
+                                    RecordedCall*                              out_call_ptr);
 
             /* Copies the framebuffer into the bound texture with glCopyTexSubImage2D (in_is_sub) or glCopyTexImage2D; in_value_array holds the call's arguments after the target. */
             void copy_framebuffer(const bool&                   in_is_sub,
@@ -231,6 +306,11 @@ namespace Stereo
             bool                                  m_block_is_pushed;
             uint32_t                              m_block_list;
             GLBlockRecorder                       m_block_recorder;
+            bool                                  m_defers_right_eye;
+            bool                                  m_is_run_open;
+            uint32_t                              m_matrix_mode_shadow; /* the matrix mode that the application's calls have set */
+            uint64_t                              m_n_flushes;
+            GLRunRecorder                         m_run_recorder;
             bool                                  m_caches_pixel_reads; /* the recipe serves runs of one-pixel reads from one picture */
             Stereo::Core::RecipeStereoPlanner*    m_core_ptr;
             GLFrameReader                         m_frame_reader;

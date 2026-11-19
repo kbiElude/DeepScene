@@ -5,6 +5,7 @@
 #ifndef STEREO_CONVERTERDLL_OPENGL_TYPES_H
 #define STEREO_CONVERTERDLL_OPENGL_TYPES_H
 
+#include "common/types.h"
 #include "stereo/core/types.h"
 #include <array>
 #include <memory>
@@ -71,6 +72,53 @@ namespace Stereo
             bool     has_twin_in_another_unit = false; /* another unit has a texture that has one, which cannot be bound without changing the active unit */
             uint32_t texture                  = 0;     /* of the active unit */
             uint32_t twin                     = 0;
+        };
+
+        /* How the right eye treats a call of the application while a run is recorded (see GLRunRecorder::classify()). */
+        enum class RunCallClass
+        {
+            FLUSH,    /* the run is played before the call is made */
+            MATRIX,   /* changes a matrix: not kept, each draw of the run carries its matrices */
+            NEUTRAL,  /* needs nothing */
+            QUERY,    /* asks the driver for something: it is answered from the left eye, which is live */
+            RECORDED  /* a state call that is kept and made again for the right eye */
+        };
+
+        /* What a recorded item of a run is. */
+        enum class RunItemKind
+        {
+            ATTRIBUTE,
+            DRAW,
+            STATE
+        };
+
+        /* A block of the application that the right eye draws when the run is played, with what the eye needs of the moment the block ended. */
+        struct RunDraw
+        {
+            uint32_t                first_call_index        = 0;     /* in the calls of the run */
+            bool                    has_pushed_viewport     = false;
+            uint32_t                mode                    = 0;
+            std::array<float, 16>   modelview_f32mat        = {};    /* what the right eye loads: the eye matrix times the draw's own, for an affected draw */
+            uint32_t                n_calls                 = 0;
+            std::array<float, 16>   projection_f32mat       = {};
+            std::array<int32_t, 4>  pushed_viewport_i32vec4 = {};    /* x, y, width, height for the right eye */
+            std::array<int32_t, 4>  saved_viewport_i32vec4  = {};    /* what the viewport is set back to */
+            TextureSelection        selection;
+        };
+
+        /* A state call that the right eye makes again. */
+        struct RunStateCall
+        {
+            APIInterceptor::APIFunction function        = static_cast<APIInterceptor::APIFunction>(0);
+            std::array<float, 4>        value_fp32vec4  = {};
+            std::array<int32_t, 4>      value_i32vec4   = {};
+        };
+
+        /* One thing the right eye does when a run is played: where it is in the draws or the state calls. */
+        struct RunItem
+        {
+            uint32_t    index = 0;
+            RunItemKind kind  = RunItemKind::STATE;
         };
     }
 }

@@ -30,6 +30,7 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPla
      m_block_list         (0),
      m_caches_pixel_reads (in_core_ptr->get_caches_pixel_reads() ),
      m_core_ptr           (in_core_ptr),
+     m_defers_right_eye   (false),
      m_depth_generation   (0),
      m_depth_lag          (0),
      m_fast_depth_range_measurer     (true),
@@ -39,8 +40,11 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPla
      m_is_in_app_list     (false),
      m_is_in_block        (false),
      m_is_recording       (false),
+     m_is_run_open        (false),
      m_is_shown_elsewhere (in_is_shown_elsewhere),
+     m_matrix_mode_shadow (0x1700),
      m_measures_depth     (in_core_ptr->get_measures_depth() ),
+     m_n_flushes          (0),
      m_n_failed_attempts  (0),
      m_n_tracked_matrix_reads(0),
      m_n_unanalyzed_vertices(0),
@@ -59,6 +63,32 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPla
     {
         m_note_vec.push_back("The recipe has the reads of one pixel that the application makes in a run given from a picture of the left eye that is read once (cache_pixel_reads)");
     }
+}
+
+void Stereo::ConverterDLL::GLEyeRenderer::apply_eye(const Analysis::Recipe::Eye& in_eye,
+                                                    const EyePlan&               in_plan,
+                                                    const std::function<void()>& in_draw_func)
+{
+    const EyeSetup setup = make_eye_setup(in_eye,
+                                          in_plan);
+
+    if (setup.has_matrix)
+    {
+        GLDriverFunctions::get().load_matrixf_func_ptr(setup.matrix.data() );
+    }
+
+    select_textures(in_plan.texture_selection,
+                    in_eye == Analysis::Recipe::Eye::RIGHT);
+
+    if (setup.has_viewport)
+    {
+        GLDriverFunctions::get().viewport_func_ptr(setup.viewport.at(0),
+                                                   setup.viewport.at(1),
+                                                   setup.viewport.at(2),
+                                                   setup.viewport.at(3) );
+    }
+
+    in_draw_func();
 }
 
 void Stereo::ConverterDLL::GLEyeRenderer::collect_depth_reads(const bool& in_only_older_frames,
@@ -129,9 +159,63 @@ void Stereo::ConverterDLL::GLEyeRenderer::copy_framebuffer(const bool&          
     }
 }
 
+bool Stereo::ConverterDLL::GLEyeRenderer::defer_block(const Analysis::Recipe::DrawClass& in_draw_class,
+                                                      const bool&                        in_is_pushed)
+{
+    const OwnCallScope own_call_scope;
+    const EyePlan      plan   = make_eye_plan(in_draw_class,
+                                              in_is_pushed,
+                                              true); /* in_needs_matrices */
+    const bool         result = plan.has_tracked_matrices;
+
+    if (result)
+    {
+        const auto&    call_vec = m_block_recorder.get_calls();
+        const EyeSetup setup    = make_eye_setup(Analysis::Recipe::Eye::RIGHT,
+                                                 plan);
+        RunDraw        draw;
+
+        if (m_is_run_open == false)
+        {
+            open_run();
+        }
+
+        draw.has_pushed_viewport     = setup.has_viewport;
+        draw.mode                    = m_block_recorder.get_mode();
+        draw.modelview_f32mat        = (setup.has_matrix) ? setup.matrix
+                                                          : plan.tracked_modelview;
+        draw.n_calls                 = static_cast<uint32_t>(call_vec.size() );
+        draw.projection_f32mat       = plan.tracked_projection;
+        draw.pushed_viewport_i32vec4 = setup.viewport;
+        draw.saved_viewport_i32vec4  = plan.saved_viewport;
+        draw.selection               = plan.texture_selection;
+
+        m_run_recorder.add_draw(draw,
+                                call_vec.data() );
+
+        const auto left_draw_func = [this]()
+        {
+            m_block_recorder.play();
+        };
+
+        apply_eye(Analysis::Recipe::Eye::LEFT,
+                  plan,
+                  left_draw_func);
+
+        m_statistics.n_run_draws++;
+    }
+
+    finish_eye_plan(plan);
+
+    return result;
+}
+
 void Stereo::ConverterDLL::GLEyeRenderer::fall_back_to_list(const APIInterceptor::APIFunction& in_function)
 {
     const OwnCallScope own_call_scope;
+
+    /* The block is drawn for both eyes when it ends, so what came before it is drawn for the right eye first. */
+    flush_run();
 
     if (m_block_list == 0)
     {
@@ -188,6 +272,37 @@ Stereo::ConverterDLL::TextureSelection Stereo::ConverterDLL::GLEyeRenderer::find
     return result;
 }
 
+void Stereo::ConverterDLL::GLEyeRenderer::finish_eye_plan(const EyePlan& in_plan)
+{
+    constexpr GLenum MODELVIEW       = 0x1700;
+    constexpr size_t VIEWPORT_HEIGHT = 3;
+    constexpr size_t VIEWPORT_WIDTH  = 2;
+    constexpr size_t VIEWPORT_X      = 0;
+    constexpr size_t VIEWPORT_Y      = 1;
+
+    if (in_plan.is_pushed)
+    {
+        GLDriverFunctions::get().viewport_func_ptr(in_plan.saved_viewport.at(VIEWPORT_X),
+                                                   in_plan.saved_viewport.at(VIEWPORT_Y),
+                                                   in_plan.saved_viewport.at(VIEWPORT_WIDTH),
+                                                   in_plan.saved_viewport.at(VIEWPORT_HEIGHT) );
+    }
+
+    select_textures(in_plan.texture_selection,
+                    false);
+
+    if (in_plan.is_affected)
+    {
+        GLDriverFunctions::get().load_matrixf_func_ptr(in_plan.saved_matrix.data() );
+    }
+
+    if (in_plan.has_read_matrix                  &&
+        in_plan.matrix_mode != static_cast<int32_t>(MODELVIEW) )
+    {
+        GLDriverFunctions::get().matrix_mode_func_ptr(in_plan.matrix_mode);
+    }
+}
+
 void Stereo::ConverterDLL::GLEyeRenderer::finish_recorded_block(const bool&                        in_has_draws,
                                                                 const Analysis::Recipe::DrawClass& in_draw_class,
                                                                 const bool&                        in_is_pushed)
@@ -199,22 +314,202 @@ void Stereo::ConverterDLL::GLEyeRenderer::finish_recorded_block(const bool&     
     if (in_has_draws == false ||
         in_draw_class != Analysis::Recipe::DrawClass::SKIPPED)
     {
-        const auto replay_func = [this]()
-        {
-            m_block_recorder.play();
-        };
+        const auto draw_class = (in_has_draws) ? in_draw_class
+                                               : Analysis::Recipe::DrawClass::UNAFFECTED;
+        const bool is_pushed  = (in_has_draws &&
+                                 in_is_pushed);
 
-        play_eyes(replay_func,
-                  (in_has_draws) ? in_draw_class
-                                 : Analysis::Recipe::DrawClass::UNAFFECTED,
-                  (in_has_draws &&
-                   in_is_pushed) );
+        /* With the right eye deferred, the left eye is drawn now and the right eye when the run is played. A block that cannot be kept is drawn for both eyes after the run is played. */
+        const bool is_deferred = (m_defers_right_eye &&
+                                  defer_block(draw_class,
+                                              is_pushed) );
+
+        if (is_deferred == false)
+        {
+            const auto replay_func = [this]()
+            {
+                m_block_recorder.play();
+            };
+
+            flush_run();
+
+            play_eyes(replay_func,
+                      draw_class,
+                      is_pushed);
+        }
 
         m_statistics.n_block_draws++;
     }
     else
     {
         m_statistics.n_skipped_draws++;
+    }
+}
+
+void Stereo::ConverterDLL::GLEyeRenderer::flush_run()
+{
+    /* A few of the settings that the replay leaves the state with are compared with the ones the left eye left, every N_FLUSHES_BETWEEN_CHECKS runs. */
+    constexpr uint64_t N_FLUSHES_BETWEEN_CHECKS = 32;
+    constexpr GLenum   MODELVIEW                = 0x1700;
+    constexpr GLenum   PROJECTION               = 0x1701;
+    constexpr GLenum   PROJECTION_MATRIX        = 0x0BA7;
+
+    constexpr std::array<GLenum, 8> CHECKED_CAPABILITIES =
+    {
+        0x0B44, /* GL_CULL_FACE    */
+        0x0B50, /* GL_LIGHTING     */
+        0x0B60, /* GL_FOG          */
+        0x0B71, /* GL_DEPTH_TEST   */
+        0x0B90, /* GL_STENCIL_TEST */
+        0x0BC0, /* GL_ALPHA_TEST   */
+        0x0BE2, /* GL_BLEND        */
+        0x0DE1  /* GL_TEXTURE_2D   */
+    };
+
+    if (m_is_run_open)
+    {
+        const OwnCallScope    own_call_scope;
+        const bool            is_checked = (m_n_flushes % N_FLUSHES_BETWEEN_CHECKS == 0);
+        GLint                 left_matrix_mode = 0;
+        std::array<float, 16> left_modelview;
+        std::array<float, 16> left_projection;
+        std::array<bool, 8>   left_capabilities  = {};
+
+        m_n_flushes++;
+
+        /* The state that the left eye has now is the state that the application is to find when the run has been played. */
+        GLDriverFunctions::get().get_integerv_func_ptr(GL_MATRIX_MODE,
+                                                       &left_matrix_mode);
+        GLDriverFunctions::get().get_floatv_func_ptr  (GL_MODELVIEW_MATRIX,
+                                                       left_modelview.data() );
+        GLDriverFunctions::get().get_floatv_func_ptr  (PROJECTION_MATRIX,
+                                                       left_projection.data() );
+
+        if (is_checked)
+        {
+            for (size_t n_capability = 0;
+                        n_capability < CHECKED_CAPABILITIES.size();
+                      ++n_capability)
+            {
+                left_capabilities.at(n_capability) = (GLDriverFunctions::get().is_enabled_func_ptr(CHECKED_CAPABILITIES.at(n_capability) ) != GL_FALSE);
+            }
+        }
+
+        m_targets.bind_eye(Analysis::Recipe::Eye::RIGHT);
+
+        /* The state of the start of the run, then every call of the run as the application made it. */
+        GLDriverFunctions::get().pop_attrib_func_ptr();
+
+        m_run_recorder.play();
+
+        GLDriverFunctions::get().matrix_mode_func_ptr(MODELVIEW);
+        GLDriverFunctions::get().load_matrixf_func_ptr(left_modelview.data() );
+        GLDriverFunctions::get().matrix_mode_func_ptr(PROJECTION);
+        GLDriverFunctions::get().load_matrixf_func_ptr(left_projection.data() );
+        GLDriverFunctions::get().matrix_mode_func_ptr(static_cast<GLenum>(left_matrix_mode) );
+
+        if (is_checked)
+        {
+            for (size_t n_capability = 0;
+                        n_capability < CHECKED_CAPABILITIES.size();
+                      ++n_capability)
+            {
+                const bool is_enabled = (GLDriverFunctions::get().is_enabled_func_ptr(CHECKED_CAPABILITIES.at(n_capability) ) != GL_FALSE);
+
+                if (is_enabled != left_capabilities.at(n_capability) )
+                {
+                    m_statistics.n_run_mismatches++;
+
+                    note_once("run_mismatch",
+                              "A run that was played for the right eye left a setting different from the one the left eye left (a capability that is enabled)");
+                }
+            }
+        }
+
+        m_targets.bind_eye(Analysis::Recipe::Eye::LEFT);
+
+        m_statistics.n_runs++;
+
+        m_run_recorder.clear();
+
+        m_is_run_open = false;
+    }
+}
+
+void Stereo::ConverterDLL::GLEyeRenderer::follow_run_call(const APIInterceptor::APIFunction&         in_function,
+                                                          const uint32_t&                            in_n_arguments,
+                                                          const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
+{
+    constexpr uint32_t MODELVIEW  = 0x1700;
+    constexpr uint32_t PROJECTION = 0x1701;
+
+    switch (GLRunRecorder::classify(in_function) )
+    {
+        case RunCallClass::FLUSH:
+        {
+            flush_run();
+
+            break;
+        }
+
+        case RunCallClass::MATRIX:
+        {
+            /* The matrices of a draw are given with the draw. The matrices of the texture have no such thing, so a call that changes them is made after the run is played. */
+            if (in_function == APIInterceptor::APIFUNCTION_GL_GLMATRIXMODE)
+            {
+                uint32_t mode = 0;
+
+                if (in_n_arguments > 0                                       &&
+                    APIInterceptor::read_number(in_arguments_ptr[0],
+                                               &mode) )
+                {
+                    m_matrix_mode_shadow = mode;
+                }
+                else
+                {
+                    m_matrix_mode_shadow = 0;
+                }
+            }
+            else
+            if (m_matrix_mode_shadow != MODELVIEW  &&
+                m_matrix_mode_shadow != PROJECTION)
+            {
+                flush_run();
+            }
+
+            break;
+        }
+
+        case RunCallClass::RECORDED:
+        {
+            RunStateCall call;
+
+            if (m_is_run_open == false)
+            {
+                open_run();
+            }
+
+            if (GLRunRecorder::read_state_call(in_function,
+                                               in_n_arguments,
+                                               in_arguments_ptr,
+                                              &call) )
+            {
+                m_run_recorder.add_state(call);
+
+                m_statistics.n_run_states++;
+            }
+            else
+            {
+                flush_run();
+            }
+
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
     }
 }
 
@@ -243,6 +538,194 @@ const Stereo::ConverterDLL::GLEyeRenderer::Statistics& Stereo::ConverterDLL::GLE
 bool Stereo::ConverterDLL::GLEyeRenderer::is_ready() const
 {
     return m_targets.is_ready();
+}
+
+Stereo::ConverterDLL::GLEyeRenderer::EyePlan Stereo::ConverterDLL::GLEyeRenderer::make_eye_plan(const Analysis::Recipe::DrawClass& in_draw_class,
+                                                                                                const bool&                        in_is_pushed,
+                                                                                                const bool&                        in_needs_matrices)
+{
+    /* Positions of the values this function needs within a matrix (stored column by column) and within a viewport. */
+    constexpr size_t MATRIX_X_SCALE       = 0;
+    constexpr size_t MATRIX_Z_TRANSLATION = 14;
+    constexpr GLenum MODELVIEW            = 0x1700;
+    constexpr GLenum PROJECTION_MATRIX    = 0x0BA7;
+    constexpr GLenum VIEWPORT             = 0x0BA2;
+
+    EyePlan    result;
+    const bool is_last_draw_part = m_core_ptr->get_is_last_draw_part();
+
+    result.is_affected      = (in_draw_class == Analysis::Recipe::DrawClass::AFFECTED);
+    result.is_pushed        = in_is_pushed;
+    result.is_side_reaching = m_core_ptr->get_is_last_draw_side_reaching();
+    result.matrix_mode      = MODELVIEW;
+
+    /* The matrices come from the analysis, which follows the calls of the application; the driver is asked only if it does not have them. */
+    result.has_tracked_matrices = (in_needs_matrices                       ||
+                                   result.is_affected                      ||
+                                   (in_is_pushed && is_last_draw_part) ) ? read_tracked_matrices(&result.tracked_modelview,
+                                                                                                 &result.tracked_projection,
+                                                                                                 &result.matrix_mode)
+                                                                         : false;
+
+    const auto get_modelview_func = [&](std::array<float, 16>* out_f32mat_ptr)
+    {
+        if (result.has_tracked_matrices)
+        {
+            *out_f32mat_ptr = result.tracked_modelview;
+        }
+        else
+        {
+            GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
+                                                         out_f32mat_ptr->data() );
+        }
+    };
+
+    const auto get_projection_func = [&](std::array<float, 16>* out_f32mat_ptr)
+    {
+        if (result.has_tracked_matrices)
+        {
+            *out_f32mat_ptr = result.tracked_projection;
+        }
+        else
+        {
+            GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
+                                                         out_f32mat_ptr->data() );
+        }
+    };
+
+    /* The viewport is the one the draw is made with. A pushed draw is moved by shifting the origin of the viewport, which works with any projection. */
+    if (in_is_pushed)
+    {
+        GLDriverFunctions::get().get_integerv_func_ptr(VIEWPORT,
+                                                       result.saved_viewport.data() );
+    }
+
+    /* A part that protrudes from an object is drawn once for both eyes. It must appear where the eyes would have put its origin, so the camera of the draw is read here. */
+    if (in_is_pushed &&
+        is_last_draw_part)
+    {
+        get_modelview_func (&result.part_matrix);
+        get_projection_func(&result.part_projection);
+
+        result.is_part = true;
+    }
+
+    if (result.is_affected                  &&
+        m_measures_depth                    &&
+        m_pass_has_affected_draws == false)
+    {
+        get_projection_func(&m_pass_projection_f32mat);
+
+        /* A projection that is not perspective carries no depth information. */
+        m_pass_has_affected_draws = Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(m_pass_projection_f32mat);
+    }
+
+    if (result.is_affected)
+    {
+        if (result.has_tracked_matrices == false)
+        {
+            GLDriverFunctions::get().get_integerv_func_ptr(GL_MATRIX_MODE,
+                                                           &result.matrix_mode);
+        }
+
+        result.has_read_matrix = true;
+
+        if (result.matrix_mode != static_cast<int32_t>(MODELVIEW) )
+        {
+            GLDriverFunctions::get().matrix_mode_func_ptr(MODELVIEW);
+        }
+
+        get_modelview_func(&result.saved_matrix);
+
+        /* The core decides whether the draw is attached to the camera from the distance of its origin in front of the camera. */
+        const float origin_depth = -result.saved_matrix.at(MATRIX_Z_TRANSLATION);
+
+        if (m_core_ptr->is_last_draw_attached_to_camera(origin_depth) )
+        {
+            result.is_affected = false;
+
+            m_statistics.n_camera_attached_draws++;
+        }
+    }
+
+    /* Parallax the eyes already apply to the draw, which the push must leave room for; zero for an unmoved draw. */
+    if (in_is_pushed &&
+        result.is_affected)
+    {
+        std::array<float, 16> projection_f32mat;
+
+        get_projection_func(&projection_f32mat);
+
+        result.layer_parallax = m_core_ptr->get_eye_parallax(-result.saved_matrix.at(MATRIX_Z_TRANSLATION),
+                                                             projection_f32mat.at(MATRIX_X_SCALE),
+                                                             Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(projection_f32mat) );
+    }
+
+    /* The textures do not change between the eyes, so what each needs is looked up once. */
+    result.texture_selection = find_texture_selection();
+
+    if (result.texture_selection.has_twin_in_another_unit)
+    {
+        note_once("units",
+                  "A texture that has a twin is bound to a unit other than the one that is active: it is not bound to its twin for the right eye");
+    }
+
+    return result;
+}
+
+Stereo::ConverterDLL::GLEyeRenderer::EyeSetup Stereo::ConverterDLL::GLEyeRenderer::make_eye_setup(const Analysis::Recipe::Eye& in_eye,
+                                                                                                  const EyePlan&               in_plan)
+{
+    constexpr size_t MATRIX_X_SCALE       = 0;
+    constexpr size_t MATRIX_Z_TRANSLATION = 14;
+    constexpr size_t VIEWPORT_HEIGHT      = 3;
+    constexpr size_t VIEWPORT_WIDTH       = 2;
+    constexpr size_t VIEWPORT_X           = 0;
+    constexpr size_t VIEWPORT_Y           = 1;
+
+    EyeSetup result;
+
+    if (in_plan.is_affected)
+    {
+        /* The eye matrix times the draw's own, loaded at once. */
+        const auto eye_matrix = m_core_ptr->make_eye_shift_matrix(in_eye);
+
+        result.has_matrix = true;
+        result.matrix     = Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::multiply(eye_matrix,
+                                                                                         in_plan.saved_matrix);
+    }
+
+    if (in_plan.is_pushed)
+    {
+        const float picture_width_pixels = static_cast<float>(in_plan.saved_viewport.at(VIEWPORT_WIDTH) );
+        float       shift_pixels         = m_core_ptr->plan_push_shift_with_layer(in_eye,
+                                                                                  picture_width_pixels,
+                                                                                  in_plan.layer_parallax);
+
+        if (in_plan.is_part)
+        {
+            /* A perspective projection has a -1 in the third column of its fourth row. */
+            shift_pixels = m_core_ptr->plan_part_shift(in_eye,
+                                                       picture_width_pixels,
+                                                       in_plan.part_matrix.at(MATRIX_Z_TRANSLATION),
+                                                       in_plan.part_projection.at(MATRIX_X_SCALE),
+                                                       Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(in_plan.part_projection) );
+        }
+
+        /* The shift is rounded toward zero so that it stays within the plan. An overlay that reaches the sides is widened so that no edge is left bare. */
+        const auto pushed_viewport = Stereo::Core::PushShiftPlanner::make_viewport(in_plan.saved_viewport.at(VIEWPORT_X),
+                                                                                   in_plan.saved_viewport.at(VIEWPORT_WIDTH),
+                                                                                   shift_pixels,
+                                                                                   (in_plan.is_part == false && in_plan.is_side_reaching) );
+
+        result.has_viewport = true;
+        result.viewport     = {pushed_viewport.x,
+                               in_plan.saved_viewport.at(VIEWPORT_Y),
+                               pushed_viewport.width,
+                               in_plan.saved_viewport.at(VIEWPORT_HEIGHT)};
+    }
+
+    return result;
 }
 
 bool Stereo::ConverterDLL::GLEyeRenderer::make_twin(const uint32_t& in_texture,
@@ -587,6 +1070,37 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_attribute(const APIInterceptor::API
     {
         m_n_unanalyzed_vertices++;
     }
+    else
+    if (m_defers_right_eye          &&
+        m_is_in_app_list == false   &&
+        is_vertex        == false   &&
+        m_targets.is_ready() )
+    {
+        /* A color, a normal or a texture coordinate that is set between blocks is what the next block starts with, for both eyes. */
+        RecordedCall       call;
+        RecordedCallLayout run_layout;
+
+        if (read_recorded_call(in_function,
+                               in_n_arguments,
+                               in_arguments_ptr,
+                              &run_layout,
+                              &call) &&
+            run_layout.is_vector == false)
+        {
+            if (m_is_run_open == false)
+            {
+                open_run();
+            }
+
+            m_run_recorder.add_attribute(call);
+
+            m_statistics.n_run_states++;
+        }
+        else
+        {
+            flush_run();
+        }
+    }
 
     return result;
 }
@@ -594,6 +1108,9 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_attribute(const APIInterceptor::API
 bool Stereo::ConverterDLL::GLEyeRenderer::on_frame_ending(GLFrameImages* out_images_ptr)
 {
     bool result = false;
+
+    /* The right eye is complete before the eyes are read. */
+    flush_run();
 
     /* A frame ends here. The picture that was read is out of date in the next frame, whatever calls come in between. */
     m_readback_cache.invalidate();
@@ -720,6 +1237,17 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
     bool result            = true;
     bool is_made_scaled    = false;
     bool is_read_served    = false;
+
+    /* A call that the right eye cannot be given later makes the run play first, before the scaler or anything else changes the state. */
+    if (m_defers_right_eye       &&
+        m_is_in_app_list == false &&
+        m_is_recording   == false &&
+        m_targets.is_ready() )
+    {
+        follow_run_call(in_function,
+                        in_n_arguments,
+                        in_arguments_ptr);
+    }
 
     /* Any call except a pixel read may change the picture, so the picture that was read is discarded. This applies only if the recipe serves pixel reads from the picture. */
     if (m_caches_pixel_reads)
@@ -1184,217 +1712,37 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre_draw(const APIInterceptor::APIF
     return (draw_func == nullptr);
 }
 
+void Stereo::ConverterDLL::GLEyeRenderer::open_run()
+{
+    constexpr GLbitfield ALL_ATTRIBUTE_BITS = 0x000FFFFF;
+
+    const OwnCallScope own_call_scope;
+
+    /* The state at the start of the run is kept by the driver. The right eye starts from it when the run is played. */
+    GLDriverFunctions::get().push_attrib_func_ptr(ALL_ATTRIBUTE_BITS);
+
+    m_is_run_open = true;
+}
+
 void Stereo::ConverterDLL::GLEyeRenderer::play_eyes(const std::function<void()>&       in_draw_func,
                                                     const Analysis::Recipe::DrawClass& in_draw_class,
                                                     const bool&                        in_is_pushed)
 {
-    /* Positions of the values this function needs within a matrix (stored column by column) and within a viewport. */
-    constexpr size_t MATRIX_X_SCALE              = 0;
-    constexpr size_t MATRIX_Z_TRANSLATION        = 14;
-    constexpr GLenum MODELVIEW                   = 0x1700;
-    constexpr GLenum PROJECTION_MATRIX           = 0x0BA7;
-    constexpr GLenum VIEWPORT                    = 0x0BA2;
-    constexpr size_t VIEWPORT_HEIGHT             = 3;
-    constexpr size_t VIEWPORT_WIDTH              = 2;
-    constexpr size_t VIEWPORT_X                  = 0;
-    constexpr size_t VIEWPORT_Y                  = 1;
-
-    const OwnCallScope    own_call_scope;
-    bool                  has_read_matrix    = false;
-    bool                  is_affected        = (in_draw_class == Analysis::Recipe::DrawClass::AFFECTED);
-    const bool            is_last_draw_part  = m_core_ptr->get_is_last_draw_part();
-    bool                  is_part            = false;
-    const bool            is_side_reaching   = m_core_ptr->get_is_last_draw_side_reaching();
-    GLint                 matrix_mode        = MODELVIEW;
-    std::array<float, 16> part_matrix;
-    std::array<float, 16> part_projection;
-    std::array<float, 16> saved_matrix;
-    std::array<GLint, 4>  saved_viewport     = {};
-    std::array<float, 16> tracked_modelview;
-    std::array<float, 16> tracked_projection;
-
-    /* The matrices come from the analysis, which follows the calls of the application; the driver is asked only if it does not have them. */
-    const bool has_tracked_matrices = (is_affected                         ||
-                                       (in_is_pushed && is_last_draw_part) ) ? read_tracked_matrices(&tracked_modelview,
-                                                                                                     &tracked_projection,
-                                                                                                     &matrix_mode)
-                                                                             : false;
-
-    const auto get_modelview_func = [&](std::array<float, 16>* out_f32mat_ptr)
-    {
-        if (has_tracked_matrices)
-        {
-            *out_f32mat_ptr = tracked_modelview;
-        }
-        else
-        {
-            GLDriverFunctions::get().get_floatv_func_ptr(GL_MODELVIEW_MATRIX,
-                                                         out_f32mat_ptr->data() );
-        }
-    };
-
-    const auto get_projection_func = [&](std::array<float, 16>* out_f32mat_ptr)
-    {
-        if (has_tracked_matrices)
-        {
-            *out_f32mat_ptr = tracked_projection;
-        }
-        else
-        {
-            GLDriverFunctions::get().get_floatv_func_ptr(PROJECTION_MATRIX,
-                                                         out_f32mat_ptr->data() );
-        }
-    };
-
-    /* The viewport is the one the draw is made with. A pushed draw is moved by shifting the origin of the viewport, which works with any projection. */
-    if (in_is_pushed)
-    {
-        GLDriverFunctions::get().get_integerv_func_ptr(VIEWPORT,
-                                                       saved_viewport.data() );
-    }
-
-    /* A part that protrudes from an object is drawn once for both eyes. It must appear where the eyes would have put its origin, so the camera of the draw is read here. */
-    if (in_is_pushed &&
-        is_last_draw_part)
-    {
-        get_modelview_func (&part_matrix);
-        get_projection_func(&part_projection);
-
-        is_part = true;
-    }
-
-    if (is_affected                         &&
-        m_measures_depth                    &&
-        m_pass_has_affected_draws == false)
-    {
-        get_projection_func(&m_pass_projection_f32mat);
-
-        /* A projection that is not perspective carries no depth information. */
-        m_pass_has_affected_draws = Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(m_pass_projection_f32mat);
-    }
-
-    if (is_affected)
-    {
-        if (has_tracked_matrices == false)
-        {
-            GLDriverFunctions::get().get_integerv_func_ptr(GL_MATRIX_MODE,
-                                                           &matrix_mode);
-        }
-
-        has_read_matrix = true;
-
-        if (matrix_mode != MODELVIEW)
-        {
-            GLDriverFunctions::get().matrix_mode_func_ptr(MODELVIEW);
-        }
-
-        get_modelview_func(&saved_matrix);
-
-        /* The core decides whether the draw is attached to the camera from the distance of its origin in front of the camera. */
-        const float origin_depth = -saved_matrix.at(MATRIX_Z_TRANSLATION);
-
-        if (m_core_ptr->is_last_draw_attached_to_camera(origin_depth) )
-        {
-            is_affected = false;
-
-            m_statistics.n_camera_attached_draws++;
-        }
-    }
-
-    /* Parallax the eyes already apply to the draw, which the push must leave room for; zero for an unmoved draw. */
-    float layer_parallax = 0.0f;
-
-    if (in_is_pushed &&
-        is_affected)
-    {
-        std::array<float, 16> projection_f32mat;
-
-        get_projection_func(&projection_f32mat);
-
-        layer_parallax = m_core_ptr->get_eye_parallax(-saved_matrix.at(MATRIX_Z_TRANSLATION),
-                                                      projection_f32mat.at(MATRIX_X_SCALE),
-                                                      Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(projection_f32mat) );
-    }
-
-    /* The textures do not change between the eyes, so what each needs is looked up once. */
-    const TextureSelection texture_selection = find_texture_selection();
-
-    if (texture_selection.has_twin_in_another_unit)
-    {
-        note_once("units",
-                  "A texture that has a twin is bound to a unit other than the one that is active: it is not bound to its twin for the right eye");
-    }
+    const OwnCallScope own_call_scope;
+    const EyePlan      plan = make_eye_plan(in_draw_class,
+                                            in_is_pushed,
+                                            false); /* in_needs_matrices */
 
     for (const auto eye : {Analysis::Recipe::Eye::RIGHT, Analysis::Recipe::Eye::LEFT})
     {
         m_targets.bind_eye(eye);
 
-        if (is_affected)
-        {
-            /* The eye matrix times the draw's own, loaded at once. */
-            const auto eye_matrix      = m_core_ptr->make_eye_shift_matrix(eye);
-            const auto combined_matrix = Analysis::APIDumpAnalysis::Frontends::GLMatrixMath::multiply(eye_matrix,
-                                                                                                      saved_matrix);
-
-            GLDriverFunctions::get().load_matrixf_func_ptr(combined_matrix.data() );
-        }
-
-        select_textures(texture_selection,
-                        eye == Analysis::Recipe::Eye::RIGHT);
-
-        if (in_is_pushed)
-        {
-            const float picture_width_pixels = static_cast<float>(saved_viewport.at(VIEWPORT_WIDTH) );
-            float       shift_pixels         = m_core_ptr->plan_push_shift_with_layer(eye,
-                                                                                          picture_width_pixels,
-                                                                                          layer_parallax);
-
-            if (is_part)
-            {
-                /* A perspective projection has a -1 in the third column of its fourth row. */
-                shift_pixels = m_core_ptr->plan_part_shift(eye,
-                                                           picture_width_pixels,
-                                                           part_matrix.at(MATRIX_Z_TRANSLATION),
-                                                           part_projection.at(MATRIX_X_SCALE),
-                                                           Analysis::APIDumpAnalysis::DrawMeasurer::is_perspective_projection(part_projection) );
-            }
-
-            /* The shift is rounded toward zero so that it stays within the plan. An overlay that reaches the sides is widened so that no edge is left bare. */
-            const auto pushed_viewport = Stereo::Core::PushShiftPlanner::make_viewport(saved_viewport.at(VIEWPORT_X),
-                                                                                       saved_viewport.at(VIEWPORT_WIDTH),
-                                                                                       shift_pixels,
-                                                                                       (is_part == false && is_side_reaching) );
-
-            GLDriverFunctions::get().viewport_func_ptr(pushed_viewport.x,
-                                                       saved_viewport.at(VIEWPORT_Y),
-                                                       pushed_viewport.width,
-                                                       saved_viewport.at(VIEWPORT_HEIGHT) );
-        }
-
-        in_draw_func();
+        apply_eye(eye,
+                  plan,
+                  in_draw_func);
     }
 
-    if (in_is_pushed)
-    {
-        GLDriverFunctions::get().viewport_func_ptr(saved_viewport.at(VIEWPORT_X),
-                                                   saved_viewport.at(VIEWPORT_Y),
-                                                   saved_viewport.at(VIEWPORT_WIDTH),
-                                                   saved_viewport.at(VIEWPORT_HEIGHT) );
-    }
-
-    select_textures(texture_selection,
-                    false);
-
-    if (is_affected)
-    {
-        GLDriverFunctions::get().load_matrixf_func_ptr(saved_matrix.data() );
-    }
-
-    if (has_read_matrix                &&
-        matrix_mode != MODELVIEW)
-    {
-        GLDriverFunctions::get().matrix_mode_func_ptr(matrix_mode);
-    }
+    finish_eye_plan(plan);
 }
 
 void Stereo::ConverterDLL::GLEyeRenderer::read_depth_at_once()
@@ -1420,6 +1768,92 @@ void Stereo::ConverterDLL::GLEyeRenderer::read_depth_at_once()
         }
     }
 }
+
+bool Stereo::ConverterDLL::GLEyeRenderer::read_recorded_call(const APIInterceptor::APIFunction&         in_function,
+                                                              const uint32_t&                            in_n_arguments,
+                                                              const APIInterceptor::APIFunctionArgument* in_arguments_ptr,
+                                                              RecordedCallLayout*                        out_layout_ptr,
+                                                              RecordedCall*                              out_call_ptr)
+{
+    RecordedCallLayout   layout;
+    bool                 result            = GLBlockRecorder::find_layout(in_function,
+                                                                          &layout);
+    std::array<float, 4> value_fp32vec4    = {};
+
+    if (result)
+    {
+        if (layout.is_vector)
+        {
+            const void* data_ptr = nullptr;
+            uint32_t    n_bytes  = 0;
+            bool        is_taken = false;
+
+            result = (in_n_arguments > 0                                                &&
+                      in_arguments_ptr[0].type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID);
+
+            if (result)
+            {
+                const uint32_t chunk_id = in_arguments_ptr[0].get_data_chunk_id();
+
+                /* A vertex call is analysed before it is made: the analysis holds its chunk. The calls that set an attribute are not analysed, so their chunk is in the store, and is
+                 * released when its numbers are read.
+                 */
+                result = (m_get_chunk_func != nullptr                         &&
+                          m_get_chunk_func(chunk_id,
+                                          &data_ptr,
+                                          &n_bytes) );
+
+                if (result == false)
+                {
+                    result = APIInterceptor::get_data_chunk(chunk_id,
+                                                           &data_ptr,
+                                                           &n_bytes);
+
+                    is_taken = result;
+                }
+
+                if (result                                                                   &&
+                    n_bytes >= layout.n_values * static_cast<uint32_t>(sizeof(float) ) )
+                {
+                    ::memcpy(value_fp32vec4.data(),
+                             data_ptr,
+                             layout.n_values * sizeof(float) );
+                }
+                else
+                {
+                    result = false;
+                }
+
+                if (is_taken)
+                {
+                    APIInterceptor::release_data_chunk(chunk_id);
+                }
+            }
+        }
+        else
+        {
+            result = (in_n_arguments >= layout.n_values);
+
+            for (uint32_t n_value = 0;
+                          n_value < layout.n_values && result;
+                        ++n_value)
+            {
+                result = APIInterceptor::read_number(in_arguments_ptr[n_value],
+                                                    &value_fp32vec4.at(n_value) );
+            }
+        }
+    }
+
+    if (result)
+    {
+        out_call_ptr->kind           = layout.kind;
+        out_call_ptr->value_fp32vec4 = value_fp32vec4;
+        *out_layout_ptr              = layout;
+    }
+
+    return result;
+}
+
 
 bool Stereo::ConverterDLL::GLEyeRenderer::read_tracked_matrices(std::array<float, 16>* out_modelview_f32mat_ptr,
                                                                 std::array<float, 16>* out_projection_f32mat_ptr,
@@ -1500,79 +1934,18 @@ bool Stereo::ConverterDLL::GLEyeRenderer::record_call(const APIInterceptor::APIF
                                                       const uint32_t&                            in_n_arguments,
                                                       const APIInterceptor::APIFunctionArgument* in_arguments_ptr)
 {
-    RecordedCallLayout   layout;
-    bool                 result            = GLBlockRecorder::find_layout(in_function,
-                                                                          &layout);
-    std::array<float, 4> value_fp32vec4    = {};
+    RecordedCall       call;
+    RecordedCallLayout layout;
+    const bool         result = read_recorded_call(in_function,
+                                                   in_n_arguments,
+                                                   in_arguments_ptr,
+                                                  &layout,
+                                                  &call);
 
     if (result)
     {
-        if (layout.is_vector)
-        {
-            const void* data_ptr = nullptr;
-            uint32_t    n_bytes  = 0;
-            bool        is_taken = false;
-
-            result = (in_n_arguments > 0                                                &&
-                      in_arguments_ptr[0].type == APIInterceptor::ARGTYPE_DATA_CHUNK_ID);
-
-            if (result)
-            {
-                const uint32_t chunk_id = in_arguments_ptr[0].get_data_chunk_id();
-
-                /* A vertex call is analysed before it is made: the analysis holds its chunk. The calls that set an attribute are not analysed, so their chunk is in the store, and is
-                 * released when its numbers are read.
-                 */
-                result = (m_get_chunk_func != nullptr                         &&
-                          m_get_chunk_func(chunk_id,
-                                          &data_ptr,
-                                          &n_bytes) );
-
-                if (result == false)
-                {
-                    result = APIInterceptor::get_data_chunk(chunk_id,
-                                                           &data_ptr,
-                                                           &n_bytes);
-
-                    is_taken = result;
-                }
-
-                if (result                                                                   &&
-                    n_bytes >= layout.n_values * static_cast<uint32_t>(sizeof(float) ) )
-                {
-                    ::memcpy(value_fp32vec4.data(),
-                             data_ptr,
-                             layout.n_values * sizeof(float) );
-                }
-                else
-                {
-                    result = false;
-                }
-
-                if (is_taken)
-                {
-                    APIInterceptor::release_data_chunk(chunk_id);
-                }
-            }
-        }
-        else
-        {
-            result = (in_n_arguments >= layout.n_values);
-
-            for (uint32_t n_value = 0;
-                          n_value < layout.n_values && result;
-                        ++n_value)
-            {
-                result = APIInterceptor::read_number(in_arguments_ptr[n_value],
-                                                    &value_fp32vec4.at(n_value) );
-            }
-        }
-    }
-
-    if (result)
-    {
-        m_block_recorder.add(layout.kind,
-                             value_fp32vec4);
+        m_block_recorder.add(call.kind,
+                             call.value_fp32vec4);
     }
 
     return result;
@@ -1661,6 +2034,11 @@ bool Stereo::ConverterDLL::GLEyeRenderer::serve_pixel_read(const uint32_t&      
     }
 
     return result;
+}
+
+void Stereo::ConverterDLL::GLEyeRenderer::set_defers_right_eye(const bool& in_defers_right_eye)
+{
+    m_defers_right_eye = in_defers_right_eye;
 }
 
 void Stereo::ConverterDLL::GLEyeRenderer::set_get_chunk_func(const GetChunkFunc& in_get_chunk_func)

@@ -61,6 +61,11 @@ bool Stereo::ConverterDLL::GLBlockRecorder::find_layout(const APIInterceptor::AP
     return result;
 }
 
+const std::vector<Stereo::ConverterDLL::RecordedCall>& Stereo::ConverterDLL::GLBlockRecorder::get_calls() const
+{
+    return m_call_vec;
+}
+
 uint32_t Stereo::ConverterDLL::GLBlockRecorder::get_mode() const
 {
     return m_mode;
@@ -74,21 +79,42 @@ bool Stereo::ConverterDLL::GLBlockRecorder::is_vertex(const RecordedCallKind& in
 
 void Stereo::ConverterDLL::GLBlockRecorder::play() const
 {
+    play_block(m_mode,
+               m_call_vec.data(),
+               m_call_vec.size() );
+}
+
+void Stereo::ConverterDLL::GLBlockRecorder::play_block(const uint32_t&     in_mode,
+                                                       const RecordedCall* in_calls_ptr,
+                                                       const size_t&       in_n_calls)
+{
     const auto& driver = GLDriverFunctions::get();
 
-    driver.begin_func_ptr(m_mode);
+    driver.begin_func_ptr(in_mode);
 
-    play_calls();
+    play_span(in_calls_ptr,
+              in_n_calls);
 
     driver.end_func_ptr();
 }
 
 void Stereo::ConverterDLL::GLBlockRecorder::play_calls() const
 {
+    play_span(m_call_vec.data(),
+              m_call_vec.size() );
+}
+
+void Stereo::ConverterDLL::GLBlockRecorder::play_span(const RecordedCall* in_calls_ptr,
+                                                      const size_t&       in_n_calls)
+{
     const auto& driver = GLDriverFunctions::get();
 
-    for (const auto& call : m_call_vec)
+    for (size_t n_call = 0;
+                n_call < in_n_calls;
+              ++n_call)
     {
+        const RecordedCall& call = in_calls_ptr[n_call];
+
         const float* value_ptr = call.value_fp32vec4.data();
 
         switch (call.kind)

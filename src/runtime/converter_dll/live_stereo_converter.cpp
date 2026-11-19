@@ -296,6 +296,21 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
 
         m_live_state.gl_renderer_ptr->set_records_immediate_mode_blocks(records_immediate_mode_blocks);
 
+        /* P1 prototype: the right eye is drawn once for a run of the application's calls instead of once for each block. Needs the blocks to be recorded. */
+        {
+            float value = 0.0f;
+
+            if (EnvironmentVariableReader::get_number("APISTEREO_RENDER_RIGHT_THEN_LEFT_EYE",
+                                                      &value) &&
+                value != 0.0f                                  &&
+                records_immediate_mode_blocks)
+            {
+                m_live_state.gl_renderer_ptr->set_defers_right_eye(true);
+
+                m_log.write("The right eye is drawn once for a run of the application's calls, from APISTEREO_RENDER_RIGHT_THEN_LEFT_EYE");
+            }
+        }
+
         if (records_immediate_mode_blocks)
         {
             m_log.write( (is_recording_set_by_person) ? "The immediate-mode blocks (glBegin to glEnd) are recorded and made again for each eye, from APISTEREO_RECORD_IMMEDIATE_MODE_BLOCKS"
@@ -492,7 +507,16 @@ std::string Stereo::ConverterDLL::LiveStereoConverter::make_statistics_line() co
                                                                                     std::to_string(gl_stats.n_recorded_blocks)         +
                                                                                     " blocks made from a recording, "                    +
                                                                                     std::to_string(gl_stats.n_fallback_blocks)         +
-                                                                                    " of them handed to a display list"
+                                                                                    " of them handed to a display list" +
+                                                                                    ", "                                              +
+                                                                                    std::to_string(gl_stats.n_runs)                    +
+                                                                                    " runs of the right eye ("                          +
+                                                                                    std::to_string(gl_stats.n_run_draws)               +
+                                                                                    " blocks, "                                         +
+                                                                                    std::to_string(gl_stats.n_run_states)              +
+                                                                                    " state calls, "                                    +
+                                                                                    std::to_string(gl_stats.n_run_mismatches)          +
+                                                                                    " mismatches)"
                                                                                   : std::string();
 
     return "After "                                                       +

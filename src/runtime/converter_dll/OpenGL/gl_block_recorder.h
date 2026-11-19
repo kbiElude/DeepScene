@@ -30,6 +30,8 @@ namespace Stereo
             /* Forgets the calls and starts a block of the mode. The memory of the calls is kept for the next block. */
             void begin(const uint32_t& in_mode);
 
+            const std::vector<RecordedCall>& get_calls() const;
+
             uint32_t get_mode() const;
 
             /* Makes the block with the driver's functions: glBegin, the calls, glEnd. */
@@ -44,6 +46,15 @@ namespace Stereo
 
             /* Whether the kind of call gives a vertex (the others set an attribute of the vertices that follow). */
             static bool is_vertex(const RecordedCallKind& in_kind);
+
+            /* Makes a block that is kept elsewhere: glBegin, the calls, glEnd. */
+            static void play_block(const uint32_t&     in_mode,
+                                   const RecordedCall* in_calls_ptr,
+                                   const size_t&       in_n_calls);
+
+            /* Makes calls that are kept elsewhere. */
+            static void play_span(const RecordedCall* in_calls_ptr,
+                                  const size_t&       in_n_calls);
 
         private:
             std::vector<RecordedCall> m_call_vec;
