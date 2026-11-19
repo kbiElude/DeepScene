@@ -1457,6 +1457,40 @@ TEST_F(RecipeLoaderTest, ThePixelReadsOfTheApplicationAreCachedOnlyIfTheRecipeAs
                    "cache_pixel_reads");
 }
 
+TEST_F(RecipeLoaderTest, ARecipeMayAskForTheImmediateModeBlocksToBeRecordedAndNothingElseIsAccepted)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.records_immediate_mode_blocks);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"record_immediate_mode_blocks\": true,",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.records_immediate_mode_blocks);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"record_immediate_mode_blocks\": false,",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.records_immediate_mode_blocks);
+
+    expect_refused(get_recipe_text("\"record_immediate_mode_blocks\": \"yes\",",
+                                   ""),
+                   "record_immediate_mode_blocks");
+    expect_refused(get_recipe_text("\"record_immediate_mode_blocks\": 1,",
+                                   ""),
+                   "record_immediate_mode_blocks");
+}
+
 TEST_F(RecipeLoaderTest, BakedSceneSeparationLimitsAreReadAndWhatIsWrongInThemIsRefused)
 {
     std::string              error;
@@ -1856,6 +1890,27 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
                   (std::string(expected.filename) == "gerbera.json"    ||
                    std::string(expected.filename) == "propaganda.json" ||
                    std::string(expected.filename) == "tesla.json") ) << expected.filename;
+    }
+}
+
+TEST_F(RecipeLoaderTest, OnlyThePropagandaRecipeOfTheRepositoryAsksForTheImmediateModeBlocksToBeRecorded)
+{
+    const char* const filename_array[] = {"fr08.json", "gerbera.json", "kasparov.json", "propaganda.json", "tesla.json"};
+
+    for (const char* filename : filename_array)
+    {
+        std::string              error;
+        Analysis::Recipe::Recipe recipe;
+
+        ASSERT_TRUE(Analysis::Recipe::RecipeLoader::load(std::string(DEMOVRPLAYER_APPS_DIR) + "/recipes/" + filename,
+                                                         &recipe,
+                                                         &error) ) << filename << ": " << error;
+
+        /* Propaganda gives thousands of blocks a frame, and is the only app that has been checked with the recording. Gerbera is fast enough, and a recipe that serves pixel reads
+         * from one picture is never recorded.
+         */
+        EXPECT_EQ(recipe.records_immediate_mode_blocks,
+                  std::string(filename) == "propaganda.json") << filename;
     }
 }
 

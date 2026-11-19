@@ -90,6 +90,9 @@ namespace Analysis
             /* Returns how far toward the viewer the draws that the rules leave alone are pushed (see Comfort::overlay_parallax). 0 means no push. */
             float get_overlay_parallax() const;
 
+            /* Whether the recipe has the blocks between glBegin and glEnd recorded and made again for each eye (see Recipe::records_immediate_mode_blocks). */
+            bool get_records_immediate_mode_blocks() const;
+
             /* Returns what the recipe says about the scene (see Comfort::scene_override_vec), or nullptr if it says nothing. */
             const SceneComfort* find_scene_comfort_ptr(const uint64_t& in_shape_key) const;
 

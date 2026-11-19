@@ -45,7 +45,7 @@ Stereo::ConverterDLL::GLEyeRenderer::GLEyeRenderer(Stereo::Core::RecipeStereoPla
      m_n_tracked_matrix_reads(0),
      m_n_unanalyzed_vertices(0),
      m_pass_has_affected_draws(false),
-     m_records_blocks     (false),
+     m_records_immediate_mode_blocks(false),
      m_scaler             (in_target_width,
                            in_target_height,
                            in_core_ptr,
@@ -838,8 +838,8 @@ bool Stereo::ConverterDLL::GLEyeRenderer::on_pre(const APIInterceptor::APIFuncti
             {
                 uint32_t mode = 0;
 
-                if (m_records_blocks                                     &&
-                    in_n_arguments > 0                                   &&
+                if (m_records_immediate_mode_blocks   &&
+                    in_n_arguments > 0                &&
                     APIInterceptor::read_number(in_arguments_ptr[0],
                                                &mode) )
                 {
@@ -1673,9 +1673,9 @@ void Stereo::ConverterDLL::GLEyeRenderer::set_get_matrices_func(const GetMatrice
     m_get_matrices_func = in_get_matrices_func;
 }
 
-void Stereo::ConverterDLL::GLEyeRenderer::set_records_blocks(const bool& in_records_blocks)
+void Stereo::ConverterDLL::GLEyeRenderer::set_records_immediate_mode_blocks(const bool& in_records_immediate_mode_blocks)
 {
-    m_records_blocks = in_records_blocks;
+    m_records_immediate_mode_blocks = in_records_immediate_mode_blocks;
 }
 
 void Stereo::ConverterDLL::GLEyeRenderer::start_depth_read()

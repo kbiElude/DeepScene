@@ -199,6 +199,11 @@ float Stereo::Core::RecipeStereoPlanner::get_near_fraction() const
     return m_applier.get_comfort().near_fraction;
 }
 
+bool Stereo::Core::RecipeStereoPlanner::get_records_immediate_mode_blocks() const
+{
+    return m_applier.get_records_immediate_mode_blocks();
+}
+
 bool Stereo::Core::RecipeStereoPlanner::is_last_draw_attached_to_camera(const float& in_origin_depth) const
 {
     const float attached_depth = get_camera_attached_depth() * get_effective_convergence_distance();

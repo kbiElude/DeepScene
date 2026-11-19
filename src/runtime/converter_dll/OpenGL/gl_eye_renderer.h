@@ -106,7 +106,7 @@ namespace Stereo
             void set_get_matrices_func(const GetMatricesFunc& in_get_matrices_func);
 
             /* Whether the blocks between glBegin and glEnd are recorded and made again for each eye, or compiled into a display list that the driver calls. */
-            void set_records_blocks(const bool& in_records_blocks);
+            void set_records_immediate_mode_blocks(const bool& in_records_immediate_mode_blocks);
 
             /* Log notes: what was not made for the right eye or could not be made. Each note is given once. */
             std::vector<std::string> take_notes();
@@ -251,7 +251,7 @@ namespace Stereo
             std::array<float, 16>                 m_pass_projection_f32mat; /* projection of the first affected draw of the pass */
             bool                                  m_pass_has_affected_draws;
             Stereo::Core::PictureReadbackCache    m_readback_cache;
-            bool                                  m_records_blocks;    /* see set_records_blocks() */
+            bool                                  m_records_immediate_mode_blocks;    /* see set_records_immediate_mode_blocks() */
             GLResolutionScaler                    m_scaler;
             Statistics                            m_statistics;
             GLEyeTargets                          m_targets;

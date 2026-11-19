@@ -46,11 +46,32 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
      */
     const bool is_picture_dropped_by_any_call = m_live_state.core_ptr->get_caches_pixel_reads();
 
-    /* The blocks of an OpenGL application can be recorded and made again for each eye, instead of being compiled into a display list that the driver calls. A recipe that
-     * serves pixel reads from one picture needs a callback on every call, which the recording does not give.
+    /* The immediate-mode blocks of an OpenGL application (glBegin to glEnd) can be recorded and made again for each eye, instead of being compiled into a display list that the driver
+     * calls. The recipe says so (record_immediate_mode_blocks); a person can set APISTEREO_RECORD_IMMEDIATE_MODE_BLOCKS to 1 or 0 to decide it for a run. A recipe that serves pixel reads
+     * from one picture needs a callback on every call, which the recording does not give, so such a recipe never records.
      */
-    const bool records_blocks = (is_picture_dropped_by_any_call == false &&
-                                 EnvironmentVariableReader::is_set("APISTEREO_RECORD_BLOCKS") );
+    bool records_immediate_mode_blocks = m_live_state.core_ptr->get_records_immediate_mode_blocks();
+    bool is_recording_set_by_person    = false;
+
+    {
+        float value = 0.0f;
+
+        if (EnvironmentVariableReader::get_number("APISTEREO_RECORD_IMMEDIATE_MODE_BLOCKS",
+                                                  &value) )
+        {
+            records_immediate_mode_blocks = (value != 0.0f);
+            is_recording_set_by_person    = true;
+        }
+    }
+
+    const bool is_recording_refused = (records_immediate_mode_blocks && is_picture_dropped_by_any_call);
+
+    if (is_recording_refused)
+    {
+        records_immediate_mode_blocks = false;
+
+        m_log.write("The immediate-mode blocks are not recorded: the recipe serves pixel reads from one picture (cache_pixel_reads), which needs a callback on every call");
+    }
 
     for (uint32_t n_api_func = 0;
                   n_api_func < APIInterceptor::APIFUNCTION_COUNT;
@@ -66,14 +87,14 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
             RecordedCallLayout layout;
 
             const bool is_attribute = LiveCallAnalyzer::is_attribute_call(function);
-            const bool is_recorded  = (records_blocks                                     &&
-                                       (is_attribute                                      ||
+            const bool is_recorded  = (records_immediate_mode_blocks                      &&
+                                       (is_attribute                                       ||
                                         (GLBlockRecorder::find_layout(function,
-                                                                     &layout)             &&
+                                                                     &layout)              &&
                                          GLBlockRecorder::is_vertex(layout.kind) ) ) );
             const bool is_unneeded  = (is_picture_dropped_by_any_call == false &&
-                                       is_attribute                   &&
-                                       records_blocks == false);
+                                       is_attribute                            &&
+                                       records_immediate_mode_blocks == false);
 
             if (is_recorded)
             {
@@ -272,11 +293,13 @@ Stereo::ConverterDLL::LiveStereoConverter::LiveStereoConverter(const Stereo::Ses
         };
 
         m_live_state.gl_renderer_ptr->set_get_chunk_func(get_gl_chunk_func);
-        m_live_state.gl_renderer_ptr->set_records_blocks (records_blocks);
 
-        if (records_blocks)
+        m_live_state.gl_renderer_ptr->set_records_immediate_mode_blocks(records_immediate_mode_blocks);
+
+        if (records_immediate_mode_blocks)
         {
-            m_log.write("The blocks between glBegin and glEnd are recorded and made again for each eye (APISTEREO_RECORD_BLOCKS)");
+            m_log.write( (is_recording_set_by_person) ? "The immediate-mode blocks (glBegin to glEnd) are recorded and made again for each eye, from APISTEREO_RECORD_IMMEDIATE_MODE_BLOCKS"
+                                                    : "The immediate-mode blocks (glBegin to glEnd) are recorded and made again for each eye, from the record_immediate_mode_blocks of the recipe");
         }
 
         const auto get_gl_matrices_func = [this](std::array<float, 16>* out_modelview_f32mat_ptr,

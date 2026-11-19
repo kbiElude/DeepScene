@@ -492,6 +492,11 @@ float Analysis::Recipe::RecipeApplier::get_overlay_parallax() const
     return m_recipe.comfort.overlay_parallax;
 }
 
+bool Analysis::Recipe::RecipeApplier::get_records_immediate_mode_blocks() const
+{
+    return m_recipe.records_immediate_mode_blocks;
+}
+
 float Analysis::Recipe::RecipeApplier::get_scene_convergence_distance(const uint64_t& in_shape_key) const
 {
     const auto distance_iterator = m_scene_convergence_distance_map.find(in_shape_key);

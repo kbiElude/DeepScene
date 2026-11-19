@@ -103,6 +103,9 @@ namespace Stereo
             /* The fraction of the surfaces of a scene that counts as its nearest (see Comfort::near_fraction). */
             float get_near_fraction() const;
 
+            /* Whether the recipe has the blocks between glBegin and glEnd recorded and made again for each eye (see Recipe::records_immediate_mode_blocks). */
+            bool get_records_immediate_mode_blocks() const;
+
             /* Whether the recipe has the converter measure how deep each frame is (see Comfort::measures_depth). */
             bool get_measures_depth() const;
 

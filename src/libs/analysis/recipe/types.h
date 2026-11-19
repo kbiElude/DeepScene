@@ -343,6 +343,9 @@ namespace Analysis
             std::vector<uint64_t>         overlay_draw_key_vec;            /* from "baked": draws in the space of the picture over a 3D scene: left as made and pushed */
             std::vector<PerEyeTexture>    per_eye_texture_vec;             /* from "baked"; see PerEyeTexture             */
             DrawSelector                  pushed;                          /* draws that are pushed toward the viewer by comfort.overlay_parallax, whatever else they are */
+            /* Makes the blocks that an OpenGL application gives between glBegin and glEnd by recording their calls and making them again for each eye, in place of compiling each into a
+             * display list that the driver calls (see GLBlockRecorder). Faster for an application that gives thousands of blocks a frame. Off unless the recipe asks. */
+            bool                          records_immediate_mode_blocks = false;
             std::vector<MatrixRule>       rule_vec;
             std::vector<SceneConvergence> scene_convergence_vec;
             ScreenParallaxSettings        screen_parallax;                 /* see ScreenParallaxSettings; not enabled unless the recipe has it */

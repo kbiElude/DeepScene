@@ -190,7 +190,7 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
     }
 
     if (check_keys(root,
-                   {"affected", "baked", "cache_pixel_reads", "comfort", "frame_pacing", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
+                   {"affected", "baked", "cache_pixel_reads", "comfort", "frame_pacing", "key_scheme_version", "known_shape_keys", "on_unknown_frame", "pushed", "recipe_version", "record_immediate_mode_blocks", "rules", "screen_parallax", "skipped", "target", "unaffected", "view_anchor_shift"},
                    "",
                    out_error_ptr) == false)
     {
@@ -198,22 +198,23 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
     }
 
     {
-        const auto* affected_ptr           = root.find_ptr("affected");
-        const auto* baked_ptr              = root.find_ptr("baked");
-        const auto* cache_pixel_reads_ptr  = root.find_ptr("cache_pixel_reads");
-        const auto* comfort_ptr            = root.find_ptr("comfort");
-        const auto* frame_pacing_ptr       = root.find_ptr("frame_pacing");
-        const auto* key_scheme_version_ptr = root.find_ptr("key_scheme_version");
-        const auto* known_shape_keys_ptr   = root.find_ptr("known_shape_keys");
-        const auto* on_unknown_frame_ptr   = root.find_ptr("on_unknown_frame");
-        const auto* pushed_ptr             = root.find_ptr("pushed");
-        const auto* recipe_version_ptr     = root.find_ptr("recipe_version");
-        const auto* rule_array_ptr         = root.find_ptr("rules");
-        const auto* screen_parallax_ptr    = root.find_ptr("screen_parallax");
-        const auto* skipped_ptr            = root.find_ptr("skipped");
-        const auto* target_ptr             = root.find_ptr("target");
-        const auto* unaffected_ptr         = root.find_ptr("unaffected");
-        const auto* view_anchor_shift_ptr  = root.find_ptr("view_anchor_shift");
+        const auto* affected_ptr                     = root.find_ptr("affected");
+        const auto* baked_ptr                        = root.find_ptr("baked");
+        const auto* cache_pixel_reads_ptr            = root.find_ptr("cache_pixel_reads");
+        const auto* comfort_ptr                      = root.find_ptr("comfort");
+        const auto* frame_pacing_ptr                 = root.find_ptr("frame_pacing");
+        const auto* key_scheme_version_ptr           = root.find_ptr("key_scheme_version");
+        const auto* known_shape_keys_ptr             = root.find_ptr("known_shape_keys");
+        const auto* on_unknown_frame_ptr             = root.find_ptr("on_unknown_frame");
+        const auto* pushed_ptr                       = root.find_ptr("pushed");
+        const auto* recipe_version_ptr               = root.find_ptr("recipe_version");
+        const auto* record_immediate_mode_blocks_ptr = root.find_ptr("record_immediate_mode_blocks");
+        const auto* rule_array_ptr                   = root.find_ptr("rules");
+        const auto* screen_parallax_ptr              = root.find_ptr("screen_parallax");
+        const auto* skipped_ptr                      = root.find_ptr("skipped");
+        const auto* target_ptr                       = root.find_ptr("target");
+        const auto* unaffected_ptr                   = root.find_ptr("unaffected");
+        const auto* view_anchor_shift_ptr            = root.find_ptr("view_anchor_shift");
 
         if (recipe_version_ptr == nullptr)
         {
@@ -531,6 +532,18 @@ bool Analysis::Recipe::RecipeLoader::parse(const std::string& in_text,
             }
 
             out_recipe_ptr->caches_pixel_reads = cache_pixel_reads_ptr->bool_value;
+        }
+
+        if (record_immediate_mode_blocks_ptr != nullptr)
+        {
+            if (record_immediate_mode_blocks_ptr->type != Utils::Json::JsonValueType::BOOL)
+            {
+                *out_error_ptr = "record_immediate_mode_blocks: expected true or false";
+
+                goto end;
+            }
+
+            out_recipe_ptr->records_immediate_mode_blocks = record_immediate_mode_blocks_ptr->bool_value;
         }
 
         if (on_unknown_frame_ptr != nullptr)

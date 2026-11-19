@@ -17,6 +17,7 @@
   },
   "key_scheme_version": 1,
   "recipe_version": 0,
+  "record_immediate_mode_blocks": true,
   "rules": [],
   "target": {
     "name": "Propaganda"
