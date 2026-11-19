@@ -346,6 +346,9 @@ namespace Analysis
             /* Makes the blocks that an OpenGL application gives between glBegin and glEnd by recording their calls and making them again for each eye, in place of compiling each into a
              * display list that the driver calls (see GLBlockRecorder). Faster for an application that gives thousands of blocks a frame. Off unless the recipe asks. */
             bool                          records_immediate_mode_blocks = false;
+            /* Draws the right eye of an OpenGL application once for a run of its calls, after the left eye has been drawn for each block, in place of drawing both eyes for each block (see GLRunRecorder). It changes
+             * which framebuffer is bound far less often, which is most of what a program with thousands of blocks a frame costs. Needs records_immediate_mode_blocks. Off unless the recipe asks. */
+            bool                          renders_right_then_left_eye = false;
             std::vector<MatrixRule>       rule_vec;
             std::vector<SceneConvergence> scene_convergence_vec;
             ScreenParallaxSettings        screen_parallax;                 /* see ScreenParallaxSettings; not enabled unless the recipe has it */

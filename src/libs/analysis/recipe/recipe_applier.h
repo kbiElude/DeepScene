@@ -93,6 +93,9 @@ namespace Analysis
             /* Whether the recipe has the blocks between glBegin and glEnd recorded and made again for each eye (see Recipe::records_immediate_mode_blocks). */
             bool get_records_immediate_mode_blocks() const;
 
+            /* Whether the recipe has the right eye drawn once for a run of the calls, after the left eye (see Recipe::renders_right_then_left_eye). */
+            bool get_renders_right_then_left_eye() const;
+
             /* Returns what the recipe says about the scene (see Comfort::scene_override_vec), or nullptr if it says nothing. */
             const SceneComfort* find_scene_comfort_ptr(const uint64_t& in_shape_key) const;
 

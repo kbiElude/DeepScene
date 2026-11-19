@@ -204,6 +204,11 @@ bool Stereo::Core::RecipeStereoPlanner::get_records_immediate_mode_blocks() cons
     return m_applier.get_records_immediate_mode_blocks();
 }
 
+bool Stereo::Core::RecipeStereoPlanner::get_renders_right_then_left_eye() const
+{
+    return m_applier.get_renders_right_then_left_eye();
+}
+
 bool Stereo::Core::RecipeStereoPlanner::is_last_draw_attached_to_camera(const float& in_origin_depth) const
 {
     const float attached_depth = get_camera_attached_depth() * get_effective_convergence_distance();

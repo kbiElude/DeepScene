@@ -1491,6 +1491,40 @@ TEST_F(RecipeLoaderTest, ARecipeMayAskForTheImmediateModeBlocksToBeRecordedAndNo
                    "record_immediate_mode_blocks");
 }
 
+TEST_F(RecipeLoaderTest, ARecipeMayAskForTheRightEyeToBeDrawnAfterTheLeftEyeAndNothingElseIsAccepted)
+{
+    std::string              error;
+    Analysis::Recipe::Recipe recipe;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.renders_right_then_left_eye);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"render_right_then_left_eye\": true,",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.renders_right_then_left_eye);
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"render_right_then_left_eye\": false,",
+                                                                       ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.renders_right_then_left_eye);
+
+    expect_refused(get_recipe_text("\"render_right_then_left_eye\": \"yes\",",
+                                   ""),
+                   "render_right_then_left_eye");
+    expect_refused(get_recipe_text("\"render_right_then_left_eye\": 1,",
+                                   ""),
+                   "render_right_then_left_eye");
+}
+
 TEST_F(RecipeLoaderTest, BakedSceneSeparationLimitsAreReadAndWhatIsWrongInThemIsRefused)
 {
     std::string              error;
@@ -1910,6 +1944,8 @@ TEST_F(RecipeLoaderTest, OnlyThePropagandaRecipeOfTheRepositoryAsksForTheImmedia
          * from one picture is never recorded.
          */
         EXPECT_EQ(recipe.records_immediate_mode_blocks,
+                  std::string(filename) == "propaganda.json") << filename;
+        EXPECT_EQ(recipe.renders_right_then_left_eye,
                   std::string(filename) == "propaganda.json") << filename;
     }
 }
