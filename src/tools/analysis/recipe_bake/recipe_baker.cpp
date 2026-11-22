@@ -781,9 +781,14 @@ std::vector<uint64_t> Analysis::RecipeBake::RecipeBaker::get_side_reaching_draw_
         const float depth_scale  = std::max(::fabsf(facts.view_depth_max),
                                             1.0f);
 
-        if (facts.x_min       <= -EDGE_REACH                      &&
-            facts.x_max       >=  EDGE_REACH                      &&
-            depth_spread      <= FLAT_DEPTH_SPREAD * depth_scale)
+        /* A draw that is made in pixels or with an orthographic projection is flat whatever depths its vertices have: depth changes neither where it lands nor its parallax. */
+        const bool is_flat = ( (facts.n_draws > 0                            &&
+                                facts.n_draws_flat_layer == facts.n_draws)   ||
+                              depth_spread <= FLAT_DEPTH_SPREAD * depth_scale);
+
+        if (facts.x_min <= -EDGE_REACH &&
+            facts.x_max >=  EDGE_REACH &&
+            is_flat)
         {
             key_set.insert(facts_pair.first.second);
         }

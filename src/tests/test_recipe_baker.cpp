@@ -394,6 +394,9 @@ TEST_F(RecipeBakerTest, TheDrawsThatAreFlatAndReachFromOneSideOfThePictureToTheO
     Analysis::APIDumpAnalysis::DrawFacts bar;
     Analysis::APIDumpAnalysis::DrawFacts short_bar;
     Analysis::APIDumpAnalysis::DrawFacts floor;
+    Analysis::APIDumpAnalysis::DrawFacts orthographic_band;
+    Analysis::APIDumpAnalysis::DrawFacts partly_flat_band;
+    Analysis::APIDumpAnalysis::DrawFacts perspective_band;
 
     bar.n_draws_with_footprint = 1;
     bar.x_min                  = -1.0f;
@@ -409,9 +412,29 @@ TEST_F(RecipeBakerTest, TheDrawsThatAreFlatAndReachFromOneSideOfThePictureToTheO
     floor.x_min                  = -1.0f;
     floor.x_max                  =  1.0f;
 
+    /* A band of quads that are drawn in an orthographic projection, with the depths of their vertices far apart, which together reach beyond both edges: it is flat, because depth
+     * changes nothing of where it lands. The same facts of a perspective draw, or of a kind that was only partly drawn flat, are not.
+     */
+    orthographic_band.n_draws                 = 3;
+    orthographic_band.n_draws_flat_layer      = 3;
+    orthographic_band.n_draws_with_footprint  = 3;
+    orthographic_band.view_depth_max          = 10.1f;
+    orthographic_band.view_depth_min          = 0.1f;
+    orthographic_band.x_min                   = -2.8f;
+    orthographic_band.x_max                   =  1.6f;
+
+    perspective_band           = orthographic_band;
+    perspective_band.n_draws_flat_layer = 0;
+
+    partly_flat_band           = orthographic_band;
+    partly_flat_band.n_draws_flat_layer = 2;
+
     analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xa1)] = bar;
     analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xb2)] = short_bar;
     analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xc3)] = floor;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xd4)] = orthographic_band;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xe5)] = perspective_band;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x1, 0xf6)] = partly_flat_band;
 
     ASSERT_TRUE(Analysis::RecipeBake::RecipeBaker::bake(make_recipe_text(second_pass_key),
                                                         analysis,
@@ -423,9 +446,11 @@ TEST_F(RecipeBakerTest, TheDrawsThatAreFlatAndReachFromOneSideOfThePictureToTheO
                                                       &error) ) << error;
 
     ASSERT_EQ(recipe.side_reaching_draw_key_vec.size(),
-              1u);
+              2u);
     EXPECT_EQ(recipe.side_reaching_draw_key_vec.at(0),
               0xa1u);
+    EXPECT_EQ(recipe.side_reaching_draw_key_vec.at(1),
+              0xd4u);
 }
 
 TEST_F(RecipeBakerTest, TheDrawsAreToldApartIntoLayersOverlaysAndDrawsInTheSpaceOfTheEyeByWhatTheyDid)
