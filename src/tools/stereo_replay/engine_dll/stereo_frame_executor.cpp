@@ -86,12 +86,26 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::begin_frame_execution(const
         const auto& left_snapshot  = m_eye_history.snapshot_array.at(N_LEFT_EXECUTION);
         const auto& right_snapshot = m_eye_history.snapshot_array.at(N_RIGHT_EXECUTION);
 
-        /* Keep the back buffer as it is before the first execution. The right eye starts from it until it has a history. */
+        /* Keep the back buffer as it is before the first execution. The right eye starts from it until it has a history. The very first frame of a replay may
+         * make the window itself: there is no back buffer to read before it, so the history starts with what a new back buffer has (an empty base picture, which
+         * the executors put into the back buffer as that content). After any picture has been taken, a read that fails is a failure.
+         */
         if (left_snapshot.has_pixels  == false ||
             right_snapshot.has_pixels == false)
         {
-            result = read_back_buffer(&m_eye_history.base_u8_vec,
-                                      nullptr);
+            const bool has_history_started = (left_snapshot.has_pixels                ||
+                                              right_snapshot.has_pixels               ||
+                                              m_eye_history.base_u8_vec.empty() == false);
+            const bool is_read             = read_back_buffer(&m_eye_history.base_u8_vec,
+                                                              nullptr);
+
+            if (is_read == false)
+            {
+                m_eye_history.base_u8_vec.clear();
+            }
+
+            result = (is_read                ||
+                      has_history_started == false);
         }
 
         if (result                  &&

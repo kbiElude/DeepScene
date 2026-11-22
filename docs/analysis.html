@@ -472,7 +472,7 @@
 <h3>What it is used for</h3>
 <ul>
   <li><strong>Per-eye textures.</strong> A resource needs a copy for each eye when it is rendered to and some frame uses what an earlier frame left in it, <em>whether that frame writes it too or not</em>. <code>RecipeBake --deps</code> puts them in the recipe. Targets that frames write by turns (a double buffer the program makes itself) are a <em>rotation group</em> and are listed together, so an eye never finds what another eye's frame rendered.</li>
-  <li><strong>Swap chain images.</strong> They are left out of the list: the player keeps what a frame carries over in the back buffer apart for each eye, by its pixels.</li>
+  <li><strong>Swap chain images.</strong> They are left out of the list: the player keeps what a frame carries over in the back buffer apart for each eye, by its pixels. The history starts empty: when the first frame of a replay makes the window itself there is no back buffer to read before it, and the first picture an eye is given is what a new back buffer has (opaque black, because OpenGL leaves it undefined). A seek back starts the replay again from that state.</li>
   <li><strong>Dead frames.</strong> A frame is <em>dead</em> for a seek if nothing the target frame or any later frame reads comes of it. The replay uses this to leave out most of the work when it jumps to a frame (<a href="replay.html#seek">Replay</a>).</li>
 </ul>
 
