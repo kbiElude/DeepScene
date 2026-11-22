@@ -61,11 +61,25 @@ namespace Stereo
                 Analysis::Recipe::Recipe recipe;
                 std::string              recipe_filename;
                 std::string              same_frames_workload_filename;               /* the frames are also replayed from this workload and compared (a slice of the workload, for example) */
-                uint32_t                 screenshot_frame               = UINT32_MAX; /* the frame to write the image of: the replay of the workload stops at it */
+                std::vector<uint32_t>    screenshot_frame_vec;                        /* the frames to write the image of, in order and without repeats; the replay of the workload stops at the last */
                 uint64_t                 truncate_draw_key              = 0;
                 uint64_t                 truncate_pass_key              = 0;
                 std::vector<std::string> way_name_vec;                                /* the ways to replay besides the frames as they are; none: the default ways */
                 std::string              workload_filename;
+            };
+
+            /* A file of a screenshot, and the frame that it shows. */
+            struct ScreenshotFile
+            {
+                std::string filename;
+                uint32_t    frame = 0;
+            };
+
+            /* What the screenshots made: the files, and the frames that were asked for and that the replay did not reach (no file was written for them). */
+            struct ScreenshotReport
+            {
+                std::vector<uint32_t>       skipped_frame_vec;
+                std::vector<ScreenshotFile> written_vec;
             };
 
             /* What the overlay report needs to play the candidates of a frame in one run (see OverlayReport): a replay of the frame once per variant,

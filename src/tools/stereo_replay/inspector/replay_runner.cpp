@@ -78,6 +78,26 @@ bool Stereo::Replay::Inspector::replay_to_frame(const Stereo::Replay::Inspector:
                        out_error_ptr);
 }
 
+bool Stereo::Replay::Inspector::replay_to_frames(const Stereo::Replay::Inspector::Options& in_options,
+                                                 const std::vector<uint32_t>&              in_frame_vec,
+                                                 Stereo::Replay::Inspector::FrameHashSink* out_sink_ptr,
+                                                 std::string*                              out_error_ptr)
+{
+    const bool                         uses_recipe = (in_options.recipe_filename.empty() == false);
+    Stereo::Replay::Inspector::Options options     = in_options;
+
+    options.first_frame = 0;
+    options.last_frame  = in_frame_vec.back();
+
+    out_sink_ptr->set_frames_to_keep(std::set<uint32_t>(in_frame_vec.begin(),
+                                                        in_frame_vec.end  () ) );
+
+    return run_variant(options,
+                       REPLAY_WAY_ARRAY[(uses_recipe) ? 4 : 0],
+                       out_sink_ptr,
+                       out_error_ptr);
+}
+
 bool Stereo::Replay::Inspector::replay_variants_to_frame(const Stereo::Replay::Inspector::Options&                                in_options,
                                                          const uint32_t&                                                in_frame_index,
                                                          const std::vector<Stereo::Replay::EngineDLL::FrameVariant>&    in_variant_vec,

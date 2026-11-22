@@ -33,6 +33,15 @@ namespace Stereo
                                  FrameHashSink*  out_sink_ptr,
                                  std::string*    out_error_ptr);
 
+            /* Replays the workload once, up to the last of the frames (in order, without repeats, not empty), with the recipe of the options if there is one, so
+             * that the sink has the images of the frames. Every frame before the last is played with the recipe, as with history, so that what the eyes carry over
+             * from frame to frame is right. The frames are the only ones that the sink keeps.
+             */
+            bool replay_to_frames(const Options&               in_options,
+                                  const std::vector<uint32_t>& in_frame_vec,
+                                  FrameHashSink*               out_sink_ptr,
+                                  std::string*                 out_error_ptr);
+
             /* Replays the workload up to the frame as replay_to_frame() does, using the recipe and the dependencies of the options (it needs both).
              * The frame itself is played once per variant, for the left eye, each time from the state that the frames before it leave. It returns
              * the image of each variant, in the order of the variants. It returns false, with the reason, if the frame cannot be played this way (for

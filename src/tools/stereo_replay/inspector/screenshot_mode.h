@@ -22,11 +22,14 @@ namespace Stereo
             bool take_contact_sheet(const Options& in_options,
                                     std::string*   out_error_ptr);
 
-            /* Replays the workload once, up to the screenshot frame, and writes its image to the screenshot file. With a recipe the image shows the
-             * eye view that the options ask for; without one it shows the frame as it is.
+            /* Replays the workload once, up to the last of the screenshot frames, and writes the image of each to the screenshot file (one frame) or to files
+             * that have the number of the frame in the name (several; see CommandLine::make_numbered_filename()). With a recipe the image shows the eye view that the
+             * options ask for; without one it shows the frame as it is. A frame that the replay does not reach is not written and is in the report. Returns false, with
+             * the reason, if the replay fails, a file cannot be written, or none of the frames was reached.
              */
-            bool take_screenshot(const Options& in_options,
-                                 std::string*   out_error_ptr);
+            bool take_screenshot(const Options&    in_options,
+                                 ScreenshotReport* out_report_ptr,
+                                 std::string*      out_error_ptr);
         }
     }
 }

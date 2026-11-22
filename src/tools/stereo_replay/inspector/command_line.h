@@ -24,6 +24,11 @@ namespace Stereo
             public:
                 static const char* get_usage_ptr();
 
+                /* The name of the image file of one frame when several frames are written: the number of the frame goes before the extension (x.png and 1800 give
+                 * x_1800.png), or at the end if the name has no extension. */
+                static std::string make_numbered_filename(const std::string& in_filename,
+                                                          const uint32_t&    in_frame);
+
                 /* Parses the arguments, which do not include the program name. Returns false, and says why, if they are invalid. */
                 static bool parse(const std::vector<std::string>& in_argument_vec,
                                   Options*                        out_options_ptr,
@@ -37,6 +42,18 @@ namespace Stereo
                 /* Converts a name (left, right, both or anaglyph) to an eye view. Returns false for any other name. */
                 static bool parse_eye_view(const std::string&      in_name,
                                            Utils::Images::EyeView* out_view_ptr);
+
+                /* Parses the frames of --screenshot: numbers, ranges A-B and ranges with a step A-B:S, separated by commas. The frames come out in order, without repeats.
+                 * Returns false, and says why, for any other text or for more than N_FRAMES_MOST frames. */
+                static bool parse_frame_list(const std::string&    in_text,
+                                             std::vector<uint32_t>* out_frame_vec_ptr,
+                                             std::string*          out_error_ptr);
+
+                /* Parses one item of that list: a number, A-B, or A-B:S. Returns false for any other text. */
+                static bool parse_frame_item(const std::string& in_text,
+                                             uint32_t*          out_first_ptr,
+                                             uint32_t*          out_last_ptr,
+                                             uint32_t*          out_step_ptr);
 
                 /* Parses a whole number between the least and the most. Returns false, and leaves the output unchanged, for any other text. */
                 static bool parse_unsigned(const std::string& in_text,

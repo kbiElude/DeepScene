@@ -205,11 +205,13 @@ int main(int   in_argc,
         goto end;
     }
 
-    if (options.screenshot_frame != UINT32_MAX)
+    if (options.screenshot_frame_vec.empty() == false)
     {
-        std::string error;
+        std::string                                  error;
+        Stereo::Replay::Inspector::ScreenshotReport report;
 
         if (Stereo::Replay::Inspector::take_screenshot(options,
+                                                      &report,
                                                       &error) == false)
         {
             fprintf(stdout,
@@ -221,10 +223,29 @@ int main(int   in_argc,
             goto end;
         }
 
-        fprintf(stdout,
-                "Frame %u written to %s\n",
-                options.screenshot_frame,
-                options.image_filename.c_str() );
+        for (const auto& file : report.written_vec)
+        {
+            fprintf(stdout,
+                    "Frame %u written to %s\n",
+                    file.frame,
+                    file.filename.c_str() );
+        }
+
+        if (report.skipped_frame_vec.empty() == false)
+        {
+            fprintf(stdout,
+                    "Not written, the replay did not reach them:");
+
+            for (const auto n_frame : report.skipped_frame_vec)
+            {
+                fprintf(stdout,
+                        " %u",
+                        n_frame);
+            }
+
+            fprintf(stdout,
+                    "\n");
+        }
 
         goto end;
     }

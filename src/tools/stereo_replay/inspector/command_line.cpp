@@ -4,6 +4,8 @@
  */
 #include "command_line.h"
 #include "utils/command_line/number_parser.h"
+#include <algorithm>
+#include <set>
 #include <stdlib.h>
 #include <windows.h>
 
@@ -12,7 +14,7 @@ bool Stereo::Replay::Inspector::CommandLine::are_image_options_valid(const Optio
     const bool has_image_filename  = (in_options.image_filename.empty () == false);
     const bool has_recipe_filename = (in_options.recipe_filename.empty() == false);
     const bool is_contact_sheet    = (in_options.contact_sheet_n_frames != 0);
-    const bool is_screenshot       = (in_options.screenshot_frame       != UINT32_MAX);
+    const bool is_screenshot       = (in_options.screenshot_frame_vec.empty() == false);
     bool       result              = false;
 
     if (is_contact_sheet &&
@@ -47,7 +49,7 @@ const char* Stereo::Replay::Inspector::CommandLine::get_usage_ptr()
            "StereoReplayInspector_x86 file.workload --profile [--from A] [--to B] [--recipe FILE]\n"
            "StereoReplayInspector_x86 file.workload --redundant-state --deps FILE [--from A] [--to B] [--recipe FILE]\n"
            "StereoReplayInspector_x86 file.workload --same-frames-as other.workload [--from A] [--to B]\n"
-           "StereoReplayInspector_x86 file.workload --screenshot N --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
+           "StereoReplayInspector_x86 file.workload --screenshot FRAMES --out FILE.png [--recipe FILE [--eye left|right|both|anaglyph]]\n"
            "StereoReplayInspector_x86 file.workload --overlay-report candidates.json --recipe FILE --dump-dir DIR [--deps FILE] [--eye-separation D]\n"
            "StereoReplayInspector_x86 file.workload --contact-sheet K --out FILE.png [--from A] [--to B] [--recipe FILE [--eye ...]]\n"
            "StereoReplayInspector_x86 file.workload --index\n"
@@ -88,8 +90,11 @@ const char* Stereo::Replay::Inspector::CommandLine::get_usage_ptr()
            "                   Slower; each result then has one cause. Use it to check what the quick way says of a new application.\n"
            "  --parallel       Replay the ways at the same time, each with an engine of its own: faster, and needs the memory of all.\n"
            "\n"
-           "  --screenshot N   Instead of the check: replay once, up to frame N, and write the image of that frame to the PNG file of --out. With a\n"
-           "                   recipe it is both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is.\n"
+           "  --screenshot FRAMES  Instead of the check: replay once, up to the last of the frames, and write the image of each frame to the PNG file of --out. FRAMES\n"
+           "                   are numbers, ranges A-B and ranges with a step A-B:S, separated by commas (569,1760-1990:10), at most 200. With a recipe the image is\n"
+           "                   both eyes side by side, or the one that --eye says (anaglyph: red-cyan); without one, the frame as it is. One frame goes to the file of --out;\n"
+           "                   several go to files with the frame number before the extension (x.png: x_1800.png), and they are played the way --history says, with\n"
+           "                   every frame before the last played with the recipe. A frame that the replay does not reach is not written, and is said.\n"
            "  --profile        Instead of the check: replay frames A to B once (as they are, or for the eyes of the recipe) and say where the time of the calls went:\n"
            "                   the functions whose calls took longest, and the frames that took longest.\n"
            "  --redundant-state   Instead of the check: replay frames A to B once, the way a seek to B does it (--deps says which frames are not made), and say, of the\n"
@@ -103,6 +108,23 @@ const char* Stereo::Replay::Inspector::CommandLine::get_usage_ptr()
            "                   state frame of each segment) and say what it holds. The seeks (--screenshot with --deps, the replay player) use it to read only the\n"
            "                   segments that they need; without it every segment is read in full. It is made by one read of the whole workload, unless the file is of the\n"
            "                   workload as it is.\n";
+}
+
+std::string Stereo::Replay::Inspector::CommandLine::make_numbered_filename(const std::string& in_filename,
+                                                                           const uint32_t&    in_frame)
+{
+    const size_t n_dot       = in_filename.find_last_of('.');
+    const size_t n_separator = in_filename.find_last_of("\\/");
+    const bool   has_extension = (n_dot != std::string::npos                          &&
+                                  n_dot > 0                                           &&
+                                  (n_separator == std::string::npos || n_dot > n_separator + 1) );
+    const std::string number = "_" + std::to_string(in_frame);
+
+    return (has_extension) ? in_filename.substr(0,
+                                                n_dot) +
+                             number                    +
+                             in_filename.substr(n_dot)
+                           : in_filename + number;
 }
 
 bool Stereo::Replay::Inspector::CommandLine::parse(const std::vector<std::string>& in_argument_vec,
@@ -149,7 +171,6 @@ bool Stereo::Replay::Inspector::CommandLine::parse(const std::vector<std::string
         {"--jobs",          &Options::n_jobs,                 1, MAXIMUM_WAIT_OBJECTS - 1},
         {"--overlay-report-last-frame", &Options::overlay_report_last_frame, 0, UINT32_MAX},
         {"--overlay-report-shard-entries", &Options::overlay_report_shard_entries, 0, UINT32_MAX},
-        {"--screenshot",    &Options::screenshot_frame,       0, UINT32_MAX - 1},
         {"--to",            &Options::last_frame,             0, UINT32_MAX}
     };
 
@@ -213,6 +234,7 @@ bool Stereo::Replay::Inspector::CommandLine::parse(const std::vector<std::string
                                       argument   == "--dump-frame"     ||
                                       argument   == "--eye"            ||
                                       argument   == "--eye-separation" ||
+                                      argument   == "--screenshot"     ||
                                       argument   == "--ways");
 
             if (needs_value &&
@@ -263,6 +285,21 @@ bool Stereo::Replay::Inspector::CommandLine::parse(const std::vector<std::string
         if (text_ptr != nullptr)
         {
             out_options_ptr->*(text_ptr->member_ptr) = in_argument_vec.at(++n_argument);
+        }
+        else
+        if (argument == "--screenshot")
+        {
+            std::string        list_error;
+            const std::string& value_text = in_argument_vec.at(++n_argument);
+
+            if (parse_frame_list(value_text,
+                                &out_options_ptr->screenshot_frame_vec,
+                                &list_error) == false)
+            {
+                *out_error_ptr = "--screenshot: " + list_error;
+
+                goto end;
+            }
         }
         else
         if (argument == "--dump-frame")
@@ -419,6 +456,110 @@ bool Stereo::Replay::Inspector::CommandLine::parse_eye_view(const std::string&  
         }
     }
 
+    return result;
+}
+
+bool Stereo::Replay::Inspector::CommandLine::parse_frame_item(const std::string& in_text,
+                                                              uint32_t*          out_first_ptr,
+                                                              uint32_t*          out_last_ptr,
+                                                              uint32_t*          out_step_ptr)
+{
+    const size_t n_dash   = in_text.find('-');
+    bool         result   = false;
+
+    *out_step_ptr = 1;
+
+    if (n_dash == std::string::npos)
+    {
+        result = parse_unsigned(in_text,
+                                0,
+                                UINT32_MAX - 1,
+                                out_first_ptr);
+
+        *out_last_ptr = *out_first_ptr;
+    }
+    else
+    {
+        const std::string first_text = in_text.substr(0,
+                                                      n_dash);
+        const std::string rest_text  = in_text.substr(n_dash + 1);
+        const size_t      n_colon    = rest_text.find(':');
+        const std::string last_text  = rest_text.substr(0,
+                                                        n_colon);
+        bool              has_step   = true;
+
+        if (n_colon != std::string::npos)
+        {
+            has_step = parse_unsigned(rest_text.substr(n_colon + 1),
+                                      1,
+                                      UINT32_MAX - 1,
+                                      out_step_ptr);
+        }
+
+        result = (has_step                                   &&
+                  parse_unsigned(first_text,
+                                 0,
+                                 UINT32_MAX - 1,
+                                 out_first_ptr)              &&
+                  parse_unsigned(last_text,
+                                 0,
+                                 UINT32_MAX - 1,
+                                 out_last_ptr)               &&
+                  *out_first_ptr <= *out_last_ptr);
+    }
+
+    return result;
+}
+
+bool Stereo::Replay::Inspector::CommandLine::parse_frame_list(const std::string&     in_text,
+                                                              std::vector<uint32_t>* out_frame_vec_ptr,
+                                                              std::string*           out_error_ptr)
+{
+    constexpr size_t N_FRAMES_MOST = 200;
+
+    std::set<uint32_t> frame_set;
+    bool               result = false;
+
+    for (const auto& item : split_list(in_text) )
+    {
+        uint32_t first = 0;
+        uint32_t last  = 0;
+        uint32_t step  = 1;
+
+        if (parse_frame_item(item,
+                            &first,
+                            &last,
+                            &step) == false)
+        {
+            *out_error_ptr = "'"                                                                     +
+                             item                                                                    +
+                             "' is not a frame number, a range A-B (A not after B) or a range A-B:S" +
+                             " (S from 1)";
+
+            goto end;
+        }
+
+        for (uint64_t frame = first;
+                      frame <= last;
+                      frame += step)
+        {
+            frame_set.insert(static_cast<uint32_t>(frame) );
+
+            if (frame_set.size() > N_FRAMES_MOST)
+            {
+                *out_error_ptr = "more than " + std::to_string(N_FRAMES_MOST) + " frames";
+
+                goto end;
+            }
+        }
+    }
+
+    out_frame_vec_ptr->assign(frame_set.begin(),
+                              frame_set.end  () );
+
+    result = true;
+
+end:
     return result;
 }
 

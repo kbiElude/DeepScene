@@ -438,7 +438,7 @@
 <table>
 <tr><th>Mode</th><th>Says</th></tr>
 <tr><td>(none)</td><td>The check: replays frames A to B in several ways and compares the image of each frame with the one of the frames as they are. See <a href="#checking-ways">The ways of replaying</a>.</td></tr>
-<tr><td><code>--screenshot N --out f.png</code></td><td>One frame as a PNG. With a recipe both eyes side by side (or <code>--eye left</code>, <code>right</code>, <code>both</code>, <code>anaglyph</code>); without one the frame as it is.</td></tr>
+<tr><td><code>--screenshot FRAMES --out f.png</code></td><td>The frames as PNG files (numbers, ranges <code>A-B</code>, ranges with a step <code>A-B:S</code>; at most 200), from one replay; with several the frame number goes before the extension, and every frame before the last is played with the recipe. With a recipe both eyes side by side (or <code>--eye left</code>, <code>right</code>, <code>both</code>, <code>anaglyph</code>); without one the frame as it is.</td></tr>
 <tr><td><code>--contact-sheet K --out f.png</code></td><td>One PNG of K frames spread evenly from A to B (or to the end of the workload), each as a screenshot is. The numbers of the frames are printed in the order shown.</td></tr>
 <tr><td><code>--same-frames-as other.workload</code></td><td>Whether two workloads give the same images for frames A to B, as they are (exit code 3 if not): how a slice is checked against its workload.</td></tr>
 <tr><td><code>--profile</code></td><td>Where the time of the calls went: the functions and the frames that took longest.</td></tr>

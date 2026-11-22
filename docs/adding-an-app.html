@@ -313,7 +313,7 @@ tools\stereo_replay\StereoReplayInspector_x86.exe result_dump.workload --recipe 
 <h3>Looking without a window</h3>
 <table>
 <tr><th>Inspector option</th><th>Effect</th></tr>
-<tr><td><code>--screenshot N --out file.png --recipe my_demo.json</code></td><td>Writes frame N, both eyes side by side; <code>--eye left</code>, <code>right</code> or <code>anaglyph</code> (red-cyan) says otherwise. Without <code>--recipe</code> it is the frame as it is.</td></tr>
+<tr><td><code>--screenshot FRAMES --out file.png --recipe my_demo.json</code></td><td>Writes the frames, both eyes side by side: FRAMES are numbers, ranges <code>A-B</code> and ranges with a step <code>A-B:S</code>, separated by commas (<code>569,1760-1990:10</code>), and the replay runs once for all of them. Several frames go to files with the frame number before the extension (<code>file_1800.png</code>), played as <code>--history</code> plays; a frame the workload does not have is not written, and is said. A single frame goes to <code>file.png</code>; <code>--eye left</code>, <code>right</code> or <code>anaglyph</code> (red-cyan) says otherwise. Without <code>--recipe</code> it is the frame as it is.</td></tr>
 <tr><td><code>--contact-sheet K --out sheet.png</code></td><td>Puts K frames spread evenly from <code>--from</code> to <code>--to</code> on one picture, and prints their numbers in the order shown.</td></tr>
 <tr><td><code>--overlay-report candidates.json --recipe my_demo.json --dump-dir out</code></td><td>Takes the output of <code>RecipeBake --overlays</code> and makes, for each draw that may be an overlay, an animation of its frame with and without the draw, to look at in <code>index.html</code> of <code>--dump-dir</code>. <code>--deps</code> makes it quicker.</td></tr>
 </table>

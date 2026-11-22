@@ -22,8 +22,7 @@ TEST(InspectorCommandLineTest, OnlyTheWorkloadIsNeeded)
               0u);
     EXPECT_EQ(options.last_frame,
               999u);
-    EXPECT_EQ(options.screenshot_frame,
-              UINT32_MAX);
+    EXPECT_TRUE(options.screenshot_frame_vec.empty() );
     EXPECT_EQ(options.contact_sheet_n_frames,
               0u);
     EXPECT_TRUE(options.way_name_vec.empty() );
@@ -178,7 +177,9 @@ TEST(InspectorCommandLineTest, TheImageOptionsGoTogether)
     EXPECT_TRUE (Stereo::Replay::Inspector::CommandLine::parse({"a.workload", "--screenshot", "5", "--out", "x.png"},
                                                                &options,
                                                                &error) ) << error;
-    EXPECT_EQ   (options.screenshot_frame,
+    ASSERT_EQ   (options.screenshot_frame_vec.size(),
+                 1u);
+    EXPECT_EQ   (options.screenshot_frame_vec.at(0),
                  5u);
     EXPECT_EQ   (options.image_filename,
                  "x.png");
@@ -285,4 +286,131 @@ TEST(InspectorCommandLineTest, TheLastFrameThatTheOverlayReportLooksAtIsRead)
 
     EXPECT_EQ(options.overlay_report_last_frame,
               6200u);
+}
+
+namespace
+{
+    std::vector<uint32_t> parse_screenshot_frames(const std::string& in_list,
+                                                  bool*              out_is_valid_ptr,
+                                                  std::string*       out_error_ptr)
+    {
+        Stereo::Replay::Inspector::Options options;
+
+        *out_is_valid_ptr = Stereo::Replay::Inspector::CommandLine::parse({"a.workload", "--screenshot", in_list, "--out", "x.png"},
+                                                                          &options,
+                                                                          out_error_ptr);
+
+        return options.screenshot_frame_vec;
+    }
+}
+
+TEST(InspectorCommandLineTest, TheScreenshotFramesAreNumbersRangesAndRangesWithAStep)
+{
+    std::string error;
+    bool        is_valid = false;
+
+    auto frame_vec = parse_screenshot_frames("1780,1800,1850",
+                                            &is_valid,
+                                            &error);
+
+    ASSERT_TRUE(is_valid) << error;
+    EXPECT_EQ  (frame_vec,
+                (std::vector<uint32_t>{1780, 1800, 1850}) );
+
+    frame_vec = parse_screenshot_frames("10-13",
+                                       &is_valid,
+                                       &error);
+
+    ASSERT_TRUE(is_valid) << error;
+    EXPECT_EQ  (frame_vec,
+                (std::vector<uint32_t>{10, 11, 12, 13}) );
+
+    frame_vec = parse_screenshot_frames("1760-1790:10",
+                                       &is_valid,
+                                       &error);
+
+    ASSERT_TRUE(is_valid) << error;
+    EXPECT_EQ  (frame_vec,
+                (std::vector<uint32_t>{1760, 1770, 1780, 1790}) );
+
+    /* A range whose step goes past its end stops before it. */
+    frame_vec = parse_screenshot_frames("0-25:10",
+                                       &is_valid,
+                                       &error);
+
+    ASSERT_TRUE(is_valid) << error;
+    EXPECT_EQ  (frame_vec,
+                (std::vector<uint32_t>{0, 10, 20}) );
+}
+
+TEST(InspectorCommandLineTest, TheScreenshotFramesComeOutInOrderAndWithoutRepeats)
+{
+    std::string error;
+    bool        is_valid = false;
+
+    const auto frame_vec = parse_screenshot_frames("569,10-12,11,569,5",
+                                                  &is_valid,
+                                                  &error);
+
+    ASSERT_TRUE(is_valid) << error;
+    EXPECT_EQ  (frame_vec,
+                (std::vector<uint32_t>{5, 10, 11, 12, 569}) );
+}
+
+TEST(InspectorCommandLineTest, ScreenshotFramesThatAreNotNumbersOrRangesAreRefused)
+{
+    const char* const text_array[] = {"", "a", "5,", ",5", "5-", "-5", "9-3", "1-5:0", "1-5:", "1-5:x", "1--5", "1-5-9", "4294967295"};
+
+    for (const char* const text : text_array)
+    {
+        std::string error;
+        bool        is_valid = true;
+
+        parse_screenshot_frames(text,
+                               &is_valid,
+                               &error);
+
+        EXPECT_FALSE(is_valid) << "'" << text << "'";
+        EXPECT_NE   (error.find("--screenshot"),
+                     std::string::npos) << "'" << text << "': " << error;
+    }
+}
+
+TEST(InspectorCommandLineTest, MoreThanTwoHundredScreenshotFramesAreRefused)
+{
+    std::string error;
+    bool        is_valid = false;
+
+    const auto most_vec = parse_screenshot_frames("0-199",
+                                                 &is_valid,
+                                                 &error);
+
+    ASSERT_TRUE(is_valid) << error;
+    EXPECT_EQ  (most_vec.size(),
+                200u);
+
+    parse_screenshot_frames("0-200",
+                           &is_valid,
+                           &error);
+
+    EXPECT_FALSE(is_valid);
+}
+
+TEST(InspectorCommandLineTest, TheFileOfEachOfSeveralScreenshotsHasTheFrameNumberBeforeTheExtension)
+{
+    EXPECT_EQ(Stereo::Replay::Inspector::CommandLine::make_numbered_filename("x.png",
+                                                                             1800),
+              "x_1800.png");
+    EXPECT_EQ(Stereo::Replay::Inspector::CommandLine::make_numbered_filename("C:\\out dir\\shot.v2.png",
+                                                                             7),
+              "C:\\out dir\\shot.v2_7.png");
+    EXPECT_EQ(Stereo::Replay::Inspector::CommandLine::make_numbered_filename("shot",
+                                                                             12),
+              "shot_12");
+    EXPECT_EQ(Stereo::Replay::Inspector::CommandLine::make_numbered_filename("C:\\dir.d\\shot",
+                                                                             12),
+              "C:\\dir.d\\shot_12");
+    EXPECT_EQ(Stereo::Replay::Inspector::CommandLine::make_numbered_filename(".hidden",
+                                                                             3),
+              ".hidden_3");
 }
