@@ -98,6 +98,7 @@
   <li>the back buffer of a flipping chain is a surface of the replay;</li>
   <li>a flip is a blit to the window.</li>
 </ul>
+<p>The windows of a program are made by the Win32 executor. A program often makes a window and then sets its size with <code>SetWindowPos</code> or <code>MoveWindow</code>; both calls are in the workload, and the executor sets the size of the window of the replay the same way. What it sets is the area for drawing: the hook of each call also records the area the window has after the call (two arguments after the call's own), because the frame of a window depends on the system and on whether the program is DPI-aware, so it cannot be worked out from the outer size. The window of the replay gets that area plus the frame it has itself (<code>resize_window</code>), at its own DPI. The place of a window is the replay's own. A workload that was made before these two calls were recorded has the size of the call that made the window only.</p>
 
 <h2 id="two-eyes">Two eyes</h2>
 <p>With a recipe, the engine executes each frame twice, the first time for the left eye and the second for the right. The two images go to a sink, which is how the player shows them. Four classes of this project do the work:</p>

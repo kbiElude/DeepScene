@@ -35,7 +35,9 @@ Analysis::APIDumpIndex::StateEffect Analysis::APIDumpIndex::WindowSystemStateEff
         case APIInterceptor::APIFUNCTION_USER32_CREATEWINDOWEXA:
         case APIInterceptor::APIFUNCTION_USER32_CREATEWINDOWEXW:
         case APIInterceptor::APIFUNCTION_USER32_GETDC:
+        case APIInterceptor::APIFUNCTION_USER32_MOVEWINDOW:
         case APIInterceptor::APIFUNCTION_USER32_RELEASEDC:
+        case APIInterceptor::APIFUNCTION_USER32_SETWINDOWPOS:
         case APIInterceptor::APIFUNCTION_WGL_WGLCOPYCONTEXT:
         case APIInterceptor::APIFUNCTION_WGL_WGLCREATECONTEXT:
         case APIInterceptor::APIFUNCTION_WGL_WGLCREATECONTEXTATTRIBSARB:
