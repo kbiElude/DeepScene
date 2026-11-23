@@ -26,6 +26,16 @@ namespace Stereo
             VERTEX3
         };
 
+        /* The channels of the color buffer of the window of an OpenGL application, as the pixel format of its device context reports them (see GLColorTargetFormats). */
+        struct GLColorLayout
+        {
+            uint32_t alpha_bits = 0;
+            uint32_t blue_bits  = 0;
+            uint32_t green_bits = 0;
+            bool     is_rgba    = false; /* false for a color-index pixel format */
+            uint32_t red_bits   = 0;
+        };
+
         /* The eye images of one frame of an OpenGL application, as OpenGL reads them: rows from the bottom up, 8 bits each of B, G, R and A (the
          * order of the channel's images). The pixels are in memory that is mapped from the buffers they were read into. The memory stays valid
          * while anything holds the token. The code that passes the images on keeps a copy of this struct until it is done with them.

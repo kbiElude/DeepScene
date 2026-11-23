@@ -28,6 +28,15 @@ namespace Stereo
                                    uint8_t*                       inout_destination_ptr,
                                    const uint32_t&                in_destination_pitch);
 
+            /* Sets the alpha of every pixel of one eye in the written image to 255. The alpha that an application draws into its window is never shown by the
+             * system, which shows a window as opaque, so the frames of the channel carry none: the player blends what it is given by alpha.
+             */
+            static void make_opaque(const uint32_t& in_width,
+                                    const uint32_t& in_height,
+                                    const uint32_t& in_eye,
+                                    uint8_t*        inout_destination_ptr,
+                                    const uint32_t& in_destination_pitch);
+
             /* in_format is a Direct3D 8 format (D3DFORMAT). The formats of the other APIs are converted to it (see D3DFormatBgra8Converter). A 32-bit format
              * that already has the wanted layout is copied as it is. Any other format is converted first, into inout_scratch_ptr. The caller keeps that
              * vector so that its memory is reused. in_eye is the index of the eye in the destination image. The rows of the eye start at the pixel

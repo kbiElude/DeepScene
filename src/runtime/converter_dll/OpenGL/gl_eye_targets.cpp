@@ -3,6 +3,8 @@
  * This code is licensed under MIT license (see LICENSE.txt for details)
  */
 #include "gl_eye_targets.h"
+#include "common/macros.h"
+#include "gl_color_target_formats.h"
 #include "gl_driver_functions.h"
 #include "own_call_scope.h"
 #include <algorithm>
@@ -16,7 +18,8 @@ const GLenum     Stereo::ConverterDLL::GLEyeTargets::PIXEL_PACK_BUFFER         =
 const GLenum     Stereo::ConverterDLL::GLEyeTargets::PIXEL_PACK_BUFFER_BINDING = 0x88ED;
 
 Stereo::ConverterDLL::GLEyeTargets::GLEyeTargets()
-    :m_context_ptr               (nullptr),
+    :m_color_internal_format     (0),
+     m_context_ptr               (nullptr),
      m_depth_buffer_array        (),
      m_generation                (0),
      m_has_functions             (false),
@@ -228,6 +231,7 @@ void Stereo::ConverterDLL::GLEyeTargets::blit_left_to_window()
 }
 
 bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*                    in_context_ptr,
+                                                const void*                    in_device_ptr,
                                                 const uint32_t&                in_width,
                                                 const uint32_t&                in_height,
                                                 const Stereo::Core::PixelRect& in_picture)
@@ -274,6 +278,25 @@ bool Stereo::ConverterDLL::GLEyeTargets::ensure(const void*                    i
         in_picture.y + in_picture.height     >  in_height)
     {
         goto end;
+    }
+
+    {
+        GLColorLayout color_layout;
+        uint32_t      internal_format = 0;
+
+        const bool is_layout_read = GLColorTargetFormats::read_layout(in_device_ptr,
+                                                                     &color_layout);
+
+        AI_ASSERT_ALWAYS(is_layout_read,
+                         "The device of the context has no pixel format, so the color of the eye render targets cannot be made like the application's window");
+
+        const bool is_format_found = GLColorTargetFormats::find_internal_format(color_layout,
+                                                                               &internal_format);
+
+        AI_ASSERT_ALWAYS(is_format_found,
+                         "The pixel format of the application's window has a color layout (see its channel bits) for which there is no render target of exactly the same channels; add it to GLColorTargetFormats");
+
+        m_color_internal_format = internal_format;
     }
 
     m_context_ptr = in_context_ptr;
@@ -436,7 +459,7 @@ bool Stereo::ConverterDLL::GLEyeTargets::make_target(const uint32_t& in_width,
     m_functions.bind_renderbuffer_func_ptr   (RENDERBUFFER,
                                               out_target_ptr->color_renderbuffer);
     m_functions.renderbuffer_storage_func_ptr(RENDERBUFFER,
-                                              GL_RGBA8,
+                                              m_color_internal_format,
                                               static_cast<GLsizei>(in_width),
                                               static_cast<GLsizei>(in_height) );
     m_functions.bind_renderbuffer_func_ptr   (RENDERBUFFER,

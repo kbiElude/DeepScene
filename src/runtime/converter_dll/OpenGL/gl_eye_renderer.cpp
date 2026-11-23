@@ -2156,6 +2156,7 @@ void Stereo::ConverterDLL::GLEyeRenderer::try_to_prepare()
         }
 
         const bool is_ready = m_targets.ensure(context,
+                                               device,
                                                real_width,
                                                real_height,
                                                picture);

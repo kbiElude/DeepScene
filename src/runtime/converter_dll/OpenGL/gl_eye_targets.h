@@ -40,8 +40,11 @@ namespace Stereo
 
             /* Makes the framebuffers for the context and size unless they exist for that context, size and picture (others are deleted first).
              * The picture is the rectangle holding what the application renders; depth and picture reads use only it.
+             * The color buffers have exactly the channels of the pixel format of in_device_ptr (an HDC), the device of the context; a pixel format that has no
+             * such buffer ends the process (see GLColorTargetFormats).
              * Returns false if they cannot be made or the context is not the first one. */
             bool ensure(const void*                    in_context_ptr,
+                        const void*                    in_device_ptr,
                         const uint32_t&                in_width,
                         const uint32_t&                in_height,
                         const Stereo::Core::PixelRect& in_picture);
@@ -129,6 +132,7 @@ namespace Stereo
             static const GLenum PIXEL_PACK_BUFFER;
             static const GLenum PIXEL_PACK_BUFFER_BINDING;
 
+            uint32_t                                 m_color_internal_format;      /* the renderbuffer format of the color of the eyes */
             const void*                              m_context_ptr;
             std::array<uint32_t, N_DEPTH_READ_SLOTS> m_depth_buffer_array;         /* GPU buffers the depth is read into; made on first use */
             EyeTarget                                m_depth_probe;

@@ -453,7 +453,7 @@
 <tr><td><code>D3D7WindowedMode</code></td><td>Makes the application render to a window and makes it invisible.</td></tr>
 <tr><td><code>D3D7HostMemoryExporter</code></td><td>Exports the eye images into the channel's memory by locking the surfaces.</td></tr>
 <tr><td rowspan="6">OpenGL adapter (<code>OpenGL/</code>)</td><td><code>GLEyeRenderer</code></td><td>Renders the second eye while the application runs.</td></tr>
-<tr><td><code>GLEyeTargets</code></td><td>One framebuffer per eye, and a small one for reading the depth.</td></tr>
+<tr><td><code>GLEyeTargets</code></td><td>One framebuffer per eye, and a small one for reading the depth. The color has the channels of the window's pixel format (<code>GLColorTargetFormats</code>).</td></tr>
 <tr><td><code>GLBlockRecorder</code></td><td>The calls of one <code>glBegin</code> to <code>glEnd</code> block, made again for each eye with the driver's functions (see <a href="live-conversion.html#gl-recorded-blocks">Recorded blocks</a>).</td></tr>
 <tr><td><code>GLRunRecorder</code>, <code>GLRunCallClassifier</code></td><td>What the right eye does once for a run of the program's calls: the blocks and state calls that are kept and played together, and the rule that every other call plays the run first (see <a href="live-conversion.html#gl-right-eye-run">The right eye once for a run</a>).</td></tr>
 <tr><td><code>GLFrameReader</code></td><td>Reads the eye images without making the application wait for the graphics card; a frame is handed out one frame later.</td></tr>

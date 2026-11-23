@@ -217,6 +217,17 @@ void Stereo::ConverterDLL::GLHostMemoryExporter::write_job()
                                        destination_ptr,
                                        pitch);
 
+            PixelRowWriter::make_opaque(job.images.width,
+                                        job.images.height,
+                                        0, /* in_eye */
+                                        destination_ptr,
+                                        pitch);
+            PixelRowWriter::make_opaque(job.images.width,
+                                        job.images.height,
+                                        1, /* in_eye */
+                                        destination_ptr,
+                                        pitch);
+
             get_channel_ptr()->end_write();
         }
     }

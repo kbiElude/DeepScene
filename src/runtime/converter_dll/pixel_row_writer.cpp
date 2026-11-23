@@ -51,6 +51,29 @@ void Stereo::ConverterDLL::PixelRowWriter::blank_bars(const Stereo::Core::PixelR
     }
 }
 
+void Stereo::ConverterDLL::PixelRowWriter::make_opaque(const uint32_t& in_width,
+                                                      const uint32_t& in_height,
+                                                      const uint32_t& in_eye,
+                                                      uint8_t*        inout_destination_ptr,
+                                                      const uint32_t& in_destination_pitch)
+{
+    constexpr uint32_t OPAQUE_ALPHA_MASK = 0xFF000000;
+
+    for (uint32_t n_row = 0;
+                  n_row < in_height;
+                ++n_row)
+    {
+        uint32_t* const row_ptr = reinterpret_cast<uint32_t*>(inout_destination_ptr + static_cast<size_t>(n_row) * in_destination_pitch) + static_cast<size_t>(in_eye) * in_width;
+
+        for (uint32_t n_column = 0;
+                      n_column < in_width;
+                    ++n_column)
+        {
+            row_ptr[n_column] |= OPAQUE_ALPHA_MASK;
+        }
+    }
+}
+
 bool Stereo::ConverterDLL::PixelRowWriter::write_eye(const uint32_t&       in_format,
                                                      const uint32_t&       in_width,
                                                      const uint32_t&       in_height,

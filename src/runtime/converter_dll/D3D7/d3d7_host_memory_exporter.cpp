@@ -365,6 +365,11 @@ bool Stereo::ConverterDLL::D3D7HostMemoryExporter::write_eye(const LockedSurface
                                        in_eye,
                                        out_destination_ptr,
                                        in_pitch);
+            PixelRowWriter::make_opaque(description.dwWidth,
+                                        description.dwHeight,
+                                        in_eye,
+                                        out_destination_ptr,
+                                        in_pitch);
         }
     }
 

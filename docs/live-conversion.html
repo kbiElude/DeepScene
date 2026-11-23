@@ -412,7 +412,7 @@
 </ul>
 
 <h3>The eyes</h3>
-<p><code>GLEyeTargets</code> makes two framebuffers of renderbuffers (color, and depth with stencil), plus a small one for reading the depth, and binds the one of the left eye for the application. The application never draws to its window, so it does not matter that the window cannot be seen.</p>
+<p><code>GLEyeTargets</code> makes two framebuffers of renderbuffers (color, and depth with stencil), plus a small one for reading the depth, and binds the one of the left eye for the application. The color renderbuffers have exactly the channels of the pixel format that the driver gave the window of the application (<code>GetPixelFormat</code> and <code>DescribePixelFormat</code> of its device context, see <code>GLColorTargetFormats</code>): with alpha bits the targets have alpha, without them they have none and alpha reads as 1. A pixel format that has no target of exactly its channels ends the process. The application never draws to its window, so it does not matter that the window cannot be seen.</p>
 <p>A program that makes a framebuffer object of its own (<code>glGenFramebuffers</code>, <code>glBindFramebuffer</code> and the calls that fill one) is not followed: the front end has no handler for those calls, so the process is ended and the log names the call, whatever else the recipe says. The converter therefore never has to give the program a framebuffer of its own back, and it binds the framebuffers of the eyes without keeping track of the program's binding.</p>
 <ul>
   <li>The functions of framebuffers are found through the <code>wglGetProcAddress</code> that the hooks call through, not the one the application sees. The hooked extension functions have no driver functions behind them until the application makes its context current.</li>
@@ -633,6 +633,7 @@
 <ul>
   <li>Images start at multiples of 64 KB and rows at multiples of 256 bytes, so the GPU can import the memory as a heap.</li>
   <li>The two sides say how they can pass images (a mask of transport kinds), and the producer uses the best that both can; host memory is the one kind there is.</li>
+  <li>The frames are opaque: every exporter sets the alpha of the pixels to 255 when it copies a frame in. What an application draws into the alpha of its window is never shown by the system, which shows a window as opaque, and the presenter blends what it is given by alpha, so a fade that an application draws with blending would otherwise show as black.</li>
   <li>The floats of the controls are stored as bits next to a has-value flag (<code>read_float</code> / <code>write_float</code>), so a reader never takes a value that was not set.</li>
 </ul>
 <figure>

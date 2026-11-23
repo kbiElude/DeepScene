@@ -377,6 +377,11 @@ bool Stereo::ConverterDLL::D3D8HostMemoryExporter::write_eye(const uint32_t& in_
                                    in_eye,
                                    out_destination_ptr,
                                    in_pitch);
+        PixelRowWriter::make_opaque(description.Width,
+                                    description.Height,
+                                    in_eye,
+                                    out_destination_ptr,
+                                    in_pitch);
     }
 
     return is_written;
