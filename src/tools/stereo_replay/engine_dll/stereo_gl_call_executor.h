@@ -34,12 +34,13 @@ namespace Stereo
 
                 bool execute              (const Capture::APIDumpLoader::DumpedAPICall&   in_call,
                                            const ::Replay::ReplayEngineDLL::IChunkSource& in_chunk_source,
-                                           std::string*                                   out_error_ptr) override;
-                void reset                ()                                                               override;
-                void restore_state        ()                                                               override;
-                void set_eye              (const Analysis::Recipe::Eye&                   in_eye)          override;
-                void set_n_executions     (const uint32_t&                                in_n_executions) override;
-                void set_per_eye_predicate(const PerEyePredicate&                         in_predicate)    override;
+                                           std::string*                                   out_error_ptr)    override;
+                bool read_viewport        (Analysis::APIDumpAnalysis::Viewport*           out_viewport_ptr) override;
+                void reset                ()                                                                override;
+                void restore_state        ()                                                                override;
+                void set_eye              (const Analysis::Recipe::Eye&                   in_eye)           override;
+                void set_n_executions     (const uint32_t&                                in_n_executions)  override;
+                void set_per_eye_predicate(const PerEyePredicate&                         in_predicate)     override;
 
             private:
                 typedef void         (APIENTRY* PFNACTIVETEXTUREPROC)  (unsigned int);

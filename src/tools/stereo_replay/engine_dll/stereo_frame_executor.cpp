@@ -664,20 +664,22 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
 
     if (pushed_iterator != m_pushed_draw_by_first_call_map.end() )
     {
-        const Analysis::APIDumpAnalysis::Viewport* viewport_ptr = nullptr;
-        const float                                shift_pixels = get_push_shift_pixels(frame,
-                                                                                        frame.draw_instance_vec.at(pushed_iterator->second),
+        const auto&                               pushed_draw   = frame.draw_instance_vec.at(pushed_iterator->second);
+        const Analysis::APIDumpAnalysis::Viewport base_viewport = find_base_viewport(*get_pass_viewport_ptr(frame,
+                                                                                                            pushed_draw) );
+        const float                               shift_pixels  = get_push_shift_pixels(frame,
+                                                                                        pushed_draw,
                                                                                         eye,
-                                                                                       &viewport_ptr);
+                                                                                        base_viewport.width);
 
         if (shift_pixels != 0.0f)
         {
-            const uint64_t pushed_cover_key = frame.draw_instance_vec.at(pushed_iterator->second).cover_key;
+            m_saved_viewport_by_draw_call_map[pushed_draw.call_index] = base_viewport;
 
             has_pushed_viewport = execute_viewport_call(in_call,
-                                                        *viewport_ptr,
+                                                        base_viewport,
                                                         shift_pixels,
-                                                        m_recipe_applier_ptr->is_side_reaching(pushed_cover_key) );
+                                                        m_recipe_applier_ptr->is_side_reaching(pushed_draw.cover_key) );
         }
     }
 
@@ -740,17 +742,16 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_rewritten_call(cons
             if (result                                                                      &&
                 m_pushed_draw_by_first_call_map.empty() == false)
             {
-                const Analysis::APIDumpAnalysis::Viewport* viewport_ptr = nullptr;
+                const auto saved_iterator = m_saved_viewport_by_draw_call_map.find(draw_iterator->call_index);
 
-                if (get_push_shift_pixels(frame,
-                                          *draw_iterator,
-                                          eye,
-                                         &viewport_ptr) != 0.0f)
+                if (saved_iterator != m_saved_viewport_by_draw_call_map.end() )
                 {
                     result = execute_viewport_call(in_call,
-                                                   *viewport_ptr,
+                                                   saved_iterator->second,
                                                    0.0f,
                                                    false /* in_is_side_reaching */);
+
+                    m_saved_viewport_by_draw_call_map.erase(saved_iterator);
                 }
             }
         }
@@ -935,9 +936,33 @@ bool Stereo::Replay::EngineDLL::StereoFrameExecutor::execute_viewport_call(const
                                     m_host_ptr->get_chunk_source() );
 }
 
+Analysis::APIDumpAnalysis::Viewport Stereo::Replay::EngineDLL::StereoFrameExecutor::find_base_viewport(const Analysis::APIDumpAnalysis::Viewport& in_pass_viewport) const
+{
+    Analysis::APIDumpAnalysis::Viewport result = in_pass_viewport;
+
+    for (const auto executor_ptr : m_host_ptr->get_call_executor_ptr_vec() )
+    {
+        IEyeExecutor* const                 eye_executor_ptr = dynamic_cast<IEyeExecutor*>(executor_ptr);
+        Analysis::APIDumpAnalysis::Viewport device_viewport  = in_pass_viewport;
+
+        if (eye_executor_ptr != nullptr)
+        {
+            if (eye_executor_ptr->read_viewport(&device_viewport) )
+            {
+                result = device_viewport;
+
+                break;
+            }
+        }
+    }
+
+    return result;
+}
+
 void Stereo::Replay::EngineDLL::StereoFrameExecutor::find_pushed_draw_calls(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame)
 {
     m_pushed_draw_by_first_call_map.clear();
+    m_saved_viewport_by_draw_call_map.clear();
 
     for (size_t n_draw = 0;
                 n_draw < in_frame.draw_instance_vec.size();
@@ -1187,16 +1212,21 @@ float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_eye_separation() const
     return m_eye_separation;
 }
 
+const Analysis::APIDumpAnalysis::Viewport* Stereo::Replay::EngineDLL::StereoFrameExecutor::get_pass_viewport_ptr(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                                                                                                 const Analysis::APIDumpAnalysis::DrawInstance&   in_draw) const
+{
+    const uint32_t pass_structure_id = in_frame.pass_instance_vec.at(in_draw.pass_index).structure_id;
+
+    return &m_session_ptr->get_model().pass_structure_interner.get_structure(pass_structure_id).viewport;
+}
+
 float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_push_shift_pixels(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                                                             const Analysis::APIDumpAnalysis::DrawInstance&   in_draw,
                                                                             const Analysis::Recipe::Eye&                     in_eye,
-                                                                            const Analysis::APIDumpAnalysis::Viewport**      out_viewport_ptr_ptr) const
+                                                                            const float&                                     in_viewport_width) const
 {
-    const uint64_t pass_key          = in_frame.pass_key_vec.at(in_draw.pass_index);
-    const uint32_t pass_structure_id = in_frame.pass_instance_vec.at(in_draw.pass_index).structure_id;
-    float          result            = 0.0f;
-
-    *out_viewport_ptr_ptr = &m_session_ptr->get_model().pass_structure_interner.get_structure(pass_structure_id).viewport;
+    const uint64_t pass_key = in_frame.pass_key_vec.at(in_draw.pass_index);
+    float          result   = 0.0f;
 
     const auto decision = decide_draw_here(pass_key,
                                            in_draw);
@@ -1211,7 +1241,7 @@ float Stereo::Replay::EngineDLL::StereoFrameExecutor::get_push_shift_pixels(cons
                                                       in_eye,
                                                       cover_parallax,
                                                       is_affected,
-                                                      (*out_viewport_ptr_ptr)->width,
+                                                      in_viewport_width,
                                                       m_frame_eye_separation,
                                                       scene_limit);
     }

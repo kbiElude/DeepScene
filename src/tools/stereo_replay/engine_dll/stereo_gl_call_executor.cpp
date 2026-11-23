@@ -384,6 +384,31 @@ end:
     return result;
 }
 
+bool Stereo::Replay::EngineDLL::StereoGLCallExecutor::read_viewport(Analysis::APIDumpAnalysis::Viewport* out_viewport_ptr)
+{
+    constexpr unsigned int VIEWPORT = 0x0BA2;
+
+    int  viewport_i32vec4[4] = {};
+    bool result              = false;
+
+    const auto get_integerv_func_ptr = reinterpret_cast<PFNGETINTEGERVPROC>(get_proc_ptr("glGetIntegerv") );
+
+    if (::wglGetCurrentContext() != nullptr &&
+        get_integerv_func_ptr    != nullptr)
+    {
+        get_integerv_func_ptr(VIEWPORT,
+                              viewport_i32vec4);
+
+        out_viewport_ptr->height = static_cast<float>(viewport_i32vec4[3]);
+        out_viewport_ptr->width  = static_cast<float>(viewport_i32vec4[2]);
+        out_viewport_ptr->x      = static_cast<float>(viewport_i32vec4[0]);
+        out_viewport_ptr->y      = static_cast<float>(viewport_i32vec4[1]);
+        result                   = true;
+    }
+
+    return result;
+}
+
 void Stereo::Replay::EngineDLL::StereoGLCallExecutor::reset()
 {
     GLCallExecutor::reset();

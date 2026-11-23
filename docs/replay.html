@@ -219,7 +219,7 @@
 
 <h3 id="two-eyes-other">Pushed draws and vertices in pixels</h3>
 <ul>
-  <li><strong>Pushed draws (OpenGL).</strong> A draw that is pushed is moved by a <code>glViewport</code> that the executor plays before its first call (<code>execute_viewport_call</code>), with the origin shifted by <code>PushShiftPlanner</code>. The call of the draw puts the viewport back.</li>
+  <li><strong>Pushed draws (OpenGL).</strong> A draw that is pushed is moved by a <code>glViewport</code> that the executor plays before its first call (<code>execute_viewport_call</code>), with the origin shifted by <code>PushShiftPlanner</code>. The viewport it moves is the one the device has at that moment (<code>glGetIntegerv</code>, through <code>IEyeExecutor::read_viewport</code>), so a program that sets none is moved from the viewport of the window of the replay, not from the size in the call that created the window. The call of the draw puts back the viewport that was read.</li>
   <li><strong>Side-reaching draws.</strong> One that the baker lists in <code>side_reaching_draws</code> is also widened by the shift on each side (<code>PushShiftPlanner::make_viewport</code>), so that no edge is bare.</li>
   <li><strong>Vertices in pixels.</strong> A program whose vertices no matrix moves has no matrix to give the eyes. The engine moves the x of each vertex of an affected Direct3D 7 draw before it is played (<code>D3D7DrawRewriter</code>, using <code>Stereo::Core::ScreenSpaceVertexShifter</code>), by the <a href="stereo.html#screen">screen-space formula</a>.</li>
   <li><strong>Textures and flat quads.</strong> A draw into a texture is moved like any other, so the texture is the picture of the eye; the quad that draws the texture to the screen is flat and stays.</li>

@@ -5,6 +5,7 @@
 #ifndef STEREO_REPLAY_ENGINEDLL_I_EYE_EXECUTOR_H
 #define STEREO_REPLAY_ENGINEDLL_I_EYE_EXECUTOR_H
 
+#include "analysis/api_dump_analysis/types.h"
 #include "analysis/recipe/types.h"
 #include <functional>
 #include <stdint.h>
@@ -26,6 +27,16 @@ namespace Stereo
             {
             public:
                 virtual ~IEyeExecutor() = default;
+
+                /* Sets out_viewport_ptr to the viewport that the device has now: the one that the program set or, if it set none, the one of its window. Returns
+                 * false if the executor cannot tell, which is what the default implementation does.
+                 */
+                virtual bool read_viewport(Analysis::APIDumpAnalysis::Viewport* out_viewport_ptr)
+                {
+                    (void) out_viewport_ptr;
+
+                    return false;
+                }
 
                 /* Sets the eye that the following calls are executed for, until the next call of set_eye(). Objects that have a copy
                  * per eye resolve to the copy of that eye. The initial eye is the left one, which is also used for frames that are not

@@ -127,6 +127,11 @@ namespace Stereo
                  */
                 bool find_view_anchor_calls(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                             std::string*                                     out_error_ptr);
+                /* The viewport that a pushed draw is moved from: the one the device has now (the program's, or its window's if it set none), asked of the
+                 * executors; in_pass_viewport if no executor can tell. The viewport of the analysis is not used for a program that sets none, because it
+                 * takes the size of its window from the call that created it, which is not the size the window of the replay has.
+                 */
+                Analysis::APIDumpAnalysis::Viewport find_base_viewport(const Analysis::APIDumpAnalysis::Viewport& in_pass_viewport) const;
                 /* Finds the played draws the recipe pushes (see Recipe::pushed), keyed by first call. */
                 void find_pushed_draw_calls(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame);
                 /* Finds the calls before a left-out draw's own call (glBegin, vertices) that are left out with it; a draw missing only its glEnd would still show. */
@@ -135,11 +140,15 @@ namespace Stereo
                                               bool*                                            out_needs_history_ptr,
                                               std::string*                                     out_error_ptr) const;
 
-                /* Returns the sideways viewport shift in pixels (see PushShiftPlanner) and the pass viewport; 0 if the draw is not pushed. */
+                /* The viewport of the pass of a draw, as the analysis has it. */
+                const Analysis::APIDumpAnalysis::Viewport* get_pass_viewport_ptr(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
+                                                                                 const Analysis::APIDumpAnalysis::DrawInstance&   in_draw) const;
+
+                /* Returns the sideways viewport shift in pixels (see PushShiftPlanner) for a viewport that is in_viewport_width wide; 0 if the draw is not pushed. */
                 float get_push_shift_pixels(const Analysis::APIDumpAnalysis::CompletedFrame& in_frame,
                                             const Analysis::APIDumpAnalysis::DrawInstance&   in_draw,
                                             const Analysis::Recipe::Eye&                     in_eye,
-                                            const Analysis::APIDumpAnalysis::Viewport**      out_viewport_ptr_ptr) const;
+                                            const float&                                     in_viewport_width) const;
 
                 /* RecipeApplier::decide_draw() adjusted for the variant (draws it leaves out are skipped). A draw sharing its camera with an
                  * affected draw cannot stay unshifted because of its cover key (see find_view_anchor_calls()).
@@ -184,6 +193,7 @@ namespace Stereo
                 std::map<uint64_t, uint32_t>                                           m_pushed_draw_by_first_call_map; /* current frame: first call of a pushed draw -> draw index */
                 std::unique_ptr<Analysis::Recipe::RecipeApplier>                       m_recipe_applier_ptr;
                 std::unique_ptr<FrameRewriter>                                         m_rewriter_ptr;
+                std::map<uint64_t, Analysis::APIDumpAnalysis::Viewport>                m_saved_viewport_by_draw_call_map; /* current frame: own call of a pushed draw -> the viewport put back after it */
                 std::unique_ptr<Analysis::APIDumpAnalysis::Frontends::AnalysisSession> m_session_ptr;
                 uint64_t                                                               m_truncate_after_call; /* current frame: later calls are left out; UINT64_MAX: no cut */
                 std::vector<std::pair<uint64_t, uint64_t> >                            m_skipped_call_range_vec; /* current frame: (first, last) call ranges, in call order */
