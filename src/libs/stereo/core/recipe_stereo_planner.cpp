@@ -61,13 +61,15 @@ uint32_t Stereo::Core::RecipeStereoPlanner::bind_matrices(const Analysis::Recipe
 }
 
 Analysis::Recipe::DrawClass Stereo::Core::RecipeStereoPlanner::classify_draw(const uint64_t& in_signature_key,
-                                                                             const uint64_t& in_cover_key)
+                                                                             const uint64_t& in_cover_key,
+                                                                             const bool&     in_is_sampling_copied_color)
 {
     Analysis::Recipe::DrawQuery query;
 
-    query.cover_key     = in_cover_key;
-    query.signature_key = in_signature_key;
-    query.view_matrix   = m_view_matrix_fp32vec16;
+    query.cover_key                = in_cover_key;
+    query.is_sampling_copied_color = in_is_sampling_copied_color;
+    query.signature_key            = in_signature_key;
+    query.view_matrix              = m_view_matrix_fp32vec16;
 
     const Analysis::Recipe::DrawDecision decision = m_applier.decide_draw(query);
 

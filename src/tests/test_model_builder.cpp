@@ -1858,6 +1858,47 @@ TEST(ModelBuilder, TheFactsOfADrawSayWhetherItSamplesACopyOfThePicture)
               1u);
 }
 
+TEST(ModelBuilder, EachDrawSaysWhetherItSamplesACopyOfThePictureToTheReplayAndToTheConverter)
+{
+    Tests::ModelTestHelper helper;
+    const auto             copy_target     = helper.create_color_texture();
+    const auto             static_texture  = helper.create_static_texture();
+    const auto             swapchain_image = helper.create_swapchain_image();
+
+    helper.bind         (swapchain_image);
+    helper.draw_textured(copy_target,
+                         1); /* before the copy: it is not a copy of the picture yet */
+
+    EXPECT_FALSE(helper.get_builder().get_last_draw_is_sampling_copied_color() );
+
+    helper.copy         (swapchain_image,
+                         copy_target);
+    helper.draw_textured(copy_target,
+                         2);
+
+    /* The converter asks as each draw is made. */
+    EXPECT_TRUE(helper.get_builder().get_last_draw_is_sampling_copied_color() );
+    ASSERT_EQ  (helper.get_builder().get_call_draw_key_vec().size(),
+                1u);
+    EXPECT_TRUE(helper.get_builder().get_call_draw_key_vec().at(0).is_sampling_copied_color);
+
+    helper.draw_textured(static_texture,
+                         3);
+
+    EXPECT_FALSE(helper.get_builder().get_last_draw_is_sampling_copied_color() );
+
+    helper.end_frame();
+
+    /* The replay reads it from the draws of the frame it has played. */
+    const auto& draw_vec = helper.get_builder().get_completed_frame().draw_instance_vec;
+
+    ASSERT_EQ(draw_vec.size(),
+              3u);
+    EXPECT_FALSE(draw_vec.at(0).is_sampling_copied_color);
+    EXPECT_TRUE (draw_vec.at(1).is_sampling_copied_color);
+    EXPECT_FALSE(draw_vec.at(2).is_sampling_copied_color);
+}
+
 TEST(ModelBuilder, ADrawWhoseVerticesAreNotKnownHasNoSurfaceDepth)
 {
     constexpr size_t N_FLOATS_PER_MATRIX = 16;

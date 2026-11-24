@@ -247,9 +247,15 @@ Analysis::Recipe::DrawDecision Analysis::Recipe::RecipeApplier::decide_draw(cons
         result.is_pushed = true;
     }
 
-    /* A recipe for an application whose left-alone draws are all an overlay pushes them without listing them. */
-    if (m_recipe.comfort.pushes_unaffected &&
-        result.draw_class != DrawClass::AFFECTED)
+    /* A recipe for an application whose left-alone draws are all an overlay pushes them without listing them, unless it asks to leave alone the ones that sample a copy of the picture
+     * (a bloom: moving it moves the picture it is made of). A draw that the recipe names as pushed is pushed all the same.
+     */
+    const bool is_picture_filter = (m_recipe.comfort.leaves_picture_filters_unpushed &&
+                                    in_query.is_sampling_copied_color);
+
+    if (m_recipe.comfort.pushes_unaffected       &&
+        result.draw_class != DrawClass::AFFECTED &&
+        is_picture_filter == false)
     {
         result.is_pushed = true;
     }

@@ -12,6 +12,7 @@
 
 #include "analysis/api_dump_analysis/types.h"
 #include <array>
+#include <map>
 #include <set>
 
 namespace Analysis
@@ -34,6 +35,12 @@ namespace Analysis
             static void record_draw_depth(const DrawDescription&  in_draw,
                                           const ConstantStateMap& in_constant_state_map,
                                           PassDepth*              inout_depth_ptr);
+
+            /* Whether the draw samples a resource that a copy of the picture filled (see ModelBuilder: a copy of the color that is rendered to). Such a draw reads what is rendered below it,
+             * as a bloom does.
+             */
+            static bool is_sampling_copied_color(const DrawDescription&      in_draw,
+                                                 const std::set<ResourceId>& in_color_copy_target_set);
 
             /* Adds the draw to the draw facts (see DrawFacts): how it blends, whether it samples a copy of the picture, and where its vertices are.
              * Without history, only the facts that do not need the vertices are counted.

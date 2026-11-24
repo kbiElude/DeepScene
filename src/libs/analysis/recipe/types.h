@@ -136,6 +136,11 @@ namespace Analysis
             /* Keys (signature and size) of draws whose vertices are already in eye space. Not treated as attached to the camera. */
             std::vector<uint64_t> eye_space_cover_key_vec;
 
+            /* Whether pushes_unaffected leaves alone the draws that sample a copy of the picture (a bloom, a glow made of the picture itself): moving such a draw moves the picture it is
+             * made of, so the picture below it would not line up with it. A draw that the recipe names as pushed is pushed all the same. Off unless the recipe asks.
+             */
+            bool leaves_picture_filters_unpushed = false;
+
             /* 0 to 1: how much a depth strength above 1 also raises the scene limits (see SceneSeparation). 0 (default): the limits are a
              * ceiling; 1: they grow in proportion. A strength below 1 lowers the limits regardless.
              */
@@ -221,6 +226,7 @@ namespace Analysis
             uint64_t              draw_key             = 0;     /* of the draw structure; used if has_pass                                              */
             bool                  has_pass             = false;
             bool                  is_cover_hold_waived = false; /* the caller cannot leave a draw alone because of its cover key (see decide_draw) */
+            bool                  is_sampling_copied_color = false; /* the draw samples a copy of the picture (see DrawMeasurer::is_sampling_copied_color)  */
             uint64_t              pass_key             = 0;     /* of the pass structure; used if has_pass                                              */
             uint64_t              signature_key        = 0;     /* used if has_pass is false                                                            */
             std::array<float, 16> view_matrix          = {};    /* used if has_pass is false                                                            */

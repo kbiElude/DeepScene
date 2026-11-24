@@ -2,6 +2,7 @@
   "comfort": {
     "balance_convergence": true,
     "ease_by_time": true,
+    "leave_picture_filters_unpushed": true,
     "max_far_parallax": 0.0135869565,
     "max_near_parallax": 0.0203804348,
     "measure_depth": true,

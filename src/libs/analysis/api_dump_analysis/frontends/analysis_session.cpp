@@ -121,6 +121,11 @@ uint64_t Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_last_draw_co
     return m_builder.get_last_draw_cover_key();
 }
 
+bool Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_last_draw_is_sampling_copied_color() const
+{
+    return m_builder.get_last_draw_is_sampling_copied_color();
+}
+
 uint64_t Analysis::APIDumpAnalysis::Frontends::AnalysisSession::get_last_draw_signature_key() const
 {
     return m_builder.get_last_draw_signature_key();

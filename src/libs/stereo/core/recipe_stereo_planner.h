@@ -43,10 +43,12 @@ namespace Stereo
                                    const bool&                        in_is_final_target = false);
 
             /* Returns what the recipe does to a draw, by its signature and the current view matrix. A draw covering the whole view
-             * is never pushed (it would leave a bare strip).
+             * is never pushed (it would leave a bare strip). The flag says that the draw
+             * samples a copy of the picture (see RecipeApplier::decide_draw()).
              */
             Analysis::Recipe::DrawClass classify_draw(const uint64_t& in_signature_key,
-                                                      const uint64_t& in_cover_key);
+                                                      const uint64_t& in_cover_key,
+                                                      const bool&     in_is_sampling_copied_color = false);
 
             /* Forgets the stored matrices. Call it when the device holds other matrices than the converter knows of (after a device reset). */
             void forget_matrices();

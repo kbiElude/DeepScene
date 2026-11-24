@@ -1089,6 +1089,32 @@ TEST_F(StereoCoreTest, TheStrengthOfThe3DMakesTheDistanceBetweenTheEyesAThirtiet
                     0.0f);
 }
 
+TEST_F(StereoCoreTest, ADrawThatSamplesACopyOfThePictureIsNotPushedWhenTheRecipeLeavesPictureFiltersUnpushed)
+{
+    Stereo::Core::RecipeStereoPlanner core(make_recipe("\"comfort\": {\"leave_picture_filters_unpushed\": true, \"overlay_parallax\": 0.04, \"push_unaffected\": true}," + get_baked_text("{\"signature\": \"0x0000000000000001\", \"class\": \"unaffected\"}"),
+                                                       "{\"call\": \"IDirect3DDevice8::SetTransform\", \"when\": {\"state\": \"D3DTS_PROJECTION\","
+                                                       " \"matrix\": \"perspective\"}, \"action\": {\"type\": \"eye_convergence\"}}"),
+                                           [](const std::string& in_message)
+                                           {
+                                               (void) in_message;
+                                           });
+
+    core.set_is_overlay_pushed(true);
+
+    /* The same signature and size: a sprite is pushed, the draw that reads the picture below it (a bloom) is not. */
+    core.classify_draw(1,
+                       0,
+                       false);
+
+    EXPECT_TRUE(core.get_is_last_draw_pushed() );
+
+    core.classify_draw(1,
+                       0,
+                       true);
+
+    EXPECT_FALSE(core.get_is_last_draw_pushed() );
+}
+
 TEST_F(StereoCoreTest, WhatTheRecipeLeavesAloneAndIsMadeToWhatIsPresentedIsPushedTowardTheViewer)
 {
     const auto                        projection_arguments = make_set_transform_arguments(STATE_PROJECTION);

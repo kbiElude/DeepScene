@@ -57,6 +57,9 @@ namespace Analysis
             /* The key of the last draw, built from its signature and size (see MatchKeyBuilder::compute_draw_cover_key()); 0 before the first draw. */
             uint64_t get_last_draw_cover_key() const;
 
+            /* Whether the last draw samples a resource that a copy of the picture filled (see DrawMeasurer::is_sampling_copied_color()); false before the first draw. */
+            bool get_last_draw_is_sampling_copied_color() const;
+
             /* The signature of the last draw (see MatchKeyBuilder::compute_draw_signature_key()); 0 before the first draw. */
             uint64_t get_last_draw_signature_key() const;
 
@@ -193,6 +196,7 @@ namespace Analysis
             bool                                      m_keeps_history;
             ResourceKeyTable                          m_key_table;
             uint64_t                                  m_last_draw_cover_key;
+            bool                                      m_last_draw_is_sampling_copied_color;
             uint64_t                                  m_last_draw_signature_key;
             PrimitiveTopology                         m_last_draw_topology;
             uint32_t                                  m_last_draw_vertex_count;

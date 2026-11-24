@@ -345,9 +345,26 @@ shift(right eye) = −shift(left eye)
 <table>
 <tr><th>A draw is pushed if</th><th>Note</th></tr>
 <tr><td>the recipe lists it in <code>pushed</code></td><td>Left alone or affected. An affected one is pushed too in OpenGL, so that text and a logo stand off the layer they are drawn on. A fade, or a blur or glow that works on a copy of the picture, is not listed and so stays where it is.</td></tr>
-<tr><td>the recipe sets <code>comfort.push_unaffected</code> and the rules leave it alone</td><td>For an application whose left-alone draws are all an overlay (an interface). A recipe sets it when everything the rules leave alone is an overlay (the Direct3D recipes and one OpenGL recipe do); another lists the draws to push.</td></tr>
+<tr><td>the recipe sets <code>comfort.push_unaffected</code> and the rules leave it alone</td><td>For an application whose left-alone draws are all an overlay (an interface). A recipe sets it when everything the rules leave alone is an overlay (the Direct3D recipes and one OpenGL recipe do); another lists the draws to push. With <code>comfort.leave_picture_filters_unpushed</code> a draw that samples a copy of the picture is left out (<a href="#picture-filter">below</a>).</td></tr>
 </table>
 <p>The switch of the person (the VR player's, or <code>APISTEREO_PUSH_OVERLAY</code>) turns the push off for every API. Direct3D adds two limits: a draw into a texture is not pushed, because what it makes is used elsewhere, and neither is a draw that covers the view, which would leave a strip bare. In Direct3D a listed draw that the rules affect gets no push.</p>
+<h3 id="picture-filter">A glow that is made of the picture</h3>
+<p>Not everything that a program draws over the picture is content. A bloom is the picture itself: the program copies what it has rendered into a texture, then draws that texture back over the picture, blurred and added, and bright things seem to glow. Such a draw is left alone by the rules like any overlay, and with <code>push_unaffected</code> it would be pushed like one. That is a mistake you can see. The glow is made of the picture, so it has to stay on top of the light that made it, and a push moves it sideways by half of <code>overlay_parallax</code> in opposite directions for each eye. In each eye the glow ends up beside its light, a little nearer than the light. A scene of bright points then looks as if flares jump out of the screen.</p>
+<figure>
+<svg viewBox="0 0 900 235" role="img" aria-label="A bright light, the glow that a bloom draws around it, and the glow after a push, which has left its light">
+  <text class="title" x="10" y="20">The picture</text><text class="title" x="310" y="20">The bloom</text><text class="title" x="610" y="20">The bloom, pushed</text>
+  <rect class="box" x="10" y="40" width="270" height="130" rx="6"/><circle class="box2" cx="145" cy="105" r="6"/>
+  <rect class="box" x="310" y="40" width="270" height="130" rx="6"/><circle class="rayL" cx="445" cy="105" r="48" stroke-dasharray="5 4"/><circle class="box2" cx="445" cy="105" r="6"/>
+  <rect class="box" x="610" y="40" width="270" height="130" rx="6"/><circle class="rayL" cx="771" cy="105" r="48" stroke-dasharray="5 4"/><circle class="box2" cx="745" cy="105" r="6"/>
+  <path class="arrowline" d="M745 122H771"/><text class="small" x="758" y="138" text-anchor="middle">o / 2</text>
+  <text class="small" x="145" y="192" text-anchor="middle">a bright light</text>
+  <text class="small" x="445" y="192" text-anchor="middle">the picture, copied and drawn back over itself,</text><text class="small" x="445" y="206" text-anchor="middle">blurred: the glow is centred on its light</text>
+  <text class="small" x="745" y="192" text-anchor="middle">the glow moves and the light does not:</text><text class="small" x="745" y="206" text-anchor="middle">it is no longer around the light that it shows</text>
+</svg>
+<figcaption>The dashed circle is the glow. Left alone, it is centred on the light. Pushed for one eye, it is not; the other eye gets it the other way.</figcaption>
+</figure>
+<p>A recipe says that it does not want this with <code>comfort.leave_picture_filters_unpushed</code>, off by default. <code>push_unaffected</code> then skips every draw that samples a copy of the picture. The analysis knows that about each draw: when a copy of the color that is rendered to fills a texture, the texture is marked, and a draw that binds a marked texture reads the picture below it (<code>DrawMeasurer::is_sampling_copied_color()</code>). The converter asks it as each draw is made, and the replay reads it from the draws of the frame that it has played, so both decide alike. A draw that the recipe lists in <code>pushed</code> is pushed all the same. A recipe without the option pushes every draw it leaves alone.</p>
+<p>The reason that this is a switch and not a list of draws is what the converter can see. A bloom and the particles of the same program can share one signature and one size, so no list of keys can tell them apart while the program runs, and the baker refuses a recipe that would need to. What does tell them apart is what they read.</p>
 <p>The recipe can name draws in <code>pushed</code> and in the automatic layers in more ways:</p>
 <table>
 <tr><th>Draw</th><th>What happens</th></tr>

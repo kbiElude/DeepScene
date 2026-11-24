@@ -50,6 +50,9 @@ namespace Analysis
                 /* The key of the last analyzed draw, built from its signature and size (see ModelBuilder::get_last_draw_cover_key). */
                 uint64_t get_last_draw_cover_key() const;
 
+                /* Whether the last analyzed draw samples a copy of the picture (see ModelBuilder::get_last_draw_is_sampling_copied_color). */
+                bool get_last_draw_is_sampling_copied_color() const;
+
                 /* The signature of the last analyzed draw (see ModelBuilder::get_last_draw_signature_key). */
                 uint64_t get_last_draw_signature_key() const;
 

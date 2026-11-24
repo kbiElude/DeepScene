@@ -20,6 +20,7 @@ Analysis::APIDumpAnalysis::ModelBuilder::ModelBuilder(const bool& in_keeps_histo
      m_is_orthographic          (false),
      m_keeps_history            (in_keeps_history),
      m_last_draw_cover_key      (0),
+     m_last_draw_is_sampling_copied_color(false),
      m_last_draw_signature_key  (0),
      m_last_draw_topology       (PrimitiveTopology::POINT_LIST),
      m_last_draw_vertex_count   (0),
@@ -310,6 +311,11 @@ bool Analysis::APIDumpAnalysis::ModelBuilder::get_is_orthographic()
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_cover_key() const
 {
     return m_last_draw_cover_key;
+}
+
+bool Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_is_sampling_copied_color() const
+{
+    return m_last_draw_is_sampling_copied_color;
 }
 
 uint64_t Analysis::APIDumpAnalysis::ModelBuilder::get_last_draw_signature_key() const
@@ -638,7 +644,13 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
             open_pass_ptr->covering_draw_key_set.insert(m_last_draw_cover_key);
         }
 
+        const bool is_sampling_copied_color = DrawMeasurer::is_sampling_copied_color(in_draw,
+                                                                                    m_color_copy_target_set);
+
+        m_last_draw_is_sampling_copied_color = is_sampling_copied_color;
+
         m_call_draw_key_vec.push_back({m_last_draw_cover_key,
+                                       is_sampling_copied_color,
                                        m_last_draw_signature_key});
 
         /* A pass identifies the same draw by one signature, because the targets are those of the pass. */
@@ -657,6 +669,7 @@ void Analysis::APIDumpAnalysis::ModelBuilder::on_draw(const DrawDescription& in_
         m_frame.draw_instance_vec.push_back({m_call_index,
                                              m_last_draw_cover_key,
                                              first_call,
+                                             is_sampling_copied_color,
                                              static_cast<uint32_t>(m_frame.pass_instance_vec.size() ),
                                              key,
                                              in_draw.view_anchor_call_index});

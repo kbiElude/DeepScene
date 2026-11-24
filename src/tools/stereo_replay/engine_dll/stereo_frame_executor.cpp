@@ -1286,11 +1286,12 @@ Analysis::Recipe::DrawDecision Stereo::Replay::EngineDLL::StereoFrameExecutor::d
 {
     Analysis::Recipe::DrawQuery query;
 
-    query.cover_key            = in_draw.cover_key;
-    query.draw_key             = in_draw.structure_key;
-    query.has_pass             = true;
-    query.is_cover_hold_waived = (m_unflattened_draw_call_set.count(in_draw.call_index) != 0);
-    query.pass_key             = in_pass_key;
+    query.cover_key                = in_draw.cover_key;
+    query.draw_key                 = in_draw.structure_key;
+    query.has_pass                 = true;
+    query.is_cover_hold_waived     = (m_unflattened_draw_call_set.count(in_draw.call_index) != 0);
+    query.is_sampling_copied_color = in_draw.is_sampling_copied_color;
+    query.pass_key                 = in_pass_key;
 
     Analysis::Recipe::DrawDecision result = m_recipe_applier_ptr->decide_draw(query);
 

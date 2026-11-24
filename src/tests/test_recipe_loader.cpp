@@ -850,6 +850,28 @@ TEST_F(RecipeLoaderTest, BakedDrawRulesAreRead)
                 Analysis::Recipe::DrawClass::AFFECTED);
 }
 
+TEST_F(RecipeLoaderTest, TheComfortOptionThatLeavesPictureFiltersUnpushedIsReadIsOffByDefaultAndMustBeABoolean)
+{
+    Analysis::Recipe::Recipe recipe;
+    std::string              error;
+
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"leave_picture_filters_unpushed\": true, \"push_unaffected\": true},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_TRUE(recipe.comfort.leaves_picture_filters_unpushed);
+
+    /* A recipe made before the option existed pushes everything it leaves alone. */
+    ASSERT_TRUE(Analysis::Recipe::RecipeLoader::parse(get_recipe_text("\"comfort\": {\"push_unaffected\": true},", ""),
+                                                      &recipe,
+                                                      &error) ) << error;
+
+    EXPECT_FALSE(recipe.comfort.leaves_picture_filters_unpushed);
+
+    expect_refused(get_recipe_text("\"comfort\": {\"leave_picture_filters_unpushed\": 1},", ""),
+                   "comfort.leave_picture_filters_unpushed: expected true or false");
+}
+
 TEST_F(RecipeLoaderTest, ABakedDrawRuleCanSayThatTheDrawIsPushed)
 {
     std::string              error;

@@ -142,7 +142,7 @@
 <figcaption>Other calls than draws are kept by the analyzer until their results are in.</figcaption>
 </figure>
 <ol>
-  <li>The program sets matrices and draws. The hook gives each call to the call analyzer. A draw is analysed immediately (its signature is needed before it runs); other calls are kept until their results are in.</li>
+  <li>The program sets matrices and draws. The hook gives each call to the call analyzer. A draw is analysed immediately (its signature is needed before it runs, and so is whether it samples a copy of the picture, which a recipe with <code>leave_picture_filters_unpushed</code> asks); other calls are kept until their results are in.</li>
   <li><code>RecipeStereoPlanner</code> looks the draw up in the recipe. A scene draw is made for each eye with the eye's matrices; an interface draw is made once; a skipped one is not made. The maths of the matrices, the separation and the convergence is on the <a href="stereo.html">Stereo</a> page.</li>
   <li>At the end of the frame the images go to the frame channel.</li>
 </ol>

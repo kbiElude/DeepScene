@@ -621,6 +621,7 @@
   <li>the depth range of the vertices.</li>
 </ul>
 <p>The reasons say it: <code>samples_copied_picture</code>, <code>covers_view</code>, <code>covers_view_in_some_draws</code>, <code>blends_over_picture</code>.</p>
+<p>The fact that a draw samples a copy of the picture is also kept for each draw as it is analysed, and not only counted: <code>DrawMeasurer::is_sampling_copied_color()</code> decides it once, for the counter, for <code>DrawKeys</code> (which the live converter reads after each draw, through <code>LiveCallAnalyzer</code>) and for <code>DrawInstance</code> (which the replay reads). <code>comfort.leave_picture_filters_unpushed</code> uses it.</p>
 <p>The baking is the class <code>RecipeBaker</code>, which is in the program because the program is its only user (the tests compile it too); the command line is <code>CommandLine</code>.</p>
 
 <h2 id="replay">tools/stereo_replay</h2>

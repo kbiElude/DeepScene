@@ -56,6 +56,9 @@ namespace Stereo
             /* Returns the key of the draw that on_pre() analysed last, looked up by its signature and size. */
             uint64_t get_last_draw_cover_key() const;
 
+            /* Returns whether the draw that on_pre() analysed last samples a copy of the picture. */
+            bool get_last_draw_is_sampling_copied_color() const;
+
             /* Returns the signature of the draw that on_pre() analysed last. */
             uint64_t get_last_draw_signature_key() const;
 

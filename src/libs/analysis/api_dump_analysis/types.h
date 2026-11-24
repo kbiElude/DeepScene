@@ -633,8 +633,9 @@ namespace Analysis
         /* What identifies a draw for a player that classifies draws when they are issued: its signature key, and the key of the signature combined with the size of the draw. */
         struct DrawKeys
         {
-            uint64_t cover_key     = 0;
-            uint64_t signature_key = 0;
+            uint64_t cover_key                 = 0;
+            bool     is_sampling_copied_color  = false; /* the draw samples a resource that a copy of the picture filled: it reads the picture below it (see DrawFacts) */
+            uint64_t signature_key             = 0;
         };
 
         /* What the model builder works out for a draw from the draw alone (see DrawKeyCache). */
@@ -651,6 +652,7 @@ namespace Analysis
             uint64_t call_index    = 0;
             uint64_t cover_key     = 0; /* of the draw's signature and size (see MatchKeyBuilder::compute_draw_cover_key) */
             uint64_t first_call_index = 0; /* the first call of the draw: call_index, unless its calls form a block (glBegin to glEnd). A draw that is left out is left out as a whole block */
+            bool     is_sampling_copied_color = false; /* the draw samples a resource that a copy of the picture filled (see DrawMeasurer::is_sampling_copied_color) */
             uint32_t pass_index    = 0; /* a position in CompletedFrame::pass_instance_vec */
             uint64_t structure_key = 0;
             uint64_t view_anchor_call_index = UINT64_MAX; /* of the draw: see DrawDescription::view_anchor_call_index */

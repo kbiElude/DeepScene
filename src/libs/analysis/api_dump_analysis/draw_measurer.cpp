@@ -194,6 +194,24 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_depth(const DrawDescri
     }
 }
 
+bool Analysis::APIDumpAnalysis::DrawMeasurer::is_sampling_copied_color(const DrawDescription&      in_draw,
+                                                                       const std::set<ResourceId>& in_color_copy_target_set)
+{
+    bool result = false;
+
+    for (const auto& binding : in_draw.texture_binding_vec)
+    {
+        if (in_color_copy_target_set.count(binding.view.resource_id) != 0)
+        {
+            result = true;
+
+            break;
+        }
+    }
+
+    return result;
+}
+
 void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescription&      in_draw,
                                                                 const std::set<ResourceId>& in_color_copy_target_set,
                                                                 const bool&                 in_keeps_history,
@@ -234,14 +252,10 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
         facts.n_blended_draws += 1;
     }
 
-    for (const auto& binding : in_draw.texture_binding_vec)
+    if (is_sampling_copied_color(in_draw,
+                                 in_color_copy_target_set) )
     {
-        if (in_color_copy_target_set.count(binding.view.resource_id) != 0)
-        {
-            facts.n_draws_sampling_copied_color += 1;
-
-            break;
-        }
+        facts.n_draws_sampling_copied_color += 1;
     }
 
     if (in_keeps_history                      == false   ||

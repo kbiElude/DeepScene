@@ -236,6 +236,11 @@ uint64_t Stereo::ConverterDLL::LiveCallAnalyzer::get_last_draw_cover_key() const
     return m_session.get_last_draw_cover_key();
 }
 
+bool Stereo::ConverterDLL::LiveCallAnalyzer::get_last_draw_is_sampling_copied_color() const
+{
+    return m_session.get_last_draw_is_sampling_copied_color();
+}
+
 uint64_t Stereo::ConverterDLL::LiveCallAnalyzer::get_last_draw_signature_key() const
 {
     return m_session.get_last_draw_signature_key();

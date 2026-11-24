@@ -1228,6 +1228,77 @@ TEST_F(RecipeApplierTest, WithNoDistanceTheViewAnchorMatrixIsTheTranslationAlone
     EXPECT_TRUE(applier.has_view_anchor_shift() );
 }
 
+TEST_F(RecipeApplierTest, ADrawThatSamplesACopyOfThePictureIsNotPushedByPushUnaffectedIfTheRecipeAsksForThat)
+{
+    Analysis::Recipe::DrawQuery query;
+    Analysis::Recipe::Recipe    recipe;
+
+    recipe.comfort.pushes_unaffected = true;
+    recipe.is_baked                  = true;
+    recipe.unaffected.draw_key_vec   = {0x2, 0x3};
+
+    Analysis::Recipe::DrawRule rule;
+
+    rule.draw_class    = Analysis::Recipe::DrawClass::UNAFFECTED;
+    rule.signature_key = 7;
+
+    recipe.draw_rule_vec.push_back(rule);
+
+    /* Without the option every draw that is left alone is pushed, one that reads the picture as well. */
+    {
+        const Analysis::Recipe::RecipeApplier applier(recipe);
+
+        query.draw_key                 = 2;
+        query.has_pass                 = true;
+        query.is_sampling_copied_color = true;
+
+        EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+    }
+
+    recipe.comfort.leaves_picture_filters_unpushed = true;
+
+    {
+        const Analysis::Recipe::RecipeApplier applier(recipe);
+
+        /* The replay names the draw. The bloom stays where it is, a sprite next to it is pushed. */
+        query.draw_key                 = 2;
+        query.is_sampling_copied_color = true;
+
+        EXPECT_EQ   (applier.decide_draw(query).draw_class,
+                     Analysis::Recipe::DrawClass::UNAFFECTED);
+        EXPECT_FALSE(applier.decide_draw(query).is_pushed);
+
+        query.draw_key                 = 3;
+        query.is_sampling_copied_color = false;
+
+        EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+
+        /* The converter that plays the application as it runs knows the signature, and says the same of the draw. */
+        query.has_pass                 = false;
+        query.signature_key            = 7;
+        query.is_sampling_copied_color = true;
+
+        EXPECT_FALSE(applier.decide_draw(query).is_pushed);
+
+        query.is_sampling_copied_color = false;
+
+        EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+    }
+
+    /* A recipe that names the draw as pushed has the last word. */
+    recipe.pushed.draw_key_vec = {0x2};
+
+    {
+        const Analysis::Recipe::RecipeApplier applier(recipe);
+
+        query.draw_key                 = 2;
+        query.has_pass                 = true;
+        query.is_sampling_copied_color = true;
+
+        EXPECT_TRUE(applier.decide_draw(query).is_pushed);
+    }
+}
+
 TEST_F(RecipeApplierTest, WhatTheRulesLeaveAloneIsPushedOnlyIfTheRecipeSaysSoOrListsTheDraw)
 {
     Analysis::Recipe::DrawQuery query;

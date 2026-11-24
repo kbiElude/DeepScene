@@ -604,7 +604,8 @@ bool Stereo::ConverterDLL::LiveStereoConverter::on_gl_draws(Analysis::Recipe::Dr
     for (const auto& draw_keys : m_live_state.call_analyzer.get_last_call_draw_key_vec() )
     {
         const auto draw_class = m_live_state.core_ptr->classify_draw(draw_keys.signature_key,
-                                                                     draw_keys.cover_key);
+                                                                     draw_keys.cover_key,
+                                                                     draw_keys.is_sampling_copied_color);
 
         class_bits |= 1u << static_cast<uint32_t>(draw_class);
 
@@ -1039,8 +1040,9 @@ void Stereo::ConverterDLL::LiveStereoConverter::on_pre(const APIInterceptor::API
         }
         else
         {
-            const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.call_analyzer.get_last_draw_signature_key(),
-                                                                         m_live_state.call_analyzer.get_last_draw_cover_key    () );
+            const auto draw_class = m_live_state.core_ptr->classify_draw(m_live_state.call_analyzer.get_last_draw_signature_key            (),
+                                                                         m_live_state.call_analyzer.get_last_draw_cover_key                (),
+                                                                         m_live_state.call_analyzer.get_last_draw_is_sampling_copied_color() );
 
             /* The renderer makes a Direct3D 7 or 8 draw if it moves the vertices for the eye. */
             if (is_d3d8)

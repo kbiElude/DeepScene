@@ -1188,7 +1188,7 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
     }
 
     if (check_keys(in_value,
-                   {"automatic_layers", "balance_convergence", "camera_attached_depth", "ease_by_time", "eye_space_cover_keys", "limits_follow_strength", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "push_by_default", "push_unaffected", "scene_overrides", "snap_at_cuts"},
+                   {"automatic_layers", "balance_convergence", "camera_attached_depth", "ease_by_time", "eye_space_cover_keys", "leave_picture_filters_unpushed", "limits_follow_strength", "max_far_parallax", "max_near_parallax", "measure_depth", "near_fraction", "overlay_parallax", "part_parallax", "push_by_default", "push_unaffected", "scene_overrides", "snap_at_cuts"},
                    in_path,
                    out_error_ptr) == false)
     {
@@ -1288,6 +1288,20 @@ bool Analysis::Recipe::RecipeLoader::parse_comfort(const Utils::Json::JsonValue&
             }
 
             out_comfort_ptr->pushes_by_default = push_default_ptr->bool_value;
+        }
+
+        const auto* leave_ptr = in_value.find_ptr("leave_picture_filters_unpushed");
+
+        if (leave_ptr != nullptr)
+        {
+            if (leave_ptr->type != Utils::Json::JsonValueType::BOOL)
+            {
+                *out_error_ptr = in_path + ".leave_picture_filters_unpushed: expected true or false";
+
+                goto end;
+            }
+
+            out_comfort_ptr->leaves_picture_filters_unpushed = leave_ptr->bool_value;
         }
 
         const auto* push_ptr = in_value.find_ptr("push_unaffected");
