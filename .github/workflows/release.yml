@@ -57,11 +57,20 @@ jobs:
           cmake --install build_x86 --config Release --prefix build_final
           cmake --install build_x64 --config Release --prefix build_final
 
-      - name: Zip it
+      # The zip is for people who play: the player, what it starts, and the catalog, in a folder of their own, with a README that says how to
+      # run it. The tools that capture and analyse a program are in build_final\ too, and are not part of it.
+      - name: Zip the player
         shell: pwsh
         run: |
-          $zip = "DeepScene-${{ steps.version.outputs.version }}-windows.zip"
-          Compress-Archive -Path build_final\* -DestinationPath $zip
+          $zip   = "DeepScene-${{ steps.version.outputs.version }}-windows.zip"
+          $stage = "stage\DeepScene"
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item build_final\VRPlayer.exe $stage
+          Copy-Item build_final\runtime      $stage -Recurse
+          Copy-Item build_final\apps         $stage -Recurse
+          Copy-Item cmake\player_README.txt  "$stage\README.txt"
+          Get-ChildItem $stage -Recurse -File | ForEach-Object { $_.FullName.Substring((Resolve-Path $stage).Path.Length + 1) }
+          Compress-Archive -Path $stage -DestinationPath $zip
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
           "$hash  $zip" | Out-File -Encoding ascii SHA256SUMS.txt
           Get-Content SHA256SUMS.txt
