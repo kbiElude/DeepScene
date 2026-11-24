@@ -29,6 +29,10 @@ namespace VRPlayer
     private:
         bool draw_app_card     (const size_t& in_n_app);
         void draw_app_list     ();
+        void draw_button_glow  (const float&  in_height,
+                                const float&  in_width);
+        void draw_button_shine ();
+        void draw_chips        ();
         void draw_details      ();
         void draw_device_combo ();
         void draw_header       ();

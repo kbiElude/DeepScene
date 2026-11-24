@@ -268,7 +268,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
 
     if (m_state == SessionState::RUNNING)
     {
-        *out_error_ptr = "An application is running already.";
+        *out_error_ptr = "Already running.";
 
         goto end;
     }
@@ -309,7 +309,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
 
     if (::GetFileAttributesA(request.presenter_path.c_str() ) == INVALID_FILE_ATTRIBUTES)
     {
-        *out_error_ptr = "The window which shows the application is not installed: " + request.presenter_path;
+        *out_error_ptr = "Presenter not installed: " + request.presenter_path;
 
         goto end;
     }
@@ -392,7 +392,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
                         &startup_info,
                         &presenter_info) == FALSE)
     {
-        *out_error_ptr = "The window which shows the application cannot be started: " + request.presenter_path;
+        *out_error_ptr = "Presenter not started: " + request.presenter_path;
 
         goto end;
     }
@@ -419,7 +419,7 @@ bool VRPlayer::AppSession::start(const VRPlayer::AppCatalog::AppEntry& in_app,
                         &startup_info,
                         &launcher_info) == FALSE)
     {
-        *out_error_ptr = "The launcher cannot be started: " +
+        *out_error_ptr = "Launcher not started: " +
                          request.launcher_path;
 
         goto end;

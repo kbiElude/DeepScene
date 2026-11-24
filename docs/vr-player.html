@@ -53,7 +53,7 @@
   <text class="small" x="330" y="96">title; the reason if it is unavailable</text>
   <text class="small" x="330" y="118">description, if the recipe has one</text>
   <text class="small" x="330" y="140">VR settings: Device, Depth, Resolution per eye</text>
-  <rect class="box4" x="330" y="160" width="520" height="56" rx="5"/><text x="590" y="182" text-anchor="middle">status line</text><text class="small" x="590" y="200" text-anchor="middle">download progress, or an error in a table, or: Pick an application which is available.</text>
+  <rect class="box4" x="330" y="160" width="520" height="56" rx="5"/><text x="590" y="182" text-anchor="middle">status line</text><text class="small" x="590" y="200" text-anchor="middle">download progress, or an error in a table, or: Pick an app.</text>
   <rect class="box2" x="330" y="232" width="520" height="52" rx="6"/><text x="590" y="263" text-anchor="middle">Launch, Download &amp; launch, or Cancel</text>
 </svg>
 <figcaption>The right pane lists what is known of the selected program; above the button it shows the progress or the reason nothing starts.</figcaption>
@@ -62,8 +62,8 @@
 <tr><th>Part</th><th>Content</th></tr>
 <tr><td>Left list</td><td>The catalog programs, alphabetically by name. A card shows the title (the catalog writes it as <em>name by group (year)</em>), the description if the recipe has one, and the reason when the program cannot be launched. A title longer than the card wraps.</td></tr>
 <tr><td>Right pane</td><td>The title, the reason if the program is unavailable, the description if there is one, the VR settings and, at the bottom, the Launch button (it says <em>Download &amp; launch</em> while the program is not on the computer, and <em>Cancel</em> while a download runs).</td></tr>
-<tr><td>Above the button</td><td>The download progress, or an error in a table, or the hint <em>Pick an application which is available.</em> when nothing can be launched.</td></tr>
-<tr><td>Catalog problems</td><td>The list says <em>The catalog cannot be read</em> with the reason, or that it lists no applications. With no <code>apps.json</code> to be found it says to use <code>--catalog</code>.</td></tr>
+<tr><td>Above the button</td><td>The download progress, or an error in a table, or the hint <em>Pick an app.</em> when nothing can be launched.</td></tr>
+<tr><td>Catalog problems</td><td>The list says <em>Catalog:</em> with the reason, or <em>No applications.</em> With no <code>apps.json</code> to be found it says to use <code>--catalog</code>.</td></tr>
 </table>
 
 <h3>What is selected at the start</h3>
@@ -111,7 +111,7 @@
 </table>
 
 <h3>When it fails</h3>
-<p>A window titled <em>Cannot install the application</em> says what. The status above the button says <em>The application cannot be installed.</em></p>
+<p>A window titled <em>Cannot install the application</em> says what. The status above the button says <em>Install failed.</em></p>
 <table>
 <tr><th>Cause</th><th>What the window says</th></tr>
 <tr><td>No address works</td><td>The error of each host, and the <code>page</code> of the catalog entry to download the program by hand.</td></tr>
@@ -253,7 +253,7 @@
 <p>The device dropdown is filled by <code>OpenXrVrDeviceProvider</code>, which asks the OpenXR runtime for its headset once, when <code>VRPlayer</code> starts.</p>
 <table>
 <tr><th>Situation</th><th>The dropdown</th></tr>
-<tr><td>No OpenXR runtime or headset</td><td>Shows only <em>2D preview only</em> and is disabled, with a line saying that the picture is shown in the window only; Launch works.</td></tr>
+<tr><td>No OpenXR runtime or headset</td><td>Shows only <em>2D preview only</em> and is disabled, with the line <em>No headset found.</em>; Launch works.</td></tr>
 <tr><td>A headset</td><td>The headset by the name the runtime gives it, selected, with the runtime's name below; <em>2D preview only</em> is the last entry of the list.</td></tr>
 <tr><td>A device that has an unavailable reason</td><td>Listed as <em>(unavailable)</em>, with the reason as a tooltip. The OpenXR provider sets none: it lists one device or none.</td></tr>
 </table>

@@ -23,10 +23,22 @@ static const ImVec4 ACCENT_HOVERED_COLOR  (0.42f,
                                            0.50f,
                                            1.00f,
                                            1.00f);
+static const ImVec4 ACCENT_VIOLET_COLOR   (0.62f,
+                                           0.38f,
+                                           0.95f,
+                                           1.00f);
 static const ImVec4 BORDER_COLOR          (0.20f,
                                            0.22f,
                                            0.28f,
                                            1.00f);
+static const ImVec4 CHIP_BORDER_COLOR     (0.33f,
+                                           0.42f,
+                                           0.95f,
+                                           0.55f);
+static const ImVec4 CHIP_FILL_COLOR       (0.33f,
+                                           0.42f,
+                                           0.95f,
+                                           0.16f);
 static const ImVec4 DIM_TEXT_COLOR        (0.58f,
                                            0.61f,
                                            0.70f,
@@ -55,6 +67,10 @@ static const ImVec4 SELECTED_HOVERED_COLOR(0.22f,
                                            0.28f,
                                            0.55f,
                                            0.45f);
+static const ImVec4 SHADOW_COLOR          (0.00f,
+                                           0.00f,
+                                           0.00f,
+                                           0.35f);
 static const ImVec4 TEXT_COLOR            (0.92f,
                                            0.93f,
                                            0.96f,
@@ -65,9 +81,19 @@ static const ImVec4 WINDOW_COLOR          (0.07f,
                                            1.00f);
 
 /* Sizes at 100% scale; the monitor scale is applied on top. */
-static constexpr float ACCENT_LINE_HEIGHT    = 2.0f;
+static constexpr float ACCENT_LINE_HEIGHT    = 3.0f;
 static constexpr float CARD_ACCENT_BAR_WIDTH = 3.0f;
+static constexpr float CARD_ROUNDING         = 8.0f;
+static constexpr float CARD_SHADOW_OFFSET    = 2.0f;
+static constexpr float CARD_WASH_ALPHA       = 0.30f;
+static constexpr float CHIP_GAP              = 6.0f;
+static constexpr float CHIP_PADDING_X        = 10.0f;
+static constexpr float CHIP_PADDING_Y        = 3.0f;
 static constexpr int   DEFAULT_DEPTH_INDEX   = 1;
+static constexpr float GLOW_ALPHA            = 0.07f;
+static constexpr int   GLOW_N_LAYERS         = 4;
+static constexpr float GLOW_SPREAD           = 2.0f;
+static constexpr float SHINE_ALPHA           = 0.22f;
 
 /* The depth strengths the user can choose: less than the converter's natural depth for each scene, the same, and somewhat more where the scene allows it. */
 static constexpr size_t  N_DEPTHS                       = 3;
@@ -177,20 +203,83 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
     {
         const ImVec2 min = ImGui::GetCursorScreenPos();
 
+        /* The card is drawn here, so the selectable has no color of its own. */
+        ImGui::PushStyleColor(ImGuiCol_Header,
+                              ImVec4(0.0f, 0.0f, 0.0f, 0.0f) );
+        ImGui::PushStyleColor(ImGuiCol_HeaderActive,
+                              ImVec4(0.0f, 0.0f, 0.0f, 0.0f) );
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered,
+                              ImVec4(0.0f, 0.0f, 0.0f, 0.0f) );
+
         result = ImGui::Selectable("##card",
                                    is_selected,
                                    0, /* flags */
                                    ImVec2(width,
                                           height) );
 
-        if (is_selected)
-        {
-            const ImU32 accent_color = ImGui::GetColorU32(ACCENT_COLOR);
+        ImGui::PopStyleColor(3); /* count */
 
-            ImGui::GetWindowDrawList()->AddRectFilled(min,
-                                                      ImVec2(min.x + CARD_ACCENT_BAR_WIDTH * style.FontScaleDpi,
-                                                             min.y + height),
-                                                      accent_color);
+        {
+            const ImVec2 max        = ImVec2(min.x + width,
+                                             min.y + height);
+            const float  rounding   = CARD_ROUNDING * style.FontScaleDpi;
+            const float  shadow_dy  = CARD_SHADOW_OFFSET * style.FontScaleDpi;
+            const bool   is_hovered = ImGui::IsItemHovered();
+            ImDrawList*  draw_list  = ImGui::GetWindowDrawList();
+
+            draw_list->AddRectFilled(ImVec2(min.x,
+                                            min.y + shadow_dy),
+                                     ImVec2(max.x,
+                                            max.y + shadow_dy),
+                                     ImGui::GetColorU32(SHADOW_COLOR),
+                                     rounding);
+            draw_list->AddRectFilled(min,
+                                     max,
+                                     ImGui::GetColorU32((is_hovered) ? FRAME_HOVERED_COLOR
+                                                                     : FRAME_COLOR),
+                                     rounding);
+
+            if (is_selected)
+            {
+                /* A wash of the accent, strongest at the bar and fading to the right; the strip at the left follows the rounded corners. */
+                const ImU32 wash_color  = ImGui::GetColorU32(ImVec4(ACCENT_COLOR.x,
+                                                                    ACCENT_COLOR.y,
+                                                                    ACCENT_COLOR.z,
+                                                                    CARD_WASH_ALPHA) );
+                const ImU32 clear_color = ImGui::GetColorU32(ImVec4(ACCENT_COLOR.x,
+                                                                    ACCENT_COLOR.y,
+                                                                    ACCENT_COLOR.z,
+                                                                    0.0f) );
+
+                draw_list->AddRectFilled(min,
+                                         ImVec2(min.x + 2.0f * rounding,
+                                                max.y),
+                                         wash_color,
+                                         rounding,
+                                         ImDrawFlags_RoundCornersLeft);
+                draw_list->AddRectFilledMultiColor(ImVec2(min.x + 2.0f * rounding,
+                                                          min.y),
+                                                   max,
+                                                   wash_color,
+                                                   clear_color,
+                                                   clear_color,
+                                                   wash_color);
+            }
+
+            if (is_selected ||
+                is_hovered)
+            {
+                /* The bar stays inside the straight part of the left edge. */
+                draw_list->AddRectFilled(ImVec2(min.x,
+                                                min.y + rounding),
+                                         ImVec2(min.x + CARD_ACCENT_BAR_WIDTH * style.FontScaleDpi,
+                                                max.y - rounding),
+                                         ImGui::GetColorU32((is_selected) ? ACCENT_COLOR
+                                                                          : ImVec4(ACCENT_COLOR.x,
+                                                                                   ACCENT_COLOR.y,
+                                                                                   ACCENT_COLOR.z,
+                                                                                   0.45f) ) );
+            }
         }
 
         ImGui::SetCursorScreenPos(ImVec2(min.x + pad,
@@ -248,7 +337,7 @@ void VRPlayer::VrPlayerWindow::draw_app_list()
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               ERROR_TEXT_COLOR);
-        ImGui::TextWrapped   ("The catalog cannot be read: %s",
+        ImGui::TextWrapped   ("Catalog: %s",
                               m_content.catalog_error.c_str() );
         ImGui::PopStyleColor ();
     }
@@ -257,7 +346,7 @@ void VRPlayer::VrPlayerWindow::draw_app_list()
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               DIM_TEXT_COLOR);
-        ImGui::TextWrapped    ("The catalog lists no applications.");
+        ImGui::TextWrapped    ("No applications.");
         ImGui::PopStyleColor  ();
     }
     else
@@ -272,6 +361,121 @@ void VRPlayer::VrPlayerWindow::draw_app_list()
             }
         }
     }
+}
+
+void VRPlayer::VrPlayerWindow::draw_button_glow(const float& in_height,
+                                                const float& in_width)
+{
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const ImVec2      min   = ImGui::GetCursorScreenPos();
+
+    /* Layers of the accent around the button, the widest first, so that the light is dense at the button and fades out. */
+    for (int n_layer = GLOW_N_LAYERS;
+             n_layer > 0;
+           --n_layer)
+    {
+        const float spread = static_cast<float>(n_layer) * GLOW_SPREAD * style.FontScaleDpi;
+
+        ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(min.x - spread,
+                                                         min.y - spread),
+                                                  ImVec2(min.x + in_width  + spread,
+                                                         min.y + in_height + spread),
+                                                  ImGui::GetColorU32(ImVec4(ACCENT_COLOR.x,
+                                                                            ACCENT_COLOR.y,
+                                                                            ACCENT_COLOR.z,
+                                                                            GLOW_ALPHA) ),
+                                                  style.FrameRounding + spread);
+    }
+}
+
+void VRPlayer::VrPlayerWindow::draw_button_shine()
+{
+    /* The top half of the button is lighter. The strip is inset by the rounding, so it stays inside the corners. */
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const ImVec2      min   = ImGui::GetItemRectMin();
+    const ImVec2      max   = ImGui::GetItemRectMax();
+    const ImU32       lit   = ImGui::GetColorU32(ImVec4(1.0f,
+                                                        1.0f,
+                                                        1.0f,
+                                                        SHINE_ALPHA) );
+    const ImU32       clear = ImGui::GetColorU32(ImVec4(1.0f,
+                                                        1.0f,
+                                                        1.0f,
+                                                        0.0f) );
+
+    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImVec2(min.x + style.FrameRounding,
+                                                               min.y),
+                                                        ImVec2(max.x - style.FrameRounding,
+                                                               min.y + 0.5f * (max.y - min.y) ),
+                                                        lit,
+                                                        lit,
+                                                        clear,
+                                                        clear);
+}
+
+void VRPlayer::VrPlayerWindow::draw_chips()
+{
+    /* The choices that the app is played with, as rounded labels that wrap onto further rows. */
+    const ImGuiStyle&        style      = ImGui::GetStyle();
+    const float              gap        = CHIP_GAP       * style.FontScaleDpi;
+    const float              height     = ImGui::GetTextLineHeight() + 2.0f * CHIP_PADDING_Y * style.FontScaleDpi;
+    const float              padding_x  = CHIP_PADDING_X * style.FontScaleDpi;
+    const ImVec2             origin     = ImGui::GetCursorScreenPos();
+    const float              right      = origin.x + ImGui::GetContentRegionAvail().x;
+    ImDrawList*              draw_list  = ImGui::GetWindowDrawList();
+    std::vector<std::string> text_vec;
+    float                    x          = origin.x;
+    float                    y          = origin.y;
+
+    text_vec.push_back((m_device_index >= 0) ? m_content.device_vec.at(static_cast<size_t>(m_device_index) ).name
+                                             : std::string("2D preview") );
+    text_vec.push_back(DEPTH_NAME_ARRAY[m_depth_index]);
+
+    if (m_resolution_index == RESOLUTION_CUSTOM_INDEX)
+    {
+        text_vec.push_back(std::to_string(m_resolution_custom_width)  +
+                           " x "                                      +
+                           std::to_string(m_resolution_custom_height) );
+    }
+    else
+    {
+        text_vec.push_back(RESOLUTION_NAME_ARRAY[m_resolution_index]);
+    }
+
+    for (const std::string& text : text_vec)
+    {
+        const float width = ImGui::CalcTextSize(text.c_str() ).x + 2.0f * padding_x;
+
+        if (x + width > right &&
+            x > origin.x)
+        {
+            x  = origin.x;
+            y += height + gap;
+        }
+
+        draw_list->AddRectFilled(ImVec2(x,
+                                        y),
+                                 ImVec2(x + width,
+                                        y + height),
+                                 ImGui::GetColorU32(CHIP_FILL_COLOR),
+                                 0.5f * height);
+        draw_list->AddRect      (ImVec2(x,
+                                        y),
+                                 ImVec2(x + width,
+                                        y + height),
+                                 ImGui::GetColorU32(CHIP_BORDER_COLOR),
+                                 0.5f * height);
+        draw_list->AddText      (ImVec2(x + padding_x,
+                                        y + CHIP_PADDING_Y * style.FontScaleDpi),
+                                 ImGui::GetColorU32(TEXT_COLOR),
+                                 text.c_str() );
+
+        x += width + gap;
+    }
+
+    ImGui::SetCursorScreenPos(origin);
+    ImGui::Dummy             (ImVec2(0.0f,
+                                     y + height - origin.y) );
 }
 
 void VRPlayer::VrPlayerWindow::draw_contents(Utils::UI::ContentExtent* inout_extent_ptr)
@@ -328,7 +532,7 @@ void VRPlayer::VrPlayerWindow::draw_details()
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               DIM_TEXT_COLOR);
-        ImGui::TextWrapped   ("Select an application on the left.");
+        ImGui::TextWrapped   ("Select an app.");
         ImGui::PopStyleColor ();
 
         goto end;
@@ -357,6 +561,8 @@ void VRPlayer::VrPlayerWindow::draw_details()
                                app.description.c_str() );
         }
 
+        ImGui::Spacing();
+        draw_chips    ();
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -437,17 +643,13 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
 
     if (has_devices == false)
     {
-        ImGui::TextWrapped("No OpenXR runtime or headset was found: the picture is shown in this window only.");
+        ImGui::TextWrapped("No headset found.");
     }
     else
     if (m_device_index >= 0)
     {
         ImGui::Text("Runtime: %s",
                     m_content.device_vec.at(static_cast<size_t>(m_device_index) ).runtime_name.c_str() );
-    }
-    else
-    {
-        ImGui::TextWrapped("The picture is shown in this window only.");
     }
 
     ImGui::PopStyleColor();
@@ -468,14 +670,35 @@ void VRPlayer::VrPlayerWindow::draw_header()
     ImGui::PopStyleColor  ();
 
     {
+        /* The line runs from the accent to a violet, and fades out toward the right. */
         const ImU32  accent_color = ImGui::GetColorU32(ACCENT_COLOR);
+        const ImU32  clear_color  = ImGui::GetColorU32(ImVec4(ACCENT_VIOLET_COLOR.x,
+                                                              ACCENT_VIOLET_COLOR.y,
+                                                              ACCENT_VIOLET_COLOR.z,
+                                                              0.0f) );
+        const ImU32  violet_color = ImGui::GetColorU32(ACCENT_VIOLET_COLOR);
         const ImVec2 min          = ImGui::GetCursorScreenPos();
+        const float  bottom       = min.y + (SMALL_GAP + ACCENT_LINE_HEIGHT) * style.FontScaleDpi;
+        const float  middle       = min.x + 0.5f * ImGui::GetContentRegionAvail().x;
+        const float  right        = min.x +        ImGui::GetContentRegionAvail().x;
+        const float  top          = min.y + SMALL_GAP * style.FontScaleDpi;
 
-        ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(min.x,
-                                                         min.y + SMALL_GAP * style.FontScaleDpi),
-                                                  ImVec2(min.x + ImGui::GetContentRegionAvail().x,
-                                                         min.y + (SMALL_GAP + ACCENT_LINE_HEIGHT) * style.FontScaleDpi),
-                                                  accent_color);
+        ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImVec2(min.x,
+                                                                   top),
+                                                            ImVec2(middle,
+                                                                   bottom),
+                                                            accent_color,
+                                                            violet_color,
+                                                            violet_color,
+                                                            accent_color);
+        ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImVec2(middle,
+                                                                   top),
+                                                            ImVec2(right,
+                                                                   bottom),
+                                                            violet_color,
+                                                            clear_color,
+                                                            clear_color,
+                                                            violet_color);
 
         ImGui::Dummy(ImVec2(0.0f,
                             3.0f * SMALL_GAP * style.FontScaleDpi) );
@@ -604,7 +827,7 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
     else
     if (is_possible == false)
     {
-        ImGui::TextUnformatted("Pick an application which is available.");
+        ImGui::TextUnformatted("Pick an app.");
     }
 
     if (is_error_text == false)
@@ -630,6 +853,12 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
     }
     else
     {
+        if (is_possible)
+        {
+            draw_button_glow(button_height,
+                             button_width);
+        }
+
         ImGui::BeginDisabled(is_possible == false);
 
         if (ImGui::Button((is_download) ? "Download & launch"
@@ -638,6 +867,11 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
                                  button_height) ))
         {
             launch();
+        }
+
+        if (is_possible)
+        {
+            draw_button_shine();
         }
 
         ImGui::EndDisabled();
@@ -659,7 +893,7 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               ERROR_TEXT_COLOR);
-        ImGui::TextWrapped   ("The devices cannot be listed: %s",
+        ImGui::TextWrapped   ("Devices: %s",
                               m_content.device_error.c_str() );
         ImGui::PopStyleColor ();
     }
@@ -695,7 +929,7 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
 
     ImGui::PushStyleColor(ImGuiCol_Text,
                           DIM_TEXT_COLOR);
-    ImGui::TextWrapped   ("Natural suits each scene. Reduced is flatter; More is deeper, within what is comfortable. Can be changed while it plays.");
+    ImGui::TextWrapped   ("Natural suits each scene. Reduced is flatter; More is deeper.");
     ImGui::PopStyleColor ();
 
     ImGui::Spacing        ();
@@ -752,7 +986,7 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
 
     ImGui::PushStyleColor(ImGuiCol_Text,
                           DIM_TEXT_COLOR);
-    ImGui::TextWrapped   ("Headset: fractions of the headset's resolution; lower is easier on the graphics card. The program keeps its proportions; what does not fill the image is black. Set at start.");
+    ImGui::TextWrapped   ("Lower is lighter on the graphics card.");
     ImGui::PopStyleColor ();
 
     /* The overlay is pushed for an application whose recipe gives an amount, and not for one whose recipe does not. There is no control for it. */
@@ -885,8 +1119,8 @@ void VRPlayer::VrPlayerWindow::select_defaults()
 
 void VRPlayer::VrPlayerWindow::set_up_style()
 {
-    constexpr float FRAME_ROUNDING   = 6.0f;
-    constexpr float PANEL_ROUNDING   = 10.0f;
+    constexpr float FRAME_ROUNDING   = 8.0f;
+    constexpr float PANEL_ROUNDING   = 12.0f;
     constexpr float WINDOW_PADDING   = 16.0f;
 
     ImGuiStyle& style = ImGui::GetStyle();
@@ -985,7 +1219,7 @@ void VRPlayer::VrPlayerWindow::start_install()
         m_install_error             = error;
         m_is_status_error           = true;
         m_should_open_install_error = true;
-        m_status                    = "The application cannot be installed.";
+        m_status                    = "Install failed.";
     }
 }
 
@@ -1018,7 +1252,7 @@ void VRPlayer::VrPlayerWindow::update_install()
                                                   "\n\nA virus scanner may have removed it. Look in its quarantine, allow the file, and launch the application again.";
                     m_is_status_error           = true;
                     m_should_open_install_error = true;
-                    m_status                    = "The application cannot be installed.";
+                    m_status                    = "Install failed.";
                 }
 
                 break;
@@ -1040,7 +1274,7 @@ void VRPlayer::VrPlayerWindow::update_install()
                 m_installing_app            = -1;
                 m_is_status_error           = true;
                 m_should_open_install_error = true;
-                m_status                    = "The application cannot be installed.";
+                m_status                    = "Install failed.";
 
                 break;
             }
