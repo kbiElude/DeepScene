@@ -714,16 +714,7 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
 
     ImGui::EndDisabled();
 
-    ImGui::PushStyleColor(ImGuiCol_Text,
-                          DIM_TEXT_COLOR);
-
-    if (m_device_index >= 0)
-    {
-        ImGui::Text("Runtime: %s",
-                    m_content.device_vec.at(static_cast<size_t>(m_device_index) ).runtime_name.c_str() );
-    }
-
-    ImGui::PopStyleColor();
+    ImGui::NewLine();
 }
 
 void VRPlayer::VrPlayerWindow::draw_header()
