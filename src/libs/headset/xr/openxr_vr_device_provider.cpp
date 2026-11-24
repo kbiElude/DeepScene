@@ -20,15 +20,14 @@ bool Headset::XR::OpenXrVrDeviceProvider::enumerate(std::vector<Headset::VRDevic
     {
         Headset::VRDevices::VrDevice device;
 
-        device.eye_height   = info.eye_height;
-        device.eye_width    = info.eye_width;
-        device.form_factor  = Headset::VRDevices::FormFactor::HEAD_MOUNTED_DISPLAY;
-        device.id           = "openxr:"         +
-                              info.runtime_name +
-                              ":"               +
-                              info.system_name;
-        device.name         = info.system_name;
-        device.runtime_name = info.runtime_name;
+        device.eye_height  = info.eye_height;
+        device.eye_width   = info.eye_width;
+        device.form_factor = Headset::VRDevices::FormFactor::HEAD_MOUNTED_DISPLAY;
+        device.id          = "openxr:"         +
+                             info.runtime_name +
+                             ":"               +
+                             info.system_name;
+        device.name        = info.system_name;
 
         out_device_vec_ptr->push_back(device);
     }

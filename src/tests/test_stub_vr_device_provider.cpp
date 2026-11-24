@@ -49,7 +49,6 @@ TEST(StubVrDeviceProviderTest, EveryDeviceHasAnIdAndANameAndAnIdOfItsOwn)
     {
         EXPECT_FALSE(device.id.empty() );
         EXPECT_FALSE(device.name.empty() );
-        EXPECT_FALSE(device.runtime_name.empty() );
         EXPECT_TRUE (id_set.insert(device.id).second) << device.id;
     }
 }

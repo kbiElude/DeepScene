@@ -29,7 +29,6 @@ namespace Headset
 
             std::string id;                 /* stable across runs so that a choice can be remembered; not shown to the user  */
             std::string name;               /* the name shown to the user                                                    */
-            std::string runtime_name;       /* the name of the OpenXR runtime that serves the device                         */
             std::string unavailable_reason; /* empty if the device can be played on                                          */
         };
     }

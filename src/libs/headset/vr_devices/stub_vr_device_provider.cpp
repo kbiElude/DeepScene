@@ -13,8 +13,6 @@ bool Headset::VRDevices::StubVrDeviceProvider::enumerate(std::vector<VrDevice>* 
 
     out_device_vec_ptr->clear();
 
-    device.runtime_name = "Simulated runtime";
-
     device.id   = "stub-headset";
     device.name = "Simulated headset";
 
