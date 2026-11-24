@@ -651,10 +651,12 @@ end:
 
 void VRPlayer::VrPlayerWindow::draw_device_combo()
 {
-    constexpr const char* NO_DEVICE_TEXT = "2D preview only";
+    constexpr const char* NO_DEVICE_TEXT  = "2D preview only";
+    constexpr const char* NO_HEADSET_TEXT = "2D preview (no headset found)";
 
     const bool  has_devices = (m_content.device_vec.empty() == false);
-    std::string preview     = NO_DEVICE_TEXT;
+    std::string preview     = (has_devices) ? NO_DEVICE_TEXT
+                                            : NO_HEADSET_TEXT;
 
     if (m_device_index >= 0)
     {
@@ -715,11 +717,6 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
     ImGui::PushStyleColor(ImGuiCol_Text,
                           DIM_TEXT_COLOR);
 
-    if (has_devices == false)
-    {
-        ImGui::TextWrapped("No headset found.");
-    }
-    else
     if (m_device_index >= 0)
     {
         ImGui::Text("Runtime: %s",
@@ -1175,10 +1172,7 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
         ImGui::EndCombo();
     }
 
-    ImGui::PushStyleColor(ImGuiCol_Text,
-                          DIM_TEXT_COLOR);
-    ImGui::TextWrapped   ("Natural suits each scene. Reduced is flatter; More is deeper.");
-    ImGui::PopStyleColor ();
+    ImGui::NewLine();
 
     ImGui::Spacing        ();
     ImGui::TextUnformatted ("Resolution per eye");
@@ -1231,11 +1225,6 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
                                                 (std::min)(m_resolution_custom_width,
                                                            MAX_CUSTOM_EXTENT) );
     }
-
-    ImGui::PushStyleColor(ImGuiCol_Text,
-                          DIM_TEXT_COLOR);
-    ImGui::TextWrapped   ("Lower is lighter on the graphics card.");
-    ImGui::PopStyleColor ();
 
     /* The overlay is pushed for an application whose recipe gives an amount, and not for one whose recipe does not. There is no control for it. */
     {

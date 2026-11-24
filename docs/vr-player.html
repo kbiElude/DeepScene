@@ -93,7 +93,7 @@
 <table>
 <tr><th>Setting</th><th>Start value</th></tr>
 <tr><td>Program</td><td>The first one that can be launched, or the first one when none can (its reason is then shown).</td></tr>
-<tr><td>Device</td><td>The first headset that can be used; <em>2D preview only</em> when there is none.</td></tr>
+<tr><td>Device</td><td>The first headset that can be used; <em>2D preview (no headset found)</em> when there is none.</td></tr>
 <tr><td>Depth</td><td>Natural.</td></tr>
 <tr><td>Resolution per eye</td><td>Headset: full resolution; 1920 x 1080 when there is no headset.</td></tr>
 </table>
@@ -276,7 +276,7 @@
 <p>The device dropdown is filled by <code>OpenXrVrDeviceProvider</code>, which asks the OpenXR runtime for its headset once, when <code>VRPlayer</code> starts.</p>
 <table>
 <tr><th>Situation</th><th>The dropdown</th></tr>
-<tr><td>No OpenXR runtime or headset</td><td>Shows only <em>2D preview only</em> and is disabled, with the line <em>No headset found.</em>; Launch works.</td></tr>
+<tr><td>No OpenXR runtime or headset</td><td>Shows only <em>2D preview (no headset found)</em> and is disabled; Launch works.</td></tr>
 <tr><td>A headset</td><td>The headset by the name the runtime gives it, selected, with the runtime's name below; <em>2D preview only</em> is the last entry of the list.</td></tr>
 <tr><td>A device that has an unavailable reason</td><td>Listed as <em>(unavailable)</em>, with the reason as a tooltip. The OpenXR provider sets none: it lists one device or none.</td></tr>
 </table>
