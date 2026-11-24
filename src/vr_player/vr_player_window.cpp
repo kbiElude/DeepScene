@@ -7,6 +7,7 @@
 #include "utils/files/directory_operations.h"
 #include "imgui.h"
 #include <algorithm>
+#include <cmath>
 #include <float.h>
 #include <stdio.h>
 
@@ -59,6 +60,14 @@ static const ImVec4 PANEL_COLOR           (0.105f,
                                            0.115f,
                                            0.145f,
                                            1.00f);
+static const ImVec4 LOGO_CYAN_COLOR       (0.10f,
+                                           0.85f,
+                                           0.95f,
+                                           0.80f);
+static const ImVec4 LOGO_RED_COLOR        (1.00f,
+                                           0.25f,
+                                           0.32f,
+                                           0.85f);
 static const ImVec4 SELECTED_COLOR        (0.20f,
                                            0.25f,
                                            0.50f,
@@ -83,6 +92,8 @@ static const ImVec4 WINDOW_COLOR          (0.07f,
 /* Sizes at 100% scale; the monitor scale is applied on top. */
 static constexpr float ACCENT_LINE_HEIGHT    = 3.0f;
 static constexpr float CARD_ACCENT_BAR_WIDTH = 3.0f;
+static constexpr float CARD_HIGHLIGHT_HOVERED = 0.45f; /* how far the bar of a hovered card has grown: 1 is a selected card */
+static constexpr float CARD_HIGHLIGHT_SPEED   = 12.0f; /* per second: the share of the way to the target that is covered */
 static constexpr float CARD_ROUNDING         = 8.0f;
 static constexpr float CARD_SHADOW_OFFSET    = 2.0f;
 static constexpr float CARD_WASH_ALPHA       = 0.30f;
@@ -90,9 +101,18 @@ static constexpr float CHIP_GAP              = 6.0f;
 static constexpr float CHIP_PADDING_X        = 10.0f;
 static constexpr float CHIP_PADDING_Y        = 3.0f;
 static constexpr int   DEFAULT_DEPTH_INDEX   = 1;
+static constexpr float DETAILS_FADE_SPEED    = 7.0f; /* per second, like CARD_HIGHLIGHT_SPEED */
 static constexpr float GLOW_ALPHA            = 0.07f;
 static constexpr int   GLOW_N_LAYERS         = 4;
+static constexpr float GLOW_PULSE_DEPTH      = 0.6f; /* how far the glow dims and brightens around its alpha: 0.6 is from 40% to 160% */
+static constexpr float GLOW_PULSE_SECONDS    = 2.4f;
 static constexpr float GLOW_SPREAD           = 2.0f;
+static constexpr float LOGO_GAP              = 14.0f;
+static constexpr float LOGO_OFFSET_FRACTION  = 0.28f; /* of the height of the logo: how far apart the two pictures are */
+static constexpr float LOGO_ROUNDING         = 0.22f; /* of the side of a picture */
+static constexpr float SHEEN_ALPHA           = 0.30f;
+static constexpr float SHEEN_SECONDS         = 1.6f;
+static constexpr float SHEEN_WIDTH_FRACTION  = 0.30f;
 static constexpr float SHINE_ALPHA           = 0.22f;
 
 /* The depth strengths the user can choose: less than the converter's natural depth for each scene, the same, and somewhat more where the scene allows it. */
@@ -128,9 +148,13 @@ static constexpr float SECTION_TITLE_SCALE = 1.2f;
 
 VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
     :ImGuiPlayerWindowBase      (get_window_options() ),
+     m_card_highlight_vec       (in_content.catalog.app_vec.size(),
+                                 0.0f),
      m_content                  (in_content),
      m_depth_index              (DEFAULT_DEPTH_INDEX),
      m_depth_strength           (DEPTH_STRENGTH_ARRAY[DEFAULT_DEPTH_INDEX]),
+     m_details_fade             (0.0f),
+     m_details_fade_app         (-1),
      m_device_index             (-1),
      m_downloader               (false), /* in_is_http_allowed */
      m_installer                (&m_downloader),
@@ -226,6 +250,13 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
             const float  shadow_dy  = CARD_SHADOW_OFFSET * style.FontScaleDpi;
             const bool   is_hovered = ImGui::IsItemHovered();
             ImDrawList*  draw_list  = ImGui::GetWindowDrawList();
+            float&       highlight  = m_card_highlight_vec.at(in_n_app);
+            const float  target     = (is_selected) ? 1.0f
+                                                    : (is_hovered) ? CARD_HIGHLIGHT_HOVERED
+                                                                   : 0.0f;
+
+            /* The bar and the wash grow toward the state of the card, instead of switching. */
+            highlight += (target - highlight) * (1.0f - std::exp(-CARD_HIGHLIGHT_SPEED * ImGui::GetIO().DeltaTime) );
 
             draw_list->AddRectFilled(ImVec2(min.x,
                                             min.y + shadow_dy),
@@ -239,13 +270,14 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
                                                                      : FRAME_COLOR),
                                      rounding);
 
-            if (is_selected)
+            if (highlight > CARD_HIGHLIGHT_HOVERED)
             {
                 /* A wash of the accent, strongest at the bar and fading to the right; the strip at the left follows the rounded corners. */
+                const float wash_alpha  = CARD_WASH_ALPHA * (highlight - CARD_HIGHLIGHT_HOVERED) / (1.0f - CARD_HIGHLIGHT_HOVERED);
                 const ImU32 wash_color  = ImGui::GetColorU32(ImVec4(ACCENT_COLOR.x,
                                                                     ACCENT_COLOR.y,
                                                                     ACCENT_COLOR.z,
-                                                                    CARD_WASH_ALPHA) );
+                                                                    wash_alpha) );
                 const ImU32 clear_color = ImGui::GetColorU32(ImVec4(ACCENT_COLOR.x,
                                                                     ACCENT_COLOR.y,
                                                                     ACCENT_COLOR.z,
@@ -266,19 +298,20 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
                                                    wash_color);
             }
 
-            if (is_selected ||
-                is_hovered)
+            if (highlight > 0.01f)
             {
-                /* The bar stays inside the straight part of the left edge. */
+                /* The bar stays inside the straight part of the left edge, and grows from the middle of it. */
+                const float middle_y   = 0.5f * (min.y + max.y);
+                const float half_bar_y = 0.5f * (max.y - min.y - 2.0f * rounding) * highlight;
+
                 draw_list->AddRectFilled(ImVec2(min.x,
-                                                min.y + rounding),
+                                                middle_y - half_bar_y),
                                          ImVec2(min.x + CARD_ACCENT_BAR_WIDTH * style.FontScaleDpi,
-                                                max.y - rounding),
-                                         ImGui::GetColorU32((is_selected) ? ACCENT_COLOR
-                                                                          : ImVec4(ACCENT_COLOR.x,
-                                                                                   ACCENT_COLOR.y,
-                                                                                   ACCENT_COLOR.z,
-                                                                                   0.45f) ) );
+                                                middle_y + half_bar_y),
+                                         ImGui::GetColorU32(ImVec4(ACCENT_COLOR.x,
+                                                                   ACCENT_COLOR.y,
+                                                                   ACCENT_COLOR.z,
+                                                                   0.35f + 0.65f * highlight) ) );
             }
         }
 
@@ -366,8 +399,13 @@ void VRPlayer::VrPlayerWindow::draw_app_list()
 void VRPlayer::VrPlayerWindow::draw_button_glow(const float& in_height,
                                                 const float& in_width)
 {
+    constexpr float TWO_PI = 6.28318530718f;
+
     const ImGuiStyle& style = ImGui::GetStyle();
     const ImVec2      min   = ImGui::GetCursorScreenPos();
+
+    /* The glow breathes slowly: it is the one thing to do when this button is enabled. */
+    const float       alpha = GLOW_ALPHA * (1.0f + GLOW_PULSE_DEPTH * std::sin(TWO_PI * static_cast<float>(ImGui::GetTime() ) / GLOW_PULSE_SECONDS) );
 
     /* Layers of the accent around the button, the widest first, so that the light is dense at the button and fades out. */
     for (int n_layer = GLOW_N_LAYERS;
@@ -383,7 +421,7 @@ void VRPlayer::VrPlayerWindow::draw_button_glow(const float& in_height,
                                                   ImGui::GetColorU32(ImVec4(ACCENT_COLOR.x,
                                                                             ACCENT_COLOR.y,
                                                                             ACCENT_COLOR.z,
-                                                                            GLOW_ALPHA) ),
+                                                                            alpha) ),
                                                   style.FrameRounding + spread);
     }
 }
@@ -486,6 +524,7 @@ void VRPlayer::VrPlayerWindow::draw_contents(Utils::UI::ContentExtent* inout_ext
 
     update_install();
     update_session();
+    update_transitions();
 
     if (m_is_styled == false)
     {
@@ -516,7 +555,12 @@ void VRPlayer::VrPlayerWindow::draw_contents(Utils::UI::ContentExtent* inout_ext
                                  0.0f),
                           ImGuiChildFlags_Borders);
 
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha,
+                            m_details_fade);
+
         draw_details();
+
+        ImGui::PopStyleVar();
 
         ImGui::EndChild();
     }
@@ -657,7 +701,38 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
 
 void VRPlayer::VrPlayerWindow::draw_header()
 {
-    const ImGuiStyle& style = ImGui::GetStyle();
+    const ImGuiStyle& style       = ImGui::GetStyle();
+    const ImVec2      logo_origin = ImGui::GetCursorScreenPos();
+    float             logo_height = ImGui::GetTextLineHeightWithSpacing();
+
+    ImGui::PushFont(nullptr,
+                    style.FontSizeBase * PAGE_TITLE_SCALE);
+
+    logo_height += ImGui::GetTextLineHeightWithSpacing();
+
+    ImGui::PopFont();
+
+    /* The logo is two pictures of one square, one for each eye, as the red and the cyan of an anaglyph, one over the other. The texts are beside it. */
+    {
+        const float offset    = LOGO_OFFSET_FRACTION * logo_height;
+        const float side      = logo_height - offset;
+        const float rounding  = LOGO_ROUNDING * side;
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+        draw_list->AddRectFilled(logo_origin,
+                                 ImVec2(logo_origin.x + side,
+                                        logo_origin.y + side),
+                                 ImGui::GetColorU32(LOGO_RED_COLOR),
+                                 rounding);
+        draw_list->AddRectFilled(ImVec2(logo_origin.x + offset,
+                                        logo_origin.y + offset),
+                                 ImVec2(logo_origin.x + offset + side,
+                                        logo_origin.y + offset + side),
+                                 ImGui::GetColorU32(LOGO_CYAN_COLOR),
+                                 rounding);
+
+        ImGui::Indent(logo_height + LOGO_GAP * style.FontScaleDpi);
+    }
 
     ImGui::PushFont       (nullptr,
                            style.FontSizeBase * PAGE_TITLE_SCALE);
@@ -668,6 +743,8 @@ void VRPlayer::VrPlayerWindow::draw_header()
                            DIM_TEXT_COLOR);
     ImGui::TextUnformatted("Play your 2D demos in stereo");
     ImGui::PopStyleColor  ();
+
+    ImGui::Unindent(logo_height + LOGO_GAP * style.FontScaleDpi);
 
     {
         /* The line runs from the accent to a violet, and fades out toward the right. */
@@ -819,10 +896,8 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
         ImGui::Text       ("%s: %s",
                            m_content.catalog.app_vec.at(static_cast<size_t>(m_installing_app) ).name.c_str(),
                            progress.message.c_str() );
-        ImGui::ProgressBar(progress_fraction,
-                           ImVec2(-FLT_MIN,
-                                  0.0f),
-                           progress_text.c_str() );
+        draw_progress_bar(progress_fraction,
+                          progress_text);
     }
     else
     if (is_possible == false)
@@ -876,6 +951,115 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
 
         ImGui::EndDisabled();
     }
+}
+
+void VRPlayer::VrPlayerWindow::draw_progress_bar(const float&       in_fraction,
+                                                 const std::string& in_text)
+{
+    const ImVec2 min       = ImGui::GetCursorScreenPos();
+    const float  width     = ImGui::GetContentRegionAvail().x;
+    const float  height    = ImGui::GetFrameHeight();
+    const ImVec2 max       = ImVec2(min.x + width,
+                                    min.y + height);
+    const float  rounding  = 0.5f * height;
+    const float  fill_edge = min.x + width * std::min<float>(std::max<float>(in_fraction,
+                                                                             0.0f),
+                                                             1.0f);
+    ImDrawList*  draw_list = ImGui::GetWindowDrawList();
+
+    draw_list->AddRectFilled(min,
+                             max,
+                             ImGui::GetColorU32(FRAME_COLOR),
+                             rounding);
+
+    /* The fill is a gradient from the accent to the violet. The ends are caps that follow the rounding; the sheen runs over what is filled. */
+    if (fill_edge - min.x >= 2.0f * rounding)
+    {
+        const ImU32 accent_color = ImGui::GetColorU32(ACCENT_COLOR);
+        const ImU32 violet_color = ImGui::GetColorU32(ACCENT_VIOLET_COLOR);
+        const float left         = min.x + rounding;
+        const float right        = fill_edge - rounding;
+
+        draw_list->AddRectFilled(min,
+                                 ImVec2(left,
+                                        max.y),
+                                 accent_color,
+                                 rounding,
+                                 ImDrawFlags_RoundCornersLeft);
+        draw_list->AddRectFilledMultiColor(ImVec2(left,
+                                                  min.y),
+                                           ImVec2(right,
+                                                  max.y),
+                                           accent_color,
+                                           violet_color,
+                                           violet_color,
+                                           accent_color);
+        draw_list->AddRectFilled(ImVec2(right,
+                                        min.y),
+                                 ImVec2(fill_edge,
+                                        max.y),
+                                 violet_color,
+                                 rounding,
+                                 ImDrawFlags_RoundCornersRight);
+
+        {
+            const ImU32 clear_color = ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 0.0f) );
+            const ImU32 lit_color   = ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, SHEEN_ALPHA) );
+            const float band_width  = SHEEN_WIDTH_FRACTION * (right - left);
+            const float phase       = std::fmod(static_cast<float>(ImGui::GetTime() ) / SHEEN_SECONDS,
+                                                1.0f);
+            const float band_left   = left - band_width + phase * ((right - left) + band_width);
+            const float band_middle = band_left + 0.5f * band_width;
+            const float band_right  = band_left + band_width;
+
+            /* The band is cut where it leaves the gradient. */
+            const float cut_left    = std::max<float>(band_left,   left);
+            const float cut_middle  = std::min<float>(std::max<float>(band_middle, left),  right);
+            const float cut_right   = std::min<float>(band_right,  right);
+
+            if (cut_middle > cut_left)
+            {
+                draw_list->AddRectFilledMultiColor(ImVec2(cut_left,   min.y),
+                                                   ImVec2(cut_middle, max.y),
+                                                   clear_color,
+                                                   lit_color,
+                                                   lit_color,
+                                                   clear_color);
+            }
+
+            if (cut_right > cut_middle)
+            {
+                draw_list->AddRectFilledMultiColor(ImVec2(cut_middle, min.y),
+                                                   ImVec2(cut_right,  max.y),
+                                                   lit_color,
+                                                   clear_color,
+                                                   clear_color,
+                                                   lit_color);
+            }
+        }
+    }
+    else
+    if (fill_edge - min.x > 0.0f)
+    {
+        draw_list->AddRectFilled(min,
+                                 ImVec2(fill_edge,
+                                        max.y),
+                                 ImGui::GetColorU32(ACCENT_COLOR),
+                                 rounding);
+    }
+
+    if (in_text.empty() == false)
+    {
+        const ImVec2 text_size = ImGui::CalcTextSize(in_text.c_str() );
+
+        draw_list->AddText(ImVec2(min.x + 0.5f * (width  - text_size.x),
+                                  min.y + 0.5f * (height - text_size.y) ),
+                           ImGui::GetColorU32(TEXT_COLOR),
+                           in_text.c_str() );
+    }
+
+    ImGui::Dummy(ImVec2(width,
+                        height) );
 }
 
 void VRPlayer::VrPlayerWindow::draw_vr_settings()
@@ -1318,5 +1502,22 @@ void VRPlayer::VrPlayerWindow::update_session()
                 m_status.clear();
             }
         }
+    }
+}
+
+void VRPlayer::VrPlayerWindow::update_transitions()
+{
+    /* The details start from nothing whenever another app is selected, and come in. */
+    if (m_selected_app != m_details_fade_app)
+    {
+        m_details_fade     = 0.0f;
+        m_details_fade_app = m_selected_app;
+    }
+
+    m_details_fade += (1.0f - m_details_fade) * (1.0f - std::exp(-DETAILS_FADE_SPEED * ImGui::GetIO().DeltaTime) );
+
+    if (m_details_fade > 0.995f)
+    {
+        m_details_fade = 1.0f;
     }
 }

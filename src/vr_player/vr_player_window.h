@@ -11,6 +11,7 @@
 #include "app_session.h"
 #include "types.h"
 #include <string>
+#include <vector>
 
 namespace VRPlayer
 {
@@ -38,6 +39,8 @@ namespace VRPlayer
         void draw_header       ();
         void draw_install_error();
         void draw_launch_area  ();
+        void draw_progress_bar (const float&       in_fraction,
+                                const std::string& in_text);
         void draw_vr_settings  ();
         bool is_launch_possible() const;
         void launch            ();
@@ -47,13 +50,17 @@ namespace VRPlayer
         void start_install     ();
         void update_install    ();
         void update_session    ();
+        void update_transitions();
 
         static std::string              get_size_text     (const uint64_t& in_n_bytes);
         static Utils::UI::WindowOptions get_window_options();
 
+        std::vector<float>                   m_card_highlight_vec; /* per card, 0 to 1: how far its bar and wash have grown toward the state it is in (selected, hovered, none) */
         WindowContent                        m_content;
-        int                                  m_depth_index;      /* index into the depth choices */
+        int                                  m_depth_index;     /* index into the depth choices */
         float                                m_depth_strength;   /* strength of that choice: 1 is the natural depth the converter works out for each scene */
+        float                                m_details_fade;     /* 0 to 1: the details of the selected app fade in when the selection changes */
+        int                                  m_details_fade_app; /* the selection the fade is for                          */
         int                                  m_device_index;     /* index into the devices; -1 if no device can be used */
         Utils::Files::HttpDownloader         m_downloader;
         std::string                          m_install_error;    /* text of the install error window                       */
