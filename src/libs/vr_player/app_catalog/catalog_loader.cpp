@@ -272,6 +272,7 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                                                           "id",
                                                                           "launch_button",
                                                                           "recipe",
+                                                                          "thumbnail",
                                                                           "title",
                                                                           "unavailable_reason",
                                                                           "untick_checkbox",
@@ -376,8 +377,33 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
                                      out_error_ptr);
         }
 
+        /* Optional. The address of a picture of the application, shown in its card. It is downloaded once and kept in the thumbnails folder next to the catalog. */
+        if (is_parsed)
+        {
+            is_parsed = parse_string(in_app,
+                                     "thumbnail",
+                                     false, /* in_is_required */
+                                     in_path,
+                                    &out_app_ptr->thumbnail_url,
+                                     out_error_ptr);
+        }
+
         if (is_parsed == false)
         {
+            goto end;
+        }
+    }
+
+    if (out_app_ptr->thumbnail_url.empty() == false)
+    {
+        const int scheme_difference = out_app_ptr->thumbnail_url.compare(0,
+                                                                         8,
+                                                                         "https://");
+
+        if (scheme_difference != 0)
+        {
+            *out_error_ptr = in_path + ".thumbnail: expected an address of https";
+
             goto end;
         }
     }
@@ -437,6 +463,25 @@ bool VRPlayer::AppCatalog::CatalogLoader::parse_app(const Utils::Json::JsonValue
             }
         }
     }
+    if (out_app_ptr->thumbnail_url.empty() == false)
+    {
+        /* The file keeps the kind of the picture that the address names (a .gif stays a .gif). The decoder goes by the contents, not by the name. */
+        const size_t n_dot      = out_app_ptr->thumbnail_url.find_last_of('.');
+        const size_t n_slash    = out_app_ptr->thumbnail_url.find_last_of('/');
+        std::string  extension  = (n_dot != std::string::npos && n_dot > n_slash) ? out_app_ptr->thumbnail_url.substr(n_dot)
+                                                                                  : std::string();
+
+        if (extension.size() < 2 ||
+            extension.size() > 5 ||
+            extension.find_first_not_of(".abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") != std::string::npos)
+        {
+            extension = ".img";
+        }
+
+        out_app_ptr->thumbnail_path = resolve_path(in_base_directory,
+                                                   "thumbnails\\" + out_app_ptr->id + extension);
+    }
+
     out_app_ptr->recipe_path       = resolve_path(in_base_directory,
                                                   recipe);
     out_app_ptr->working_directory = (working_directory.empty() ) ? get_directory(out_app_ptr->executable_path)

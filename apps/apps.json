@@ -5,6 +5,7 @@
       "id": "fr08",
       "title": "fr08 by Farbrausch (2000)",
       "recipe": "recipes/fr08.json",
+      "thumbnail": "https://content.pouet.net/files/screenshots/00001/00001221.jpg",
       "executable": "fr08/fr08v101.exe",
       "download": {
         "urls": [
@@ -23,6 +24,7 @@
       "id": "kasparov",
       "title": "Kasparov by Elitegroup (1999)",
       "recipe": "recipes/kasparov.json",
+      "thumbnail": "https://content.pouet.net/files/screenshots/00000/00000374.jpg",
       "executable": "kasparov/kasparov.exe",
       "download": {
         "urls": [
@@ -43,6 +45,7 @@
       "launch_button": "Play >",
       "untick_checkbox": "Fullscreen",
       "recipe": "recipes/gerbera.json",
+      "thumbnail": "https://content.pouet.net/files/screenshots/00003/00003286.jpg",
       "executable": "gerbera/PajaPlayer.exe",
       "download": {
         "urls": [
@@ -63,6 +66,7 @@
       "launch_button": "OK",
       "untick_checkbox": "full screen",
       "recipe": "recipes/tesla.json",
+      "thumbnail": "https://content.pouet.net/files/screenshots/00000/00000033.jpg",
       "executable": "tesla/tesla.exe",
       "download": {
         "urls": [
@@ -83,6 +87,7 @@
       "launch_button": "Start",
       "untick_checkbox": "Fullscreen",
       "recipe": "recipes/propaganda.json",
+      "thumbnail": "https://content.pouet.net/files/screenshots/00001/00001884.gif",
       "executable": "propaganda/propaganda.exe",
       "download": {
         "urls": [

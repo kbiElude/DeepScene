@@ -442,6 +442,7 @@ runtime\StereoLauncher_x86.exe --recipe my_demo.json --session test --log --wait
 <tr><td><code>working_directory</code></td><td>no</td><td>Relative to the catalog. The directory of the executable by default.</td></tr>
 <tr><td><code>launch_button</code></td><td>no</td><td>The text of a button in the dialog that the program shows first. The launcher presses it for the user, and waits up to a minute for it.</td></tr>
 <tr><td><code>untick_checkbox</code></td><td>no</td><td>The text of a checkbox in that dialog, which the launcher unticks just before it presses the button. Needs <code>launch_button</code>. A program that asks to run full screen would otherwise change the screen resolution and cover the window that shows the images.</td></tr>
+<tr><td><code>thumbnail</code></td><td>no</td><td>The <code>https</code> address of a picture of the program, shown on its card. It is fetched once into <code>apps/thumbnails/</code> and kept. A page of the program on scene.org has one, credited to pouët.net; the window says so at the bottom of the list.</td></tr>
 <tr><td><code>unavailable_reason</code></td><td>no</td><td>Why the player cannot start the program although the recipe is there. The entry is listed with this reason.</td></tr>
 <tr><td><code>download</code></td><td>no</td><td>Where the program comes from when it is not there (below).</td></tr>
 </table>

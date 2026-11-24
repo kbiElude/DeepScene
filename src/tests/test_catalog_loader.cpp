@@ -103,6 +103,43 @@ TEST_F(CatalogLoaderTest, TheCatalogCanSayTheTitleTheArgumentsAndTheWorkingDirec
     EXPECT_TRUE(app.unavailable_reason.empty() ) << app.unavailable_reason;
 }
 
+TEST_F(CatalogLoaderTest, TheCatalogCanGiveAnAddressForThePictureOfAnApplicationWhichIsKeptNextToTheCatalog)
+{
+    ASSERT_TRUE(parse(get_text() ) ) << m_error;
+
+    EXPECT_TRUE(m_catalog.app_vec.at(0).thumbnail_url.empty() );
+    EXPECT_TRUE(m_catalog.app_vec.at(0).thumbnail_path.empty() );
+
+    ASSERT_TRUE(parse(get_text(", \"thumbnail\": \"https://pictures.example/shots/1221.jpg\"") ) ) << m_error;
+
+    EXPECT_EQ(m_catalog.app_vec.at(0).thumbnail_url,
+              "https://pictures.example/shots/1221.jpg");
+    EXPECT_EQ(m_catalog.app_vec.at(0).thumbnail_path,
+              get_directory(Tests::DataFixtures::get_recipe_example_filename() ) + "\\thumbnails\\fr08.jpg");
+
+    /* The file has the kind of the picture that the address names. */
+    ASSERT_TRUE(parse(get_text(", \"thumbnail\": \"https://pictures.example/shots/1884.gif\"") ) ) << m_error;
+
+    EXPECT_EQ(m_catalog.app_vec.at(0).thumbnail_path,
+              get_directory(Tests::DataFixtures::get_recipe_example_filename() ) + "\\thumbnails\\fr08.gif");
+
+    ASSERT_TRUE(parse(get_text(", \"thumbnail\": \"https://pictures.example/shot\"") ) ) << m_error;
+
+    EXPECT_EQ(m_catalog.app_vec.at(0).thumbnail_path,
+              get_directory(Tests::DataFixtures::get_recipe_example_filename() ) + "\\thumbnails\\fr08.img");
+}
+
+TEST_F(CatalogLoaderTest, TheAddressOfAPictureMustBeHttpsAndAText)
+{
+    EXPECT_FALSE(parse(get_text(", \"thumbnail\": \"http://pictures.example/shot.jpg\"") ) );
+    EXPECT_NE   (m_error.find("apps[0].thumbnail: expected an address of https"),
+                 std::string::npos) << m_error;
+
+    EXPECT_FALSE(parse(get_text(", \"thumbnail\": 5") ) );
+    EXPECT_NE   (m_error.find("apps[0].thumbnail: expected a text"),
+                 std::string::npos) << m_error;
+}
+
 TEST_F(CatalogLoaderTest, TheCatalogCanSayWhichButtonOfTheFirstDialogIsPressedForTheUser)
 {
     ASSERT_TRUE(parse(get_text(", \"launch_button\": \"Launch\"") ) ) << m_error;

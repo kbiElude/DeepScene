@@ -28,6 +28,8 @@ namespace VRPlayer
             std::string                         name;                       /* the displayed name: the title, else the name of the recipe target, else the id */
             float                               overlay_parallax   = 0.0f;  /* from the comfort section of the recipe: how far overlays may be pushed toward the viewer; 0 if the recipe gives no amount, which means the application wants none */
             std::string                         recipe_path;                /* absolute                                                                         */
+            std::string                         thumbnail_path;             /* where the picture of the application is kept once it is downloaded; empty if the catalog gives no address */
+            std::string                         thumbnail_url;              /* https address of the picture; empty if there is none                             */
             std::string                         unavailable_reason;         /* empty if the application can be launched                                         */
             std::string                         untick_checkbox_text;       /* text of a checkbox in the same dialog, which the launcher unticks before it presses the button; empty: none */
             std::string                         working_directory;          /* absolute; the directory of the executable unless the catalog names another       */
