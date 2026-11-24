@@ -154,7 +154,7 @@
 <tr><td><code>GifWriter</code></td><td>Images</td><td>Writes images as an animated GIF, with a palette for each frame.</td></tr>
 <tr><td><code>ImageComparer</code></td><td>Images</td><td>Says how many pixels of two images differ, where and by how much, and makes an image that shows it.</td></tr>
 <tr><td><code>ImageComposer</code></td><td>Images</td><td>Puts two images together as a red-cyan anaglyph, or many as a contact sheet.</td></tr>
-<tr><td><code>ImGuiPlayerWindowBase</code></td><td>UI (<code>Utils::UI</code>)</td><td>Owns the Direct3D 11 device, the swap chain, the message loop and the monitor scale; the derived class says what the window shows.</td></tr>
+<tr><td><code>ImGuiPlayerWindowBase</code></td><td>UI (<code>Utils::UI</code>)</td><td>Owns the Direct3D 11 device, the swap chain, the message loop and the monitor scale; the derived class says what the window shows. A window can ask for a title bar of its own (<code>WindowOptions::has_custom_title_bar</code>): the system frame is dropped, the base class handles the edges (resize), the maximized size and the move by the bar, and the derived class draws the bar and its buttons.</td></tr>
 </table>
 
 <h4>Parallel in detail</h4>

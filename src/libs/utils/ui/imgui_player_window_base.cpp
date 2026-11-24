@@ -18,6 +18,9 @@ static constexpr float SYSTEM_FONT_SIZE = 18.0f;
 
 static const BOOL IS_DARK_TITLE_BAR = TRUE;
 
+/* How far from the edge of a window with a title bar of its own the window is resized from, at 100% scale. */
+static constexpr float RESIZE_BORDER_WIDTH = 6.0f;
+
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
@@ -29,7 +32,10 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND   in_window,
                                                              LPARAM in_lparam);
 
 Utils::UI::ImGuiPlayerWindowBase::ImGuiPlayerWindowBase(const WindowOptions& in_options)
-    :m_content_height        (0),
+    :m_buttons_bottom        (0),
+     m_buttons_left          (0),
+     m_caption_height        (0),
+     m_content_height        (0),
      m_content_width         (0),
      m_device_context_ptr    (nullptr),
      m_device_ptr            (nullptr),
@@ -92,7 +98,8 @@ bool Utils::UI::ImGuiPlayerWindowBase::create(std::string* out_error_ptr)
     float         scale         = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(ORIGIN,
                                                                                            MONITOR_DEFAULTTOPRIMARY) );
     WNDCLASSEXW   window_class  = {};
-    DWORD         window_style  = WS_CAPTION | WS_SYSMENU;
+    DWORD         window_style  = (m_options.has_custom_title_bar) ? WS_SYSMENU
+                                                                    : WS_CAPTION | WS_SYSMENU;
 
     if (m_options.is_resizable)
     {
@@ -116,9 +123,13 @@ bool Utils::UI::ImGuiPlayerWindowBase::create(std::string* out_error_ptr)
         goto end;
     }
 
-    ::AdjustWindowRect(&client_rect,
-                       window_style,
-                       FALSE);
+    /* A window with a title bar of its own is all client area. */
+    if (m_options.has_custom_title_bar == false)
+    {
+        ::AdjustWindowRect(&client_rect,
+                           window_style,
+                           FALSE);
+    }
 
     m_hwnd = ::CreateWindowExW((m_options.is_topmost) ? WS_EX_TOPMOST
                                                       : 0,
@@ -143,6 +154,24 @@ bool Utils::UI::ImGuiPlayerWindowBase::create(std::string* out_error_ptr)
 
     ::SetWindowTextA(m_hwnd,
                      m_options.title.c_str() );
+
+    if (m_options.has_custom_title_bar)
+    {
+        /* One pixel of the frame is taken into the window: it keeps the shadow of the window, which a window without a title bar loses otherwise. The frame is
+         * recalculated, so that the window is all client area from the start (see WM_NCCALCSIZE).
+         */
+        const MARGINS margins = {0, 0, 1, 0};
+
+        ::DwmExtendFrameIntoClientArea(m_hwnd,
+                                      &margins);
+        ::SetWindowPos                (m_hwnd,
+                                       nullptr,
+                                       0,
+                                       0,
+                                       0,
+                                       0,
+                                       SWP_FRAMECHANGED | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+    }
 
     /* The title bar is made dark to match the window. On a system that does not know the attribute, nothing happens. */
     ::DwmSetWindowAttribute(m_hwnd,
@@ -279,7 +308,6 @@ void Utils::UI::ImGuiPlayerWindowBase::extend_content(ContentExtent* inout_exten
 void Utils::UI::ImGuiPlayerWindowBase::fit_to_content()
 {
     RECT client_rect = {};
-    RECT outer_rect  = {};
 
     ::GetClientRect(m_hwnd,
                    &client_rect);
@@ -289,27 +317,15 @@ void Utils::UI::ImGuiPlayerWindowBase::fit_to_content()
         (client_rect.bottom != m_content_height ||
          client_rect.right  != m_content_width) )
     {
-        outer_rect.bottom = m_content_height;
-        outer_rect.right  = m_content_width;
-
-        {
-            const DWORD extended_style = static_cast<DWORD>(::GetWindowLongW(m_hwnd,
-                                                                             GWL_EXSTYLE) );
-            const DWORD style          = static_cast<DWORD>(::GetWindowLongW(m_hwnd,
-                                                                             GWL_STYLE) );
-
-            ::AdjustWindowRectEx(&outer_rect,
-                                 style,
-                                 FALSE,
-                                 extended_style);
-        }
+        const SIZE outer_size = get_outer_size(m_content_width,
+                                               m_content_height);
 
         ::SetWindowPos(m_hwnd,
                        nullptr,
                        0,
                        0,
-                       outer_rect.right  - outer_rect.left,
-                       outer_rect.bottom - outer_rect.top,
+                       outer_size.cx,
+                       outer_size.cy,
                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
 
         on_resized_to_content();
@@ -324,6 +340,81 @@ ID3D11DeviceContext* Utils::UI::ImGuiPlayerWindowBase::get_device_context_ptr() 
 ID3D11Device* Utils::UI::ImGuiPlayerWindowBase::get_device_ptr() const
 {
     return m_device_ptr;
+}
+
+LRESULT Utils::UI::ImGuiPlayerWindowBase::get_hit_test(const HWND&   in_window,
+                                                       const LPARAM& in_lparam) const
+{
+    /* The edges of the window, which has no frame, are where it is resized from; the bar is where it is moved from; the rest is the window. */
+    const UINT dpi          = ::GetDpiForWindow(in_window);
+    const int  border       = static_cast<int>(RESIZE_BORDER_WIDTH * static_cast<float>(dpi) / 96.0f);
+    POINT      point        = {static_cast<LONG>(static_cast<short>(LOWORD(in_lparam) ) ),
+                               static_cast<LONG>(static_cast<short>(HIWORD(in_lparam) ) )};
+    RECT       window_rect  = {};
+    LRESULT    result       = HTCLIENT;
+
+    ::GetWindowRect(in_window,
+                   &window_rect);
+
+    if (::IsZoomed(in_window) == FALSE)
+    {
+        /* Which of the three columns and the three rows of the window the point is in; the middle of both is the window itself. */
+        constexpr LRESULT HIT_TEST_ARRAY[3][3] = {{HTTOPLEFT,    HTTOP,    HTTOPRIGHT},
+                                                  {HTLEFT,       HTCLIENT, HTRIGHT},
+                                                  {HTBOTTOMLEFT, HTBOTTOM, HTBOTTOMRIGHT}};
+
+        const bool is_bottom = (point.y >= window_rect.bottom - border);
+        const bool is_left   = (point.x <  window_rect.left   + border);
+        const bool is_right  = (point.x >= window_rect.right  - border);
+        const bool is_top    = (point.y <  window_rect.top    + border);
+        const int  column    = (is_left)   ? 0
+                                           : (is_right) ? 2
+                                                        : 1;
+        const int  row       = (is_top)    ? 0
+                                           : (is_bottom) ? 2
+                                                         : 1;
+
+        result = HIT_TEST_ARRAY[row][column];
+
+        if (result != HTCLIENT)
+        {
+            goto end;
+        }
+    }
+
+    {
+        const int x = point.x - window_rect.left;
+        const int y = point.y - window_rect.top;
+
+        if (y < m_caption_height &&
+            (x < m_buttons_left  ||
+             y >= m_buttons_bottom) )
+        {
+            result = HTCAPTION;
+        }
+    }
+
+end:
+    return result;
+}
+
+SIZE Utils::UI::ImGuiPlayerWindowBase::get_outer_size(const int& in_client_width,
+                                                      const int& in_client_height) const
+{
+    RECT outer_rect = {0, 0, in_client_width, in_client_height};
+
+    if (m_options.has_custom_title_bar == false)
+    {
+        ::AdjustWindowRectEx(&outer_rect,
+                             static_cast<DWORD>(::GetWindowLongW(m_hwnd,
+                                                                 GWL_STYLE) ),
+                             FALSE,
+                             static_cast<DWORD>(::GetWindowLongW(m_hwnd,
+                                                                 GWL_EXSTYLE) ) );
+    }
+
+    return {outer_rect.right  - outer_rect.left,
+            outer_rect.bottom - outer_rect.top};
 }
 
 std::string Utils::UI::ImGuiPlayerWindowBase::get_system_font_path()
@@ -395,6 +486,17 @@ bool Utils::UI::ImGuiPlayerWindowBase::handle_message(const HWND&   in_window,
     return false;
 }
 
+bool Utils::UI::ImGuiPlayerWindowBase::is_window_maximized() const
+{
+    return (::IsZoomed(m_hwnd) != FALSE);
+}
+
+void Utils::UI::ImGuiPlayerWindowBase::minimize_window()
+{
+    ::ShowWindow(m_hwnd,
+                 SW_MINIMIZE);
+}
+
 void Utils::UI::ImGuiPlayerWindowBase::on_resized_to_content()
 {
     /* Stub */
@@ -431,6 +533,58 @@ LRESULT Utils::UI::ImGuiPlayerWindowBase::process_message(const HWND&   in_windo
         case WM_DESTROY:
         {
             ::PostQuitMessage(0);
+
+            break;
+        }
+
+        case WM_NCCALCSIZE:
+        {
+            /* The whole window is client area. A maximized window is larger than the screen by the width of its frame, so it is cut back by that. */
+            if (m_options.has_custom_title_bar &&
+                in_wparam                      != 0)
+            {
+                if (::IsZoomed(in_window) )
+                {
+                    NCCALCSIZE_PARAMS* params_ptr = reinterpret_cast<NCCALCSIZE_PARAMS*>(in_lparam);
+                    const UINT         dpi        = ::GetDpiForWindow(in_window);
+                    const int          padding    = ::GetSystemMetricsForDpi(SM_CXPADDEDBORDER,
+                                                                             dpi);
+                    const int          frame_x    = ::GetSystemMetricsForDpi(SM_CXFRAME,
+                                                                             dpi) + padding;
+                    const int          frame_y    = ::GetSystemMetricsForDpi(SM_CYFRAME,
+                                                                             dpi) + padding;
+
+                    params_ptr->rgrc[0].bottom -= frame_y;
+                    params_ptr->rgrc[0].left   += frame_x;
+                    params_ptr->rgrc[0].right  -= frame_x;
+                    params_ptr->rgrc[0].top    += frame_y;
+                }
+
+                goto end;
+            }
+
+            result = ::DefWindowProcW(in_window,
+                                      in_message,
+                                      in_wparam,
+                                      in_lparam);
+
+            break;
+        }
+
+        case WM_NCHITTEST:
+        {
+            if (m_options.has_custom_title_bar)
+            {
+                result = get_hit_test(in_window,
+                                      in_lparam);
+            }
+            else
+            {
+                result = ::DefWindowProcW(in_window,
+                                          in_message,
+                                          in_wparam,
+                                          in_lparam);
+            }
 
             break;
         }
@@ -536,6 +690,22 @@ void Utils::UI::ImGuiPlayerWindowBase::request_close()
                    WM_CLOSE,
                    0,
                    0);
+}
+
+void Utils::UI::ImGuiPlayerWindowBase::set_title_bar_layout(const int& in_caption_height,
+                                                            const int& in_buttons_left,
+                                                            const int& in_buttons_bottom)
+{
+    m_buttons_bottom = in_buttons_bottom;
+    m_buttons_left   = in_buttons_left;
+    m_caption_height = in_caption_height;
+}
+
+void Utils::UI::ImGuiPlayerWindowBase::toggle_maximize()
+{
+    ::ShowWindow(m_hwnd,
+                 (::IsZoomed(m_hwnd) ) ? SW_RESTORE
+                                       : SW_MAXIMIZE);
 }
 
 void Utils::UI::ImGuiPlayerWindowBase::resize(const UINT& in_width,

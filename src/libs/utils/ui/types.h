@@ -24,6 +24,7 @@ namespace Utils
             int          client_height = 0;             /* at 100% scale; the monitor scale is applied on top                  */
             int          client_width  = 0;
             bool         fits_content  = false;         /* the window is sized to fit what it draws                            */
+            bool         has_custom_title_bar = false;  /* no title bar of the system: the window draws its own and says where it is (see set_title_bar_layout) */
             bool         is_resizable  = false;
             bool         is_topmost    = false;
             std::string  title;

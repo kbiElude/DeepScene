@@ -51,6 +51,26 @@ namespace Utils
             ID3D11DeviceContext* get_device_context_ptr() const;
             ID3D11Device*        get_device_ptr        () const;
 
+            /* The size of the window, frame included, that has a client area of the given size. With a custom title bar the window is all client area. */
+            SIZE get_outer_size(const int& in_client_width,
+                                const int& in_client_height) const;
+
+            bool is_window_maximized() const;
+
+            /* For a window with a custom title bar. */
+            void minimize_window();
+
+            /* For a window with a custom title bar: where it is, in the pixels of the window, so that the system can move the window by it. The bar is
+             * everything above in_caption_height; the buttons (which the window draws and handles itself) are right of in_buttons_left and above
+             * in_buttons_bottom. Call it from draw_contents.
+             */
+            void set_title_bar_layout(const int& in_caption_height,
+                                      const int& in_buttons_left,
+                                      const int& in_buttons_bottom);
+
+            /* For a window with a custom title bar: maximizes the window, or restores it if it is maximized. */
+            void toggle_maximize();
+
             /* Returns true and sets the result if the message was handled. ImGui has already seen the message. */
             virtual bool handle_message(const HWND&   in_window,
                                         const UINT&   in_message,
@@ -69,6 +89,8 @@ namespace Utils
             void    create_render_target ();
             void    destroy_render_target();
             void    fit_to_content       ();
+            LRESULT get_hit_test         (const HWND&   in_window,
+                                          const LPARAM& in_lparam) const;
             LRESULT process_message      (const HWND&   in_window,
                                           const UINT&   in_message,
                                           const WPARAM& in_wparam,
@@ -85,6 +107,9 @@ namespace Utils
                                                 WPARAM in_wparam,
                                                 LPARAM in_lparam);
 
+            int                     m_buttons_bottom;
+            int                     m_buttons_left;
+            int                     m_caption_height;
             int                     m_content_height;
             int                     m_content_width;
             ID3D11DeviceContext*    m_device_context_ptr;
