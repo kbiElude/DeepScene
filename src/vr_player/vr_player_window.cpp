@@ -146,7 +146,6 @@ static constexpr float STATUS_N_LINES      = 3.0f;
 static constexpr float CARD_TITLE_SCALE    = 1.25f;
 static constexpr float DETAILS_TITLE_SCALE = 1.7f;
 static constexpr float PAGE_TITLE_SCALE    = 2.0f;
-static constexpr float SECTION_TITLE_SCALE = 1.2f;
 
 VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
     :ImGuiPlayerWindowBase      (get_window_options() ),
@@ -1116,15 +1115,6 @@ void VRPlayer::VrPlayerWindow::draw_thumbnail_credit()
 
 void VRPlayer::VrPlayerWindow::draw_vr_settings()
 {
-    const ImGuiStyle& style = ImGui::GetStyle();
-
-    ImGui::PushFont       (nullptr,
-                           style.FontSizeBase * SECTION_TITLE_SCALE);
-    ImGui::TextUnformatted("VR settings");
-    ImGui::PopFont        ();
-
-    ImGui::Spacing();
-
     if (m_content.device_error.empty() == false)
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
