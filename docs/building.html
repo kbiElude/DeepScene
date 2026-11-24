@@ -30,6 +30,7 @@
   <li><a href="#get">Get the code</a></li>
   <li><a href="#build">Build</a></li>
   <li><a href="#release">The collected build</a></li>
+  <li><a href="#github">A release on GitHub</a></li>
   <li><a href="#layout">Source layout</a></li>
   <li><a href="#cmake">CMake layout</a></li>
   <li><a href="#solution">Solution layout</a></li>
@@ -133,6 +134,29 @@ build.bat --clean            :: wipe the two build trees, build nothing</code></
 <tr><td>From a build folder</td><td>(<code>build_x64\bin\Release</code>) none of those is the one of the repository, so it is given with <code>--catalog apps\apps.json</code>.</td></tr>
 <tr><td>32-bit programs</td><td>The 32-bit launcher and converter are in the other build tree, so the programs of the catalog (all 32-bit) are played from <code>build_final</code>.</td></tr>
 <tr><td>The applications</td><td>They are part of neither tree: each is downloaded into <code>apps\&lt;id&gt;\</code> the first time it is launched, so the folder of <code>VRPlayer</code> has to be one which can be written to (nothing is written anywhere else, and if it cannot be written, the window says so).</td></tr>
+</table>
+
+<h2 id="github">A release on GitHub</h2>
+<p>A release is made on GitHub by a tag. Pushing a tag that starts with <code>v</code> (<code>v1.0.0</code>) starts the workflow <code>.github/workflows/release.yml</code>, which builds what <code>build.bat</code> builds, zips <code>build_final\</code> and puts the zip on the Releases page under the name of the tag.</p>
+<figure>
+<svg viewBox="0 0 900 230" role="img" aria-label="The steps of the release workflow: a tag, then the build and the tests side by side, then the release">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box4" x="10"  y="75" width="150" height="80" rx="6"/><text x="85" y="103" text-anchor="middle">a tag</text><text class="small" x="85" y="123" text-anchor="middle">v1.0.0, pushed</text><text class="small" x="85" y="139" text-anchor="middle">to GitHub</text>
+  <rect class="box"  x="240" y="25" width="300" height="80" rx="6"/><text x="390" y="53" text-anchor="middle">build</text><text class="small" x="390" y="73" text-anchor="middle">x86 and x64, Release; both installed</text><text class="small" x="390" y="89" text-anchor="middle">into build_final\ and zipped</text>
+  <rect class="box2" x="240" y="125" width="300" height="80" rx="6"/><text x="390" y="153" text-anchor="middle">test</text><text class="small" x="390" y="173" text-anchor="middle">the tests of the x64 build; a failure is</text><text class="small" x="390" y="189" text-anchor="middle">shown, and does not stop the release</text>
+  <rect class="box3" x="620" y="75" width="270" height="80" rx="6"/><text x="755" y="103" text-anchor="middle">publish</text><text class="small" x="755" y="123" text-anchor="middle">the zip and its SHA-256 on the</text><text class="small" x="755" y="139" text-anchor="middle">Releases page, with notes</text>
+  <path class="arrow" d="M160 100L238 70"/><path class="arrow" d="M160 130L238 160"/><path class="arrow" d="M540 65L618 100"/><path class="arrow" d="M540 165L618 130"/>
+</svg>
+<figcaption>The build and the tests run side by side; the release waits for both.</figcaption>
+</figure>
+<table>
+<tr><th>Topic</th><th>Detail</th></tr>
+<tr><td>Name</td><td>The zip is <code>DeepScene-&lt;tag&gt;-windows.zip</code>, next to <code>SHA256SUMS.txt</code>. A tag with a <code>-</code> in it (<code>v1.1.0-beta1</code>) makes a pre-release.</td></tr>
+<tr><td>Without a tag</td><td>Running the workflow by hand (Actions, Release, Run workflow) builds the same zip as <code>DeepScene-dev-&lt;commit&gt;-windows.zip</code> and keeps it as an artifact of the run, without publishing anything: the way to try the workflow.</td></tr>
+<tr><td>Generator</td><td>Visual Studio 2022, which the runners of GitHub have. <code>build.bat</code> asks for Visual Studio 2026; the CMake files do not need it.</td></tr>
+<tr><td>Configuration</td><td>Release only. The tests are not part of the zip, and the Debug configuration is not built.</td></tr>
+<tr><td>Submodules</td><td>Fetched with the code. The address of API Interceptor is relative, so it is looked for in the same account; the token of the workflow reads it if it is public. A private one needs a token of its own in the checkout step.</td></tr>
+<tr><td>Rights</td><td>Only the last job may write to the repository (<code>contents: write</code>); the build and the tests only read it.</td></tr>
 </table>
 
 <h2 id="layout">Source layout</h2>

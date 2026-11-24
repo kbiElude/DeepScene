@@ -1,0 +1,125 @@
+# Builds DeepScene (x86 and x64, Release) and publishes it on the Releases page.
+#
+#   - Push a tag that starts with "v" (v1.0.0, v1.1.0-beta1): the release is built, and published under that tag. A tag with a "-" in it
+#     (v1.1.0-beta1) is marked as a pre-release.
+#   - Run it by hand (Actions > Release > Run workflow): the same build, without publishing. The zip is an artifact of the run, to look at.
+#
+# What is built is what build.bat builds: the same two build trees, the same install into build_final\ (cmake/install.cmake), which is zipped as
+# it is. The generator is Visual Studio 2022, which the runners have; build.bat asks for Visual Studio 2026, but the CMake files do not.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build x86 and x64
+    runs-on: windows-2025
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      # API Interceptor is a submodule whose address is relative (../APIInterceptor): it is fetched from the same account as this repository.
+      # The token of the workflow can read it if the repository is public; a private one needs a token of your own (the "token" input here).
+      - name: Check out, with the submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Name the version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $version = $env:GITHUB_REF_NAME }
+          else                                { $version = 'dev-' + $env:GITHUB_SHA.Substring(0, 7) }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -B build_x86 -G "Visual Studio 17 2022" -A Win32 .
+          cmake -B build_x64 -G "Visual Studio 17 2022" -A x64   .
+
+      - name: Build x86
+        run: cmake --build build_x86 --config Release --parallel
+
+      - name: Build x64
+        run: cmake --build build_x64 --config Release --parallel
+
+      - name: Collect the release
+        shell: pwsh
+        run: |
+          cmake --install build_x86 --config Release --prefix build_final
+          cmake --install build_x64 --config Release --prefix build_final
+
+      - name: Zip it
+        shell: pwsh
+        run: |
+          $zip = "DeepScene-${{ steps.version.outputs.version }}-windows.zip"
+          Compress-Archive -Path build_final\* -DestinationPath $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  $zip" | Out-File -Encoding ascii SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+      - name: Keep the files
+        uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: |
+            DeepScene-*-windows.zip
+            SHA256SUMS.txt
+          if-no-files-found: error
+
+  # The tests of the 64-bit build. They do not stop a release (continue-on-error): a failure is shown in the run, and the release goes on. Take that
+  # line out to make a failing test stop the release.
+  test:
+    name: Test x64
+    runs-on: windows-2025
+    continue-on-error: true
+    steps:
+      - name: Check out, with the submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -B build_test -G "Visual Studio 17 2022" -A x64 -DDEMOVRPLAYER_BUILD_TESTS=ON .
+
+      - name: Build the tests
+        run: cmake --build build_test --config Release --target DemoVRPlayerTests --parallel
+
+      - name: Run the tests
+        run: build_test\bin\Release\DemoVRPlayerTests.exe
+
+  # Only for a tag. Runs after both, and needs nothing but the zip.
+  publish:
+    name: Publish on the Releases page
+    if: github.ref_type == 'tag'
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Get the files
+        uses: actions/download-artifact@v4
+        with:
+          name: release
+
+      - name: Make the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          flags="--generate-notes"
+          case "$TAG" in
+            *-*) flags="$flags --prerelease" ;;
+          esac
+          gh release create "$TAG" DeepScene-*-windows.zip SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "DeepScene $TAG" \
+            $flags
