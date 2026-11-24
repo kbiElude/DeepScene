@@ -32,14 +32,10 @@ static const ImVec4 BORDER_COLOR          (0.20f,
                                            0.22f,
                                            0.28f,
                                            1.00f);
-static const ImVec4 CHIP_BORDER_COLOR     (0.33f,
-                                           0.42f,
-                                           0.95f,
-                                           0.55f);
-static const ImVec4 CHIP_FILL_COLOR       (0.33f,
-                                           0.42f,
-                                           0.95f,
-                                           0.16f);
+static const ImVec4 CLOSE_COLOR           (1.00f,
+                                           0.36f,
+                                           0.44f,
+                                           1.00f);
 static const ImVec4 DIM_TEXT_COLOR        (0.58f,
                                            0.61f,
                                            0.70f,
@@ -97,9 +93,6 @@ static constexpr float CARD_HIGHLIGHT_SPEED   = 12.0f; /* per second: the share 
 static constexpr float CARD_ROUNDING         = 8.0f;
 static constexpr float CARD_SHADOW_OFFSET    = 2.0f;
 static constexpr float CARD_WASH_ALPHA       = 0.30f;
-static constexpr float CHIP_GAP              = 6.0f;
-static constexpr float CHIP_PADDING_X        = 10.0f;
-static constexpr float CHIP_PADDING_Y        = 3.0f;
 static constexpr int   DEFAULT_DEPTH_INDEX   = 1;
 static constexpr float DETAILS_FADE_SPEED    = 7.0f; /* per second, like CARD_HIGHLIGHT_SPEED */
 static constexpr float GLOW_ALPHA            = 0.07f;
@@ -110,6 +103,15 @@ static constexpr float GLOW_SPREAD           = 2.0f;
 static constexpr float LOGO_GAP              = 14.0f;
 static constexpr float LOGO_OFFSET_FRACTION  = 0.28f; /* of the height of the logo: how far apart the two pictures are */
 static constexpr float LOGO_ROUNDING         = 0.22f; /* of the side of a picture */
+static constexpr int   N_WINDOW_BUTTONS           = 3;
+static constexpr float WINDOW_BUTTON_HEIGHT       = 36.0f; /* the buttons of the title bar: minimize, maximize and close; at the top right corner */
+static constexpr float WINDOW_BUTTON_WIDTH        = 48.0f;
+static constexpr float WINDOW_BUTTON_GLYPH_SIZE   = 10.0f;
+static constexpr float WINDOW_BUTTON_INSET        = 5.0f;  /* of the glow of a button that the pointer is over, from the edges of the button */
+static constexpr float WINDOW_MAX_SCREEN_FRACTION = 0.75f; /* of the width of the work area of the monitor that the window is on */
+static constexpr float THUMBNAIL_ASPECT    = 1.6f;  /* width over height of the picture on a card; a picture of another shape is cropped to it, from the middle */
+static constexpr float THUMBNAIL_FADE_SPEED  = 6.0f;  /* per second, like CARD_HIGHLIGHT_SPEED */
+static constexpr float THUMBNAIL_WIDTH       = 96.0f;
 static constexpr float SHEEN_ALPHA           = 0.30f;
 static constexpr float SHEEN_SECONDS         = 1.6f;
 static constexpr float SHEEN_WIDTH_FRACTION  = 0.30f;
@@ -159,6 +161,7 @@ VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
      m_downloader               (false), /* in_is_http_allowed */
      m_installer                (&m_downloader),
      m_installing_app           (-1),
+     m_is_sized                 (false),
      m_is_status_error          (false),
      m_is_styled                (false),
      m_pace_to_headset          (true),
@@ -169,9 +172,31 @@ VRPlayer::VrPlayerWindow::VrPlayerWindow(const WindowContent& in_content)
      m_resolution_custom_width  (DEFAULT_CUSTOM_WIDTH),
      m_resolution_index         (0),
      m_selected_app             (-1),
-     m_should_open_install_error(false)
+     m_should_open_install_error(false),
+     m_thumbnail_downloader     (false), /* in_is_http_allowed */
+     m_thumbnail_fade_vec       (in_content.catalog.app_vec.size(),
+                                 0.0f),
+     m_thumbnail_fetcher        (&m_thumbnail_downloader),
+     m_thumbnail_n_seen         (~0ull),
+     m_thumbnail_textures       (in_content.catalog.app_vec.size() )
 {
+    std::vector<VRPlayer::AppThumbnails::ThumbnailJob> job_vec;
+
     select_defaults();
+
+    for (const VRPlayer::AppCatalog::AppEntry& app : in_content.catalog.app_vec)
+    {
+        if (app.thumbnail_url.empty() == false)
+        {
+            job_vec.push_back({app.thumbnail_path,
+                               app.thumbnail_url});
+        }
+    }
+
+    if (job_vec.empty() == false)
+    {
+        m_thumbnail_fetcher.start(job_vec);
+    }
 }
 
 bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
@@ -182,7 +207,11 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
     const bool                            is_available     = app.unavailable_reason.empty();
     const bool                            is_selected      = (static_cast<int>(in_n_app) == m_selected_app);
     const float                           width            = ImGui::GetContentRegionAvail().x;
-    const float                           wrap_width       = width - 2.0f * pad;
+    const bool                            has_thumbnail    = (app.thumbnail_path.empty() == false);
+    const float                           thumbnail_width  = THUMBNAIL_WIDTH * style.FontScaleDpi;
+    const float                           text_indent      = (has_thumbnail) ? thumbnail_width + pad
+                                                                             : 0.0f;
+    const float                           wrap_width       = width - 2.0f * pad - text_indent;
     float                                 height           = 2.0f * pad;
     ImVec2                                reason_size      = ImVec2(0.0f,
                                                                     0.0f);
@@ -220,6 +249,13 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
                                           false,
                                           wrap_width);
         height     += style.ItemSpacing.y + reason_size.y;
+    }
+
+    /* The picture has its place from the start, so the card does not change its size when the picture comes. */
+    if (has_thumbnail)
+    {
+        height = std::max<float>(height,
+                                 2.0f * pad + thumbnail_width / THUMBNAIL_ASPECT);
     }
 
     ImGui::PushID(static_cast<int>(in_n_app) );
@@ -270,6 +306,58 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
                                                                      : FRAME_COLOR),
                                      rounding);
 
+            if (has_thumbnail)
+            {
+                /* The picture is cropped from the middle to the shape of its place, and fades in when it is there. */
+                ID3D11ShaderResourceView* const view_ptr       = m_thumbnail_textures.get_view_ptr(in_n_app);
+                const ImVec2                    thumbnail_min  = ImVec2(min.x + pad,
+                                                                        min.y + pad);
+                const ImVec2                    thumbnail_max  = ImVec2(thumbnail_min.x + thumbnail_width,
+                                                                        thumbnail_min.y + thumbnail_width / THUMBNAIL_ASPECT);
+                const float                     thumbnail_edge = 0.6f * rounding;
+
+                draw_list->AddRectFilled(thumbnail_min,
+                                         thumbnail_max,
+                                         ImGui::GetColorU32(PANEL_COLOR),
+                                         thumbnail_edge);
+
+                if (view_ptr != nullptr)
+                {
+                    const float aspect = m_thumbnail_textures.get_aspect(in_n_app);
+                    float&      fade   = m_thumbnail_fade_vec.at(in_n_app);
+                    ImVec2      uv_max = ImVec2(1.0f,
+                                                1.0f);
+                    ImVec2      uv_min = ImVec2(0.0f,
+                                                0.0f);
+
+                    fade += (1.0f - fade) * (1.0f - std::exp(-THUMBNAIL_FADE_SPEED * ImGui::GetIO().DeltaTime) );
+
+                    if (aspect > THUMBNAIL_ASPECT)
+                    {
+                        /* Wider than the place: the sides are cut. */
+                        uv_min.x = 0.5f * (1.0f - THUMBNAIL_ASPECT / aspect);
+                        uv_max.x = 1.0f - uv_min.x;
+                    }
+                    else
+                    {
+                        /* Taller than the place: the top and the bottom are cut. */
+                        uv_min.y = 0.5f * (1.0f - aspect / THUMBNAIL_ASPECT);
+                        uv_max.y = 1.0f - uv_min.y;
+                    }
+
+                    draw_list->AddImageRounded(ImTextureRef(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(view_ptr) ) ),
+                                               thumbnail_min,
+                                               thumbnail_max,
+                                               uv_min,
+                                               uv_max,
+                                               ImGui::GetColorU32(ImVec4(1.0f,
+                                                                         1.0f,
+                                                                         1.0f,
+                                                                         fade) ),
+                                               thumbnail_edge);
+                }
+            }
+
             if (highlight > CARD_HIGHLIGHT_HOVERED)
             {
                 /* A wash of the accent, strongest at the bar and fading to the right; the strip at the left follows the rounded corners. */
@@ -315,7 +403,7 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
             }
         }
 
-        ImGui::SetCursorScreenPos(ImVec2(min.x + pad,
+        ImGui::SetCursorScreenPos(ImVec2(min.x + pad + text_indent,
                                          min.y + pad) );
 
         ImGui::PushFont      (nullptr,
@@ -329,7 +417,7 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
         ImGui::PopStyleColor  ();
         ImGui::PopFont        ();
 
-        ImGui::SetCursorScreenPos(ImVec2(min.x + pad,
+        ImGui::SetCursorScreenPos(ImVec2(min.x + pad + text_indent,
                                          ImGui::GetCursorScreenPos().y) );
         ImGui::PushTextWrapPos   (ImGui::GetCursorPosX() + wrap_width);
 
@@ -343,7 +431,7 @@ bool VRPlayer::VrPlayerWindow::draw_app_card(const size_t& in_n_app)
 
         if (is_available == false)
         {
-            ImGui::SetCursorScreenPos(ImVec2(min.x + pad,
+            ImGui::SetCursorScreenPos(ImVec2(min.x + pad + text_indent,
                                              ImGui::GetCursorScreenPos().y) );
             ImGui::PushStyleColor    (ImGuiCol_Text,
                                       ERROR_TEXT_COLOR);
@@ -451,71 +539,6 @@ void VRPlayer::VrPlayerWindow::draw_button_shine()
                                                         clear);
 }
 
-void VRPlayer::VrPlayerWindow::draw_chips()
-{
-    /* The choices that the app is played with, as rounded labels that wrap onto further rows. */
-    const ImGuiStyle&        style      = ImGui::GetStyle();
-    const float              gap        = CHIP_GAP       * style.FontScaleDpi;
-    const float              height     = ImGui::GetTextLineHeight() + 2.0f * CHIP_PADDING_Y * style.FontScaleDpi;
-    const float              padding_x  = CHIP_PADDING_X * style.FontScaleDpi;
-    const ImVec2             origin     = ImGui::GetCursorScreenPos();
-    const float              right      = origin.x + ImGui::GetContentRegionAvail().x;
-    ImDrawList*              draw_list  = ImGui::GetWindowDrawList();
-    std::vector<std::string> text_vec;
-    float                    x          = origin.x;
-    float                    y          = origin.y;
-
-    text_vec.push_back((m_device_index >= 0) ? m_content.device_vec.at(static_cast<size_t>(m_device_index) ).name
-                                             : std::string("2D preview") );
-    text_vec.push_back(DEPTH_NAME_ARRAY[m_depth_index]);
-
-    if (m_resolution_index == RESOLUTION_CUSTOM_INDEX)
-    {
-        text_vec.push_back(std::to_string(m_resolution_custom_width)  +
-                           " x "                                      +
-                           std::to_string(m_resolution_custom_height) );
-    }
-    else
-    {
-        text_vec.push_back(RESOLUTION_NAME_ARRAY[m_resolution_index]);
-    }
-
-    for (const std::string& text : text_vec)
-    {
-        const float width = ImGui::CalcTextSize(text.c_str() ).x + 2.0f * padding_x;
-
-        if (x + width > right &&
-            x > origin.x)
-        {
-            x  = origin.x;
-            y += height + gap;
-        }
-
-        draw_list->AddRectFilled(ImVec2(x,
-                                        y),
-                                 ImVec2(x + width,
-                                        y + height),
-                                 ImGui::GetColorU32(CHIP_FILL_COLOR),
-                                 0.5f * height);
-        draw_list->AddRect      (ImVec2(x,
-                                        y),
-                                 ImVec2(x + width,
-                                        y + height),
-                                 ImGui::GetColorU32(CHIP_BORDER_COLOR),
-                                 0.5f * height);
-        draw_list->AddText      (ImVec2(x + padding_x,
-                                        y + CHIP_PADDING_Y * style.FontScaleDpi),
-                                 ImGui::GetColorU32(TEXT_COLOR),
-                                 text.c_str() );
-
-        x += width + gap;
-    }
-
-    ImGui::SetCursorScreenPos(origin);
-    ImGui::Dummy             (ImVec2(0.0f,
-                                     y + height - origin.y) );
-}
-
 void VRPlayer::VrPlayerWindow::draw_contents(Utils::UI::ContentExtent* inout_extent_ptr)
 {
     const ImGuiStyle& style = ImGui::GetStyle();
@@ -524,6 +547,7 @@ void VRPlayer::VrPlayerWindow::draw_contents(Utils::UI::ContentExtent* inout_ext
 
     update_install();
     update_session();
+    update_thumbnails();
     update_transitions();
 
     if (m_is_styled == false)
@@ -531,6 +555,13 @@ void VRPlayer::VrPlayerWindow::draw_contents(Utils::UI::ContentExtent* inout_ext
         set_up_style();
 
         m_is_styled = true;
+    }
+
+    if (m_is_sized == false)
+    {
+        fit_width_to_titles();
+
+        m_is_sized = true;
     }
 
     draw_header();
@@ -545,6 +576,7 @@ void VRPlayer::VrPlayerWindow::draw_contents(Utils::UI::ContentExtent* inout_ext
                           ImGuiChildFlags_Borders);
 
         draw_app_list();
+        draw_thumbnail_credit();
 
         ImGui::EndChild();
 
@@ -605,8 +637,6 @@ void VRPlayer::VrPlayerWindow::draw_details()
                                app.description.c_str() );
         }
 
-        ImGui::Spacing();
-        draw_chips    ();
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -705,6 +735,8 @@ void VRPlayer::VrPlayerWindow::draw_header()
     const ImVec2      logo_origin = ImGui::GetCursorScreenPos();
     float             logo_height = ImGui::GetTextLineHeightWithSpacing();
 
+    draw_window_buttons();
+
     ImGui::PushFont(nullptr,
                     style.FontSizeBase * PAGE_TITLE_SCALE);
 
@@ -779,6 +811,11 @@ void VRPlayer::VrPlayerWindow::draw_header()
 
         ImGui::Dummy(ImVec2(0.0f,
                             3.0f * SMALL_GAP * style.FontScaleDpi) );
+
+        /* The window is moved by the header, down to its line, except by the buttons. */
+        set_title_bar_layout(static_cast<int>(bottom),
+                             static_cast<int>(ImGui::GetIO().DisplaySize.x - static_cast<float>(N_WINDOW_BUTTONS) * WINDOW_BUTTON_WIDTH * style.FontScaleDpi),
+                             static_cast<int>(WINDOW_BUTTON_HEIGHT * style.FontScaleDpi) );
     }
 }
 
@@ -1062,6 +1099,33 @@ void VRPlayer::VrPlayerWindow::draw_progress_bar(const float&       in_fraction,
                         height) );
 }
 
+void VRPlayer::VrPlayerWindow::draw_thumbnail_credit()
+{
+    const ImGuiStyle& style         = ImGui::GetStyle();
+    bool              has_thumbnail = false;
+
+    for (const VRPlayer::AppCatalog::AppEntry& app : m_content.catalog.app_vec)
+    {
+        has_thumbnail = has_thumbnail || (app.thumbnail_url.empty() == false);
+    }
+
+    if (has_thumbnail)
+    {
+        /* The pictures come from the page of each program on scene.org, where they are credited to pouet.net. The credit is at the bottom of the list. */
+        const float bottom_y = ImGui::GetWindowHeight() - ImGui::GetTextLineHeight() - style.WindowPadding.y;
+
+        if (bottom_y > ImGui::GetCursorPosY() )
+        {
+            ImGui::SetCursorPosY(bottom_y);
+        }
+
+        ImGui::PushStyleColor(ImGuiCol_Text,
+                              DIM_TEXT_COLOR);
+        ImGui::TextWrapped   ("Screenshots: pouet.net, via scene.org");
+        ImGui::PopStyleColor ();
+    }
+}
+
 void VRPlayer::VrPlayerWindow::draw_vr_settings()
 {
     const ImGuiStyle& style = ImGui::GetStyle();
@@ -1185,6 +1249,270 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
     }
 }
 
+void VRPlayer::VrPlayerWindow::draw_window_buttons()
+{
+    constexpr int BUTTON_CLOSE    = 2;
+    constexpr int BUTTON_MAXIMIZE = 1;
+    constexpr int BUTTON_MINIMIZE = 0;
+
+    /* Minimize, maximize and close, at the top right corner. They are glyphs, and glow when the pointer is over them: in the accent, the close one in red. */
+    const ImGuiStyle& style          = ImGui::GetStyle();
+    const float       button_height  = WINDOW_BUTTON_HEIGHT     * style.FontScaleDpi;
+    const float       button_width   = WINDOW_BUTTON_WIDTH      * style.FontScaleDpi;
+    const float       glyph_half     = 0.5f * WINDOW_BUTTON_GLYPH_SIZE * style.FontScaleDpi;
+    const float       inset          = WINDOW_BUTTON_INSET      * style.FontScaleDpi;
+    const bool        is_maximized   = is_window_maximized();
+    const ImVec2      saved_position = ImGui::GetCursorScreenPos();
+    const float       thickness      = 1.4f * style.FontScaleDpi;
+    ImDrawList*       draw_list      = ImGui::GetWindowDrawList();
+
+    for (int n_button = 0;
+             n_button < N_WINDOW_BUTTONS;
+           ++n_button)
+    {
+        const bool   is_close = (n_button == BUTTON_CLOSE);
+        const ImVec2 min      = ImVec2(ImGui::GetIO().DisplaySize.x - static_cast<float>(N_WINDOW_BUTTONS - n_button) * button_width,
+                                       0.0f);
+        const ImVec2 max      = ImVec2(min.x + button_width,
+                                       min.y + button_height);
+        const ImVec2 middle   = ImVec2(0.5f * (min.x + max.x),
+                                       0.5f * (min.y + max.y) );
+        const ImVec4 glow     = (is_close) ? CLOSE_COLOR
+                                           : ACCENT_COLOR;
+        bool         is_active  = false;
+        bool         is_hovered = false;
+        bool         is_pressed = false;
+
+        ImGui::SetCursorScreenPos(min);
+        ImGui::PushID            (n_button);
+
+        is_pressed = ImGui::InvisibleButton("##window_button",
+                                            ImVec2(button_width,
+                                                   button_height) );
+        is_active  = ImGui::IsItemActive ();
+        is_hovered = ImGui::IsItemHovered();
+
+        ImGui::PopID();
+
+        if (is_hovered)
+        {
+            /* A wide faint halo under a softer pill, so that the glow has no hard edge. */
+            const float halo = 0.6f * inset;
+            const float rounding = 0.5f * (button_height - 2.0f * inset);
+
+            draw_list->AddRectFilled(ImVec2(min.x + inset - halo,
+                                            min.y + inset - halo),
+                                     ImVec2(max.x - inset + halo,
+                                            max.y - inset + halo),
+                                     ImGui::GetColorU32(ImVec4(glow.x,
+                                                               glow.y,
+                                                               glow.z,
+                                                               0.10f) ),
+                                     rounding + halo);
+            draw_list->AddRectFilled(ImVec2(min.x + inset,
+                                            min.y + inset),
+                                     ImVec2(max.x - inset,
+                                            max.y - inset),
+                                     ImGui::GetColorU32(ImVec4(glow.x,
+                                                               glow.y,
+                                                               glow.z,
+                                                               (is_active) ? 0.38f
+                                                                           : 0.24f) ),
+                                     rounding);
+        }
+
+        {
+            const ImU32 glyph_color = ImGui::GetColorU32((is_hovered) ? TEXT_COLOR
+                                                                      : DIM_TEXT_COLOR);
+
+            switch (n_button)
+            {
+                case BUTTON_CLOSE:
+                {
+                    draw_list->AddLine(ImVec2(middle.x - glyph_half,
+                                              middle.y - glyph_half),
+                                       ImVec2(middle.x + glyph_half,
+                                              middle.y + glyph_half),
+                                       glyph_color,
+                                       thickness);
+                    draw_list->AddLine(ImVec2(middle.x - glyph_half,
+                                              middle.y + glyph_half),
+                                       ImVec2(middle.x + glyph_half,
+                                              middle.y - glyph_half),
+                                       glyph_color,
+                                       thickness);
+
+                    break;
+                }
+
+                case BUTTON_MAXIMIZE:
+                {
+                    if (is_maximized)
+                    {
+                        /* Two squares, one behind the other: what the button restores to. */
+                        const float shift = 0.3f * glyph_half;
+
+                        draw_list->AddRect(ImVec2(middle.x - glyph_half,
+                                                  middle.y - glyph_half + 2.0f * shift),
+                                           ImVec2(middle.x + glyph_half - 2.0f * shift,
+                                                  middle.y + glyph_half),
+                                           glyph_color,
+                                           0.0f, /* rounding */
+                                           0,    /* flags    */
+                                           thickness);
+                        draw_list->AddLine(ImVec2(middle.x - glyph_half + 2.0f * shift,
+                                                  middle.y - glyph_half),
+                                           ImVec2(middle.x + glyph_half,
+                                                  middle.y - glyph_half),
+                                           glyph_color,
+                                           thickness);
+                        draw_list->AddLine(ImVec2(middle.x + glyph_half,
+                                                  middle.y - glyph_half),
+                                           ImVec2(middle.x + glyph_half,
+                                                  middle.y + glyph_half - 2.0f * shift),
+                                           glyph_color,
+                                           thickness);
+                    }
+                    else
+                    {
+                        draw_list->AddRect(ImVec2(middle.x - glyph_half,
+                                                  middle.y - glyph_half),
+                                           ImVec2(middle.x + glyph_half,
+                                                  middle.y + glyph_half),
+                                           glyph_color,
+                                           0.0f, /* rounding */
+                                           0,    /* flags    */
+                                           thickness);
+                    }
+
+                    break;
+                }
+
+                case BUTTON_MINIMIZE:
+                {
+                    draw_list->AddLine(ImVec2(middle.x - glyph_half,
+                                              middle.y),
+                                       ImVec2(middle.x + glyph_half,
+                                              middle.y),
+                                       glyph_color,
+                                       thickness);
+
+                    break;
+                }
+
+                default:
+                {
+                    break;
+                }
+            }
+        }
+
+        if (is_pressed)
+        {
+            switch (n_button)
+            {
+                case BUTTON_CLOSE:
+                {
+                    request_close();
+
+                    break;
+                }
+
+                case BUTTON_MAXIMIZE:
+                {
+                    toggle_maximize();
+
+                    break;
+                }
+
+                case BUTTON_MINIMIZE:
+                {
+                    minimize_window();
+
+                    break;
+                }
+
+                default:
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    ImGui::SetCursorScreenPos(saved_position);
+}
+
+void VRPlayer::VrPlayerWindow::fit_width_to_titles()
+{
+    const ImGuiStyle& style         = ImGui::GetStyle();
+    const float       pad           = style.FramePadding.x * 1.6f;
+    const HWND        window        = get_window();
+    float             widest_card   = 0.0f;
+    MONITORINFO       monitor_info  = {};
+    RECT              client_rect   = {};
+    SIZE              outer_size    = {};
+    RECT              window_rect   = {};
+
+    /* The card that needs the most: its title on one line, and the place of its picture. */
+    ImGui::PushFont(nullptr,
+                    style.FontSizeBase * CARD_TITLE_SCALE);
+
+    for (const VRPlayer::AppCatalog::AppEntry& app : m_content.catalog.app_vec)
+    {
+        const float title_width = ImGui::CalcTextSize(app.name.c_str() ).x;
+        const float indent      = (app.thumbnail_path.empty() ) ? 0.0f
+                                                                : THUMBNAIL_WIDTH * style.FontScaleDpi + pad;
+
+        widest_card = std::max<float>(widest_card,
+                                      title_width + indent + 2.0f * pad);
+    }
+
+    ImGui::PopFont();
+
+    ::GetClientRect(window,
+                   &client_rect);
+    ::GetWindowRect(window,
+                   &window_rect);
+
+    monitor_info.cbSize = sizeof(monitor_info);
+
+    ::GetMonitorInfoW(::MonitorFromWindow(window,
+                                          MONITOR_DEFAULTTONEAREST),
+                     &monitor_info);
+
+    /* The list is a share of the window (LIST_WIDTH_FRACTION of what is inside its padding); it holds the card, its own padding, its border and a scroll bar. */
+    {
+        const float list_width    = widest_card + 2.0f * style.WindowPadding.x + 2.0f * style.ChildBorderSize + style.ScrollbarSize;
+        const int   fitting_width = static_cast<int>(std::ceil(list_width / LIST_WIDTH_FRACTION + 2.0f * style.WindowPadding.x) );
+        const int   client_width  = std::max<int>(client_rect.right,
+                                                  fitting_width);
+
+        outer_size = get_outer_size(client_width,
+                                    client_rect.bottom);
+    }
+
+    /* Never wider than a share of the screen, and never off its right edge; a title that does not fit then wraps. */
+    {
+        const int work_left    = monitor_info.rcWork.left;
+        const int work_right   = monitor_info.rcWork.right;
+        const int max_width    = static_cast<int>(WINDOW_MAX_SCREEN_FRACTION * static_cast<float>(work_right - work_left) );
+        const int outer_width  = std::min<int>(static_cast<int>(outer_size.cx),
+                                               max_width);
+        const int left         = std::max<int>(work_left,
+                                               std::min<int>(window_rect.left,
+                                                             work_right - outer_width) );
+
+        ::SetWindowPos(window,
+                       nullptr,
+                       left,
+                       window_rect.top,
+                       outer_width,
+                       window_rect.bottom - window_rect.top,
+                       SWP_NOACTIVATE | SWP_NOZORDER);
+    }
+}
+
 std::string VRPlayer::VrPlayerWindow::get_size_text(const uint64_t& in_n_bytes)
 {
     constexpr double N_BYTES_PER_KB = 1024.0;
@@ -1217,12 +1545,13 @@ Utils::UI::WindowOptions VRPlayer::VrPlayerWindow::get_window_options()
 
     Utils::UI::WindowOptions result;
 
-    result.class_name       = L"VRPlayerWindow";
-    result.client_height    = CLIENT_HEIGHT;
-    result.client_width     = CLIENT_WIDTH;
-    result.is_resizable     = true;
-    result.title            = "DeepScene";
-    result.uses_system_font = true;
+    result.class_name           = L"VRPlayerWindow";
+    result.client_height        = CLIENT_HEIGHT;
+    result.client_width         = CLIENT_WIDTH;
+    result.has_custom_title_bar = true;
+    result.is_resizable         = true;
+    result.title                = "DeepScene";
+    result.uses_system_font     = true;
 
     return result;
 }
@@ -1500,6 +1829,37 @@ void VRPlayer::VrPlayerWindow::update_session()
             else
             {
                 m_status.clear();
+            }
+        }
+    }
+}
+
+void VRPlayer::VrPlayerWindow::update_thumbnails()
+{
+    const uint64_t n_finished = m_thumbnail_fetcher.get_n_finished();
+
+    /* Looks for the pictures that are there when the first of them may be, and again each time the fetcher is done with one. */
+    if (n_finished != m_thumbnail_n_seen)
+    {
+        m_thumbnail_n_seen = n_finished;
+
+        for (size_t n_app = 0;
+                    n_app < m_content.catalog.app_vec.size();
+                  ++n_app)
+        {
+            const VRPlayer::AppCatalog::AppEntry& app = m_content.catalog.app_vec.at(n_app);
+
+            if (app.thumbnail_path.empty() == false &&
+                m_thumbnail_textures.is_tried(n_app) == false)
+            {
+                const bool is_file_there = Utils::Files::DirectoryOperations::is_file(app.thumbnail_path);
+
+                if (is_file_there)
+                {
+                    m_thumbnail_textures.load(n_app,
+                                              get_device_ptr(),
+                                              app.thumbnail_path);
+                }
             }
         }
     }

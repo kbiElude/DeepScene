@@ -6,9 +6,11 @@
 #define VRPLAYER_VR_PLAYER_WINDOW_H
 
 #include "vr_player/app_installer/app_installer.h"
+#include "vr_player/app_thumbnails/thumbnail_fetcher.h"
 #include "utils/files/http_downloader.h"
 #include "utils/ui/imgui_player_window_base.h"
 #include "app_session.h"
+#include "thumbnail_textures.h"
 #include "types.h"
 #include <string>
 #include <vector>
@@ -33,7 +35,6 @@ namespace VRPlayer
         void draw_button_glow  (const float&  in_height,
                                 const float&  in_width);
         void draw_button_shine ();
-        void draw_chips        ();
         void draw_details      ();
         void draw_device_combo ();
         void draw_header       ();
@@ -41,7 +42,10 @@ namespace VRPlayer
         void draw_launch_area  ();
         void draw_progress_bar (const float&       in_fraction,
                                 const std::string& in_text);
+        void draw_thumbnail_credit();
         void draw_vr_settings  ();
+        void draw_window_buttons();
+        void fit_width_to_titles();
         bool is_launch_possible() const;
         void launch            ();
         void select_defaults   ();
@@ -50,6 +54,7 @@ namespace VRPlayer
         void start_install     ();
         void update_install    ();
         void update_session    ();
+        void update_thumbnails ();
         void update_transitions();
 
         static std::string              get_size_text     (const uint64_t& in_n_bytes);
@@ -66,6 +71,7 @@ namespace VRPlayer
         std::string                          m_install_error;    /* text of the install error window                       */
         VRPlayer::AppInstaller::AppInstaller m_installer;
         int                                  m_installing_app;   /* index into the catalog; -1 if none is being installed  */
+        bool                                 m_is_sized;         /* the width of the window has been set to fit the titles */
         bool                                 m_is_status_error;
         bool                                 m_is_styled;
         bool                                 m_pace_to_headset;  /* no control in the window: always on */
@@ -80,6 +86,11 @@ namespace VRPlayer
         AppSession                           m_session;
         bool                                 m_should_open_install_error;
         std::string                          m_status;
+        Utils::Files::HttpDownloader         m_thumbnail_downloader; /* the fetcher's own: a downloader is not shared between threads */
+        std::vector<float>                   m_thumbnail_fade_vec;   /* per card, 0 to 1: how far its picture has faded in           */
+        VRPlayer::AppThumbnails::ThumbnailFetcher m_thumbnail_fetcher;
+        uint64_t                             m_thumbnail_n_seen;     /* the fetcher's count at the last look for pictures; ~0 before the first */
+        ThumbnailTextures                    m_thumbnail_textures;
     };
 }
 

@@ -60,10 +60,33 @@
 </figure>
 <table>
 <tr><th>Part</th><th>Content</th></tr>
-<tr><td>Left list</td><td>The catalog programs, alphabetically by name. A card shows the title (the catalog writes it as <em>name by group (year)</em>), the description if the recipe has one, and the reason when the program cannot be launched. A title longer than the card wraps.</td></tr>
+<tr><td>Left list</td><td>The catalog programs, alphabetically by name. A card shows the title (the catalog writes it as <em>name by group (year)</em>), the description if the recipe has one, and the reason when the program cannot be launched. The window opens wide enough for the longest title to stand on one line, and never wider than three quarters of the work area of the screen it opens on; on a narrow screen a title that does not fit wraps.</td></tr>
 <tr><td>Right pane</td><td>The title, the reason if the program is unavailable, the description if there is one, the VR settings and, at the bottom, the Launch button (it says <em>Download &amp; launch</em> while the program is not on the computer, and <em>Cancel</em> while a download runs).</td></tr>
 <tr><td>Above the button</td><td>The download progress, or an error in a table, or the hint <em>Pick an app.</em> when nothing can be launched.</td></tr>
+<tr><td>Title bar</td><td>The window has no title bar of the system: the header is the bar. It is dark like the rest of the window, whatever the version of Windows, and the window is moved by it (and maximized by a double click). Minimize, maximize and close are three glyphs at the top right corner, which glow in the accent when the pointer is over them, the close one in red. The window is resized from its edges as usual, and a maximized window is cut back so that the frame that is not there does not cover the screen edge.</td></tr>
 <tr><td>Catalog problems</td><td>The list says <em>Catalog:</em> with the reason, or <em>No applications.</em> With no <code>apps.json</code> to be found it says to use <code>--catalog</code>.</td></tr>
+</table>
+
+<h3>The pictures on the cards</h3>
+<p>A card can have a picture of its program at the left. The catalog gives only the address of it, and the player fetches it by itself, once.</p>
+<figure>
+<svg viewBox="0 0 900 190" role="img" aria-label="How the picture of a card gets to the screen: the address, the download in the background, the file, the texture and the card">
+  <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
+  <rect class="box" x="10" y="30" width="160" height="70" rx="6"/><text x="90" y="55" text-anchor="middle">1 address</text><text class="small" x="90" y="73" text-anchor="middle">thumbnail, in the</text><text class="small" x="90" y="88" text-anchor="middle">entry of the catalog</text>
+  <rect class="box" x="190" y="30" width="160" height="70" rx="6"/><text x="270" y="55" text-anchor="middle">2 download</text><text class="small" x="270" y="73" text-anchor="middle">on a thread of its own;</text><text class="small" x="270" y="88" text-anchor="middle">the window never waits</text>
+  <rect class="box" x="370" y="30" width="160" height="70" rx="6"/><text x="450" y="55" text-anchor="middle">3 file</text><text class="small" x="450" y="73" text-anchor="middle">apps\thumbnails\&lt;id&gt;</text><text class="small" x="450" y="88" text-anchor="middle">kept for next time</text>
+  <rect class="box" x="550" y="30" width="160" height="70" rx="6"/><text x="630" y="55" text-anchor="middle">4 texture</text><text class="small" x="630" y="73" text-anchor="middle">decoded by Windows</text><text class="small" x="630" y="88" text-anchor="middle">and uploaded once</text>
+  <rect class="box2" x="730" y="30" width="160" height="70" rx="6"/><text x="810" y="55" text-anchor="middle">5 card</text><text class="small" x="810" y="73" text-anchor="middle">cropped from the middle,</text><text class="small" x="810" y="88" text-anchor="middle">fades in</text>
+  <path class="arrow" d="M170 65H188"/><path class="arrow" d="M350 65H368"/><path class="arrow" d="M530 65H548"/><path class="arrow" d="M710 65H728"/>
+  <text class="small" x="450" y="140" text-anchor="middle">a picture that cannot be had is skipped: the card keeps its place for it and stays without one</text>
+</svg>
+<figcaption>The first start shows the places of the pictures empty; they fill as the files arrive. The next starts read the files at once.</figcaption>
+</figure>
+<table>
+<tr><th>Part</th><th>Detail</th></tr>
+<tr><td>Place</td><td>A card whose entry has an address reserves the place of the picture from the start, so the list does not move when the picture comes. A picture of another shape than the place is cut from the middle.</td></tr>
+<tr><td>File</td><td>It is written under the name plus <code>.part</code> and renamed when whole, so a file that is there is complete. It keeps the kind of picture that the address names; the decoder (Windows Imaging Component) goes by the contents, so JPEG, PNG and GIF all work.</td></tr>
+<tr><td>Credit</td><td>At the bottom of the list, when any entry has a picture, a line says <em>Screenshots: pouet.net, via scene.org</em>: the pictures are those of the page of each program on scene.org, where pouët.net is named as their source.</td></tr>
 </table>
 
 <h3>What is selected at the start</h3>
@@ -273,8 +296,8 @@
 <table>
 <tr><th>Where</th><th>What</th></tr>
 <tr><td><code>libs/headset/xr/headset_session.cpp</code></td><td><code>HeadsetSession</code>: the runtime, the device, the session, the images of the eyes and the frames of the compositor.</td></tr>
-<tr><td><code>src/vr_player</code></td><td>The window and <code>AppSession</code> (which starts the launcher and the presenter): the program.</td></tr>
-<tr><td><code>libs/vr_player</code> (target <code>VRPlayerBackend</code>)</td><td>What does not draw, in the namespace <code>VRPlayer</code> as the program is: <code>AppCatalog</code> reads the catalog, and <code>AppInstaller</code> installs a program that is not on the computer, with the download, the hash and the unpacking of <code>Utils::Files</code>.</td></tr>
+<tr><td><code>src/vr_player</code></td><td>The window, <code>AppSession</code> (which starts the launcher and the presenter) and <code>ThumbnailTextures</code> (the pictures of the cards as textures): the program.</td></tr>
+<tr><td><code>libs/vr_player</code> (target <code>VRPlayerBackend</code>)</td><td>What does not draw, in the namespace <code>VRPlayer</code> as the program is: <code>AppCatalog</code> reads the catalog, <code>AppInstaller</code> installs a program that is not on the computer, with the download, the hash and the unpacking of <code>Utils::Files</code>, and <code>AppThumbnails</code> fetches the pictures of the cards on a thread of its own.</td></tr>
 <tr><td><code>libs/utils/ui</code></td><td>The window is an <code>ImGuiPlayerWindowBase</code> (<code>Utils::UI</code>), which the presenter and the replay player use too.</td></tr>
 <tr><td><code>libs/headset</code></td><td>The headset: <code>xr</code> (<code>HeadsetSession</code>, <code>OpenXrVrDeviceProvider</code>), <code>d3d12</code> (<code>D3D12FrameUploader</code>), <code>vr_devices</code> (the device list types).</td></tr>
 <tr><td><code>runtime/launcher</code>, <code>runtime/presenter</code></td><td><code>StereoLauncher</code> and <code>StereoPresenter</code> (<code>HeadsetSink</code> is the headset side).</td></tr>
