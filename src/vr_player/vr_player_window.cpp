@@ -136,9 +136,14 @@ static const char* const RESOLUTION_NAME_ARRAY[N_RESOLUTIONS]          = {"Heads
 static constexpr int     RESOLUTION_PREVIEW_DEFAULT_INDEX              = 4; /* 1920 x 1080: the choice when there is no headset */
 static constexpr int     RESOLUTION_WIDTH_ARRAY[N_RESOLUTIONS]         = {0, 0, 0, 1280, 1920, 2560, 3840, 0};
 
-static constexpr float LAUNCH_BUTTON_WIDTH = 200.0f;
+static constexpr float LAUNCH_BUTTON_WIDTH = 240.0f;
 static constexpr float LIST_MIN_WIDTH      = 280.0f;
 static constexpr float LIST_WIDTH_FRACTION = 0.38f;
+static constexpr float SETTINGS_CONTROL_WIDTH = 320.0f; /* of the choice of a setting, which is at the right of its row */
+static constexpr float SETTINGS_GAP           = 8.0f;
+static constexpr float SETTINGS_LABEL_WIDTH   = 190.0f; /* what the name of a setting needs at least; the choice gives way to it in a narrow window */
+static constexpr float SETTINGS_PADDING       = 18.0f;
+static constexpr float SETTINGS_ROW_PADDING   = 10.0f;
 static constexpr float SMALL_GAP           = 6.0f;
 static constexpr float STATUS_N_LINES      = 3.0f;
 
@@ -637,7 +642,6 @@ void VRPlayer::VrPlayerWindow::draw_details()
         }
 
         ImGui::Spacing();
-        ImGui::Separator();
         ImGui::Spacing();
 
         draw_vr_settings();
@@ -648,7 +652,7 @@ end:
     return;
 }
 
-void VRPlayer::VrPlayerWindow::draw_device_combo()
+void VRPlayer::VrPlayerWindow::draw_device_combo(const float& in_width)
 {
     constexpr const char* NO_DEVICE_TEXT  = "2D preview only";
     constexpr const char* NO_HEADSET_TEXT = "2D preview (no headset found)";
@@ -664,7 +668,7 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
 
     /* With no runtime or no headset there is nothing to choose: the picture is shown in the window, and the list says so. */
     ImGui::BeginDisabled   (has_devices == false);
-    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::SetNextItemWidth(in_width);
 
     if (ImGui::BeginCombo("##device",
                           preview.c_str() ))
@@ -712,8 +716,6 @@ void VRPlayer::VrPlayerWindow::draw_device_combo()
     }
 
     ImGui::EndDisabled();
-
-    ImGui::NewLine();
 }
 
 void VRPlayer::VrPlayerWindow::draw_header()
@@ -938,8 +940,8 @@ void VRPlayer::VrPlayerWindow::draw_launch_area()
         ImGui::SetCursorPosY(status_top + status_height);
     }
 
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 0.5f * std::max<float>(0.0f,
-                                                                         ImGui::GetContentRegionAvail().x - button_width) );
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max<float>(0.0f,
+                                                                  ImGui::GetContentRegionAvail().x - button_width) );
 
     if (m_installing_app >= 0)
     {
@@ -1115,25 +1117,88 @@ void VRPlayer::VrPlayerWindow::draw_thumbnail_credit()
 
 void VRPlayer::VrPlayerWindow::draw_vr_settings()
 {
+    /* The settings are the rows of a card, like the cards of the list: the name of a setting at the left, its choice at the right, one row under the other. */
+    const ImGuiStyle& style         = ImGui::GetStyle();
+    const float       card_width    = ImGui::GetContentRegionAvail().x;
+    const bool        is_custom     = (m_resolution_index == RESOLUTION_CUSTOM_INDEX);
+    const float       padding       = SETTINGS_PADDING     * style.FontScaleDpi;
+    const float       row_padding   = SETTINGS_ROW_PADDING * style.FontScaleDpi;
+    const float       row_height    = ImGui::GetFrameHeight() + 2.0f * row_padding;
+    const int         n_rows        = (is_custom) ? 4
+                                                  : 3;
+    const ImVec2      card_min      = ImGui::GetCursorScreenPos();
+    const ImVec2      card_max      = ImVec2(card_min.x + card_width,
+                                             card_min.y + static_cast<float>(n_rows) * row_height);
+    const float       control_width = std::max<float>(1.0f,
+                                                      std::min<float>(SETTINGS_CONTROL_WIDTH * style.FontScaleDpi,
+                                                                      card_width - 2.0f * padding - SETTINGS_LABEL_WIDTH * style.FontScaleDpi) );
+    const float       control_left  = card_max.x - padding - control_width;
+    ImDrawList*       draw_list     = ImGui::GetWindowDrawList();
+    int               n_row         = 0;
+
+    const auto begin_row_func = [&](const char* in_label)
+    {
+        const float row_top = card_min.y + static_cast<float>(n_row) * row_height;
+
+        ImGui::SetCursorScreenPos(ImVec2(card_min.x + padding,
+                                         row_top + 0.5f * (row_height - ImGui::GetTextLineHeight() ) ) );
+        ImGui::PushStyleColor    (ImGuiCol_Text,
+                                  DIM_TEXT_COLOR);
+        ImGui::TextUnformatted   (in_label);
+        ImGui::PopStyleColor     ();
+        ImGui::SetCursorScreenPos(ImVec2(control_left,
+                                         row_top + row_padding) );
+
+        ++n_row;
+    };
+
+    /* The card is drawn first, so that the rows are over it. */
+    draw_list->AddRectFilled(ImVec2(card_min.x,
+                                    card_min.y + CARD_SHADOW_OFFSET * style.FontScaleDpi),
+                             ImVec2(card_max.x,
+                                    card_max.y + CARD_SHADOW_OFFSET * style.FontScaleDpi),
+                             ImGui::GetColorU32(SHADOW_COLOR),
+                             CARD_ROUNDING * style.FontScaleDpi);
+    draw_list->AddRectFilled(card_min,
+                             card_max,
+                             ImGui::GetColorU32(FRAME_COLOR),
+                             CARD_ROUNDING * style.FontScaleDpi);
+
+    for (int n_divider = 1;
+             n_divider < n_rows;
+           ++n_divider)
+    {
+        const float divider_y = card_min.y + static_cast<float>(n_divider) * row_height;
+
+        draw_list->AddLine(ImVec2(card_min.x + padding,
+                                  divider_y),
+                           ImVec2(card_max.x - padding,
+                                  divider_y),
+                           ImGui::GetColorU32(BORDER_COLOR) );
+    }
+
+    /* The controls are on a card that is a little lighter than the panel, so they are a little darker than the card. */
+    ImGui::PushStyleColor(ImGuiCol_FrameBg,
+                          PANEL_COLOR);
+
+    begin_row_func("Device");
+
     if (m_content.device_error.empty() == false)
     {
         ImGui::PushStyleColor(ImGuiCol_Text,
                               ERROR_TEXT_COLOR);
-        ImGui::TextWrapped   ("Devices: %s",
+        ImGui::Text          ("Devices: %s",
                               m_content.device_error.c_str() );
         ImGui::PopStyleColor ();
     }
     else
     {
-        ImGui::TextUnformatted("Device");
-
-        draw_device_combo();
+        draw_device_combo(control_width);
     }
 
-    ImGui::Spacing();
-    ImGui::TextUnformatted("Depth");
+    begin_row_func("Depth");
 
-    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::SetNextItemWidth(control_width);
 
     if (ImGui::BeginCombo("##depth",
                           DEPTH_NAME_ARRAY[m_depth_index]) )
@@ -1153,11 +1218,6 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
         ImGui::EndCombo();
     }
 
-    ImGui::NewLine();
-
-    ImGui::Spacing        ();
-    ImGui::TextUnformatted ("Resolution per eye");
-
     /* Without a headset there is no size to take a fraction of. */
     if (m_device_index < 0 &&
         m_resolution_index < static_cast<int>(N_HEADSET_RESOLUTIONS) )
@@ -1165,7 +1225,9 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
         m_resolution_index = RESOLUTION_PREVIEW_DEFAULT_INDEX;
     }
 
-    ImGui::SetNextItemWidth(-FLT_MIN);
+    begin_row_func("Resolution per eye");
+
+    ImGui::SetNextItemWidth(control_width);
 
     if (ImGui::BeginCombo("##resolution",
                           RESOLUTION_NAME_ARRAY[m_resolution_index]) )
@@ -1188,16 +1250,28 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
         ImGui::EndCombo();
     }
 
-    if (m_resolution_index == RESOLUTION_CUSTOM_INDEX)
+    if (is_custom)
     {
-        ImGui::SetNextItemWidth(120.0f);
-        ImGui::InputInt("width##custom",
-                       &m_resolution_custom_width,
-                        0);
-        ImGui::SetNextItemWidth(120.0f);
-        ImGui::InputInt("height##custom",
-                       &m_resolution_custom_height,
-                        0);
+        /* The typed size is a row of its own: width x height, side by side. */
+        const float gap         = SETTINGS_GAP * style.FontScaleDpi;
+        const float times_width = ImGui::CalcTextSize("x").x;
+        const float input_width = 0.5f * (control_width - 2.0f * gap - times_width);
+
+        begin_row_func("Size");
+
+        ImGui::SetNextItemWidth(input_width);
+        ImGui::InputInt        ("##custom_width",
+                               &m_resolution_custom_width,
+                                0);
+        ImGui::SameLine        (0.0f,
+                                gap);
+        ImGui::TextUnformatted ("x");
+        ImGui::SameLine        (0.0f,
+                                gap);
+        ImGui::SetNextItemWidth(input_width);
+        ImGui::InputInt        ("##custom_height",
+                               &m_resolution_custom_height,
+                                0);
 
         m_resolution_custom_height = (std::max)(1,
                                                 (std::min)(m_resolution_custom_height,
@@ -1206,6 +1280,13 @@ void VRPlayer::VrPlayerWindow::draw_vr_settings()
                                                 (std::min)(m_resolution_custom_width,
                                                            MAX_CUSTOM_EXTENT) );
     }
+
+    ImGui::PopStyleColor();
+
+    ImGui::SetCursorScreenPos(ImVec2(card_min.x,
+                                     card_max.y) );
+    ImGui::Dummy             (ImVec2(card_width,
+                                     0.0f) );
 
     /* The overlay is pushed for an application whose recipe gives an amount, and not for one whose recipe does not. There is no control for it. */
     {

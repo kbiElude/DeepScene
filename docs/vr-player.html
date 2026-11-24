@@ -52,16 +52,17 @@
   <rect class="box" x="310" y="48" width="560" height="256" rx="6"/><text class="title" x="590" y="70" text-anchor="middle">The selected program</text>
   <text class="small" x="330" y="96">title; the reason if it is unavailable</text>
   <text class="small" x="330" y="118">description, if the recipe has one</text>
-  <text class="small" x="330" y="140">Device, Depth, Resolution per eye</text>
+  <rect class="box2" x="330" y="126" width="520" height="28" rx="5"/><text class="small" x="344" y="144">Device, Depth, Resolution per eye</text><text class="small" x="836" y="144" text-anchor="end">name at the left, choice at the right</text>
   <rect class="box4" x="330" y="160" width="520" height="56" rx="5"/><text x="590" y="182" text-anchor="middle">status line</text><text class="small" x="590" y="200" text-anchor="middle">download progress, or an error in a table, or: Pick an app.</text>
-  <rect class="box2" x="330" y="232" width="520" height="52" rx="6"/><text x="590" y="263" text-anchor="middle">Launch, Download &amp; launch, or Cancel</text>
+  <rect class="box2" x="610" y="232" width="240" height="52" rx="6"/><text x="730" y="263" text-anchor="middle">Launch, Download &amp; launch, or Cancel</text>
 </svg>
 <figcaption>The right pane lists what is known of the selected program; above the button it shows the progress or the reason nothing starts.</figcaption>
 </figure>
 <table>
 <tr><th>Part</th><th>Content</th></tr>
 <tr><td>Left list</td><td>The catalog programs, alphabetically by name. A card shows the title (the catalog writes it as <em>name by group (year)</em>), the description if the recipe has one, and the reason when the program cannot be launched. The window opens wide enough for the longest title to stand on one line, and never wider than three quarters of the work area of the screen it opens on; on a narrow screen a title that does not fit wraps.</td></tr>
-<tr><td>Right pane</td><td>The title, the reason if the program is unavailable, the description if there is one, the VR settings and, at the bottom, the Launch button (it says <em>Download &amp; launch</em> while the program is not on the computer, and <em>Cancel</em> while a download runs).</td></tr>
+<tr><td>Right pane</td><td>The title, the reason if the program is unavailable, the description if there is one, the VR settings and, at the bottom right, the Launch button (it says <em>Download &amp; launch</em> while the program is not on the computer, and <em>Cancel</em> while a download runs).</td></tr>
+<tr><td>VR settings</td><td>The rows of a card, like the cards of the list: the name of the setting at the left and its choice at the right, in a column of limited width so that the choices stay close to their names in a wide window. The typed size of the <em>Custom</em> resolution is a row of its own, <em>Size</em>, with the width and the height side by side.</td></tr>
 <tr><td>Above the button</td><td>The download progress, or an error in a table, or the hint <em>Pick an app.</em> when nothing can be launched.</td></tr>
 <tr><td>Title bar</td><td>The window has no title bar of the system: the header is the bar. It is dark like the rest of the window, whatever the version of Windows, and the window is moved by it (and maximized by a double click). Minimize, maximize and close are three glyphs at the top right corner, which glow in the accent when the pointer is over them, the close one in red. The window is resized from its edges as usual, and a maximized window is cut back so that the frame that is not there does not cover the screen edge.</td></tr>
 <tr><td>Catalog problems</td><td>The list says <em>Catalog:</em> with the reason, or <em>No applications.</em> With no <code>apps.json</code> to be found it says to use <code>--catalog</code>.</td></tr>

@@ -36,7 +36,7 @@ namespace VRPlayer
                                 const float&  in_width);
         void draw_button_shine ();
         void draw_details      ();
-        void draw_device_combo ();
+        void draw_device_combo (const float&  in_width);
         void draw_header       ();
         void draw_install_error();
         void draw_launch_area  ();
