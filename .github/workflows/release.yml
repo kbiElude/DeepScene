@@ -5,7 +5,7 @@
 #   - Run it by hand (Actions > Release > Run workflow): the same build, without publishing. The zip is an artifact of the run, to look at.
 #
 # What is built is what build.bat builds: the same two build trees, the same install into build_final\ (cmake/install.cmake), which is zipped as
-# it is. The generator is Visual Studio 2022, which the runners have; build.bat asks for Visual Studio 2026, but the CMake files do not.
+# it is. The generator is Visual Studio 2026, the one build.bat asks for and the one the windows-2025 runner image has.
 name: Release
 
 on:
@@ -42,8 +42,8 @@ jobs:
       - name: Configure
         shell: pwsh
         run: |
-          cmake -B build_x86 -G "Visual Studio 17 2022" -A Win32 .
-          cmake -B build_x64 -G "Visual Studio 17 2022" -A x64   .
+          cmake -B build_x86 -G "Visual Studio 18 2026" -A Win32 .
+          cmake -B build_x64 -G "Visual Studio 18 2026" -A x64   .
 
       - name: Build x86
         run: cmake --build build_x86 --config Release --parallel
@@ -97,7 +97,7 @@ jobs:
           submodules: recursive
 
       - name: Configure
-        run: cmake -B build_test -G "Visual Studio 17 2022" -A x64 -DDEMOVRPLAYER_BUILD_TESTS=ON .
+        run: cmake -B build_test -G "Visual Studio 18 2026" -A x64 -DDEMOVRPLAYER_BUILD_TESTS=ON .
 
       - name: Build the tests
         run: cmake --build build_test --config Release --target DemoVRPlayerTests --parallel
