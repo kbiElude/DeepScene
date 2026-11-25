@@ -598,8 +598,10 @@ Analysis::APIDumpIndex::GLFunctionKind Analysis::APIDumpIndex::GLFunctionClassif
         case APIInterceptor::APIFUNCTION_GL_GLPOINTSIZE:
         case APIInterceptor::APIFUNCTION_GL_GLPOLYGONMODE:
         case APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB:
+        case APIInterceptor::APIFUNCTION_GL_GLPOPCLIENTATTRIB:
         case APIInterceptor::APIFUNCTION_GL_GLPOPMATRIX:
         case APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB:
+        case APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB:
         case APIInterceptor::APIFUNCTION_GL_GLPUSHMATRIX:
         case APIInterceptor::APIFUNCTION_GL_GLROTATED:
         case APIInterceptor::APIFUNCTION_GL_GLROTATEF:

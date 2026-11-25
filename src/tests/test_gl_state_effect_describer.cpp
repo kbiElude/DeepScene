@@ -211,6 +211,19 @@ TEST(GLStateEffectDescriber, TheCurrentColorIsABarrierBecauseItCanSetTheMaterial
     }
 }
 
+TEST(GLStateEffectDescriber, TheSaveAndTheRestoreOfClientAttributesAreBarriers)
+{
+    Analysis::APIDumpIndex::GLStateEffectDescriber describer;
+
+    /* A pop gives back state that calls before the push set, so no call may be moved across either of them. */
+    for (const auto& function : {APIInterceptor::APIFUNCTION_GL_GLPOPCLIENTATTRIB,
+                                 APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB})
+    {
+        EXPECT_EQ(describer.describe(make_call(function) ).kind,
+                  StateEffectKind::BARRIER);
+    }
+}
+
 TEST(GLStateEffectDescriber, TheCallsOfAListThatIsBeingMadeAreRecordedAndTheEndOfTheListIsABarrier)
 {
     Analysis::APIDumpIndex::GLStateEffectDescriber describer;

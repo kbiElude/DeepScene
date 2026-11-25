@@ -95,6 +95,8 @@ TEST(GLFunctionClassifier, TheStateThatTheFrontEndFollowsIsStateAndSupported)
         APIInterceptor::APIFUNCTION_GL_GLFRONTFACE,
         APIInterceptor::APIFUNCTION_GL_GLMATRIXMODE,
         APIInterceptor::APIFUNCTION_GL_GLNEWLIST,
+        APIInterceptor::APIFUNCTION_GL_GLPOPCLIENTATTRIB,
+        APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB,
         APIInterceptor::APIFUNCTION_GL_GLSTENCILFUNC,
         APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D
     };

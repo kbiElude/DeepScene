@@ -611,6 +611,13 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                     break;
                 }
 
+                case APIInterceptor::APIFUNCTION_GL_GLPOPCLIENTATTRIB:
+                {
+                    m_state_handler.handle_pop_client_attributes(state_ptr);
+
+                    break;
+                }
+
                 case APIInterceptor::APIFUNCTION_GL_GLPOPMATRIX:
                 {
                     m_matrix_handler.handle_pop_matrix(state_ptr);
@@ -622,6 +629,14 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::handle_gl_call(const 
                 {
                     m_state_handler.handle_push_attributes(in_call,
                                                            state_ptr);
+
+                    break;
+                }
+
+                case APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB:
+                {
+                    m_state_handler.handle_push_client_attributes(in_call,
+                                                                  state_ptr);
 
                     break;
                 }

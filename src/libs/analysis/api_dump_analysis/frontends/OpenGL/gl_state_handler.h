@@ -46,8 +46,16 @@ namespace Analysis
                 void handle_pop_attributes(const GLWindow& in_window,
                                            GLContextState* inout_state_ptr);
 
+                void handle_pop_client_attributes(GLContextState* inout_state_ptr);
+
                 void handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                             GLContextState*                              inout_state_ptr);
+
+                /* Saves the unpack state of pixels if the mask has GL_CLIENT_PIXEL_STORE_BIT. The state of the vertex arrays is not kept, so
+                 * the bit for it saves nothing.
+                 */
+                void handle_push_client_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                   GLContextState*                              inout_state_ptr);
 
                 /* A scissor box depends on the size of the render target, so the counter counts it as a resolution hazard. */
                 void handle_scissor(const Capture::APIDumpLoader::DumpedAPICall& in_call,

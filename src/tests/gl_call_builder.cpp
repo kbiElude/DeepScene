@@ -504,6 +504,12 @@ void Tests::GLCallBuilder::pop_attrib()
              {});
 }
 
+void Tests::GLCallBuilder::pop_client_attrib()
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLPOPCLIENTATTRIB,
+             {});
+}
+
 void Tests::GLCallBuilder::pop_matrix()
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLPOPMATRIX,
@@ -513,6 +519,12 @@ void Tests::GLCallBuilder::pop_matrix()
 void Tests::GLCallBuilder::push_attrib(const uint32_t& in_mask)
 {
     add_call(APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB,
+             {APIInterceptor::APIFunctionArgument::create_u32(in_mask)});
+}
+
+void Tests::GLCallBuilder::push_client_attrib(const uint32_t& in_mask)
+{
+    add_call(APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB,
              {APIInterceptor::APIFunctionArgument::create_u32(in_mask)});
 }
 

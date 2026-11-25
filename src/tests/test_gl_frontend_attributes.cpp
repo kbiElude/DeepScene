@@ -189,3 +189,33 @@ TEST_F(GLFrontendAttributes, EachContextHasItsOwnStackOfAttributes)
     EXPECT_EQ(m_harness.get_frontend().get_n_unfollowed_calls(),
               1u);
 }
+
+TEST_F(GLFrontendAttributes, APopOfTheClientAttributesWithNothingPushedIsNotFollowed)
+{
+    start(640,
+          480);
+
+    m_builder.pop_client_attrib();
+
+    feed();
+
+    EXPECT_EQ(m_harness.get_frontend().get_n_unfollowed_calls(),
+              1u);
+}
+
+TEST_F(GLFrontendAttributes, TheClientAttributesHaveAStackOfTheirOwn)
+{
+    start(640,
+          480);
+
+    m_builder.push_attrib       (ALL_ATTRIB_BITS);
+    m_builder.pop_client_attrib ();                 /* nothing was pushed on the stack of the client attributes */
+    m_builder.push_client_attrib(0xFFFFFFFF);
+    m_builder.pop_attrib        ();                 /* this one matches the first push */
+    m_builder.pop_client_attrib ();                 /* and this one matches the second */
+
+    feed();
+
+    EXPECT_EQ(m_harness.get_frontend().get_n_unfollowed_calls(),
+              1u);
+}

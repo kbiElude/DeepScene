@@ -155,10 +155,12 @@ namespace Tests
 
         void point_size(const float& in_size);
 
-        void pop_attrib ();
-        void pop_matrix ();
-        void push_attrib(const uint32_t& in_mask);
-        void push_matrix();
+        void pop_attrib        ();
+        void pop_client_attrib ();
+        void pop_matrix        ();
+        void push_attrib       (const uint32_t& in_mask);
+        void push_client_attrib(const uint32_t& in_mask);
+        void push_matrix       ();
 
         void read_pixels(const int32_t& in_x,
                          const int32_t& in_y,

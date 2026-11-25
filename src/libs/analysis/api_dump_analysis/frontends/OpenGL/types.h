@@ -132,7 +132,7 @@ namespace Analysis
             };
 
             /* Upload byte layout (glPixelStorei): rows are row_length long (width if 0), each starting at a multiple of the alignment.
-             * Client state: glPushAttrib does not save it.
+             * Client state: glPushClientAttrib saves it (with GL_CLIENT_PIXEL_STORE_BIT), and glPushAttrib does not.
              */
             struct GLPixelStore
             {

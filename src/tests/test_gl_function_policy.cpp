@@ -171,8 +171,6 @@ TEST(GLFunctionPolicy, WhatChangesWhatTheModelFindsOrHasNeverBeenToldAboutIsNotL
         APIInterceptor::APIFUNCTION_GL_GLEVALMESH2,          /* makes geometry                                                                    */
         APIInterceptor::APIFUNCTION_GL_GLGENBUFFERS,         /* buffer objects                                                                    */
         APIInterceptor::APIFUNCTION_GL_GLPIXELTRANSFERF,     /* changes how the pixels of an upload are converted                                 */
-        APIInterceptor::APIFUNCTION_GL_GLPOPCLIENTATTRIB,    /* gives back the state of how pixels are unpacked, which the front end keeps        */
-        APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB,
         APIInterceptor::APIFUNCTION_GL_GLREADBUFFER,         /* where what is copied to a texture comes from                                      */
         APIInterceptor::APIFUNCTION_GL_GLRECTF,              /* makes geometry                                                                    */
         APIInterceptor::APIFUNCTION_GL_GLRENDERMODE,         /* selection and feedback                                                            */
@@ -192,4 +190,8 @@ TEST(GLFunctionPolicy, AFunctionThatTheFrontEndFollowsIsNotAskedAboutHere)
     EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLVERTEX3FV) );
     EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D) );
     EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLDRAWARRAYS) );
+
+    /* The front end keeps the state of how pixels are unpacked, which these two save and give back. */
+    EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLPOPCLIENTATTRIB) );
+    EXPECT_FALSE(GLFunctionPolicy::is_left_out_by_design(APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB) );
 }

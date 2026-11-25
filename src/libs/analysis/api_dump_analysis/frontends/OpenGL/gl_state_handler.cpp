@@ -132,6 +132,27 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_pop_attributes
     }
 }
 
+void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_pop_client_attributes(GLContextState* inout_state_ptr)
+{
+    constexpr uint32_t CLIENT_PIXEL_STORE_BIT = 0x00000001;
+
+    if (inout_state_ptr->client_attribute_frame_vec.empty() )
+    {
+        m_n_unfollowed_calls++;
+    }
+    else
+    {
+        const GLClientAttributeFrame frame = inout_state_ptr->client_attribute_frame_vec.back();
+
+        inout_state_ptr->client_attribute_frame_vec.pop_back();
+
+        if ( (frame.mask & CLIENT_PIXEL_STORE_BIT) != 0)
+        {
+            inout_state_ptr->pixel_store = frame.pixel_store;
+        }
+    }
+}
+
 void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_push_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                                                                   GLContextState*                              inout_state_ptr)
 {
@@ -147,6 +168,27 @@ void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_push_attribute
         frame.pipeline_state = inout_state_ptr->pipeline_state;
 
         inout_state_ptr->attribute_frame_vec.push_back(frame);
+    }
+    else
+    {
+        m_n_unfollowed_calls++;
+    }
+}
+
+void Analysis::APIDumpAnalysis::Frontends::GLStateHandler::handle_push_client_attributes(const Capture::APIDumpLoader::DumpedAPICall& in_call,
+                                                                                         GLContextState*                              inout_state_ptr)
+{
+    std::array<uint32_t, 1> mask_array = {};
+
+    if (GLArgumentReader::read_arguments(in_call,
+                                        &mask_array) )
+    {
+        GLClientAttributeFrame frame;
+
+        frame.mask        = mask_array.at(0);
+        frame.pixel_store = inout_state_ptr->pixel_store;
+
+        inout_state_ptr->client_attribute_frame_vec.push_back(frame);
     }
     else
     {

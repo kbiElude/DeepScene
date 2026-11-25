@@ -730,7 +730,9 @@ Analysis::APIDumpIndex::StateEffect Analysis::APIDumpIndex::GLStateEffectDescrib
         case APIInterceptor::APIFUNCTION_GL_GLENDLIST:
         case APIInterceptor::APIFUNCTION_GL_GLFLUSH:
         case APIInterceptor::APIFUNCTION_GL_GLPOPATTRIB:
+        case APIInterceptor::APIFUNCTION_GL_GLPOPCLIENTATTRIB:
         case APIInterceptor::APIFUNCTION_GL_GLPUSHATTRIB:
+        case APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB:
         case APIInterceptor::APIFUNCTION_GL_GLTEXIMAGE2D:
         case APIInterceptor::APIFUNCTION_GL_GLTEXSUBIMAGE2D:
         {

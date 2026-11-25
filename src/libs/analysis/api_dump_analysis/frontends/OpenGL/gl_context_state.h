@@ -26,23 +26,35 @@ namespace Analysis
                 GLPipelineState pipeline_state;
             };
 
+            /* What a glPushClientAttrib saved, as far as the front end keeps it: the unpack state of pixels, and the mask that selected what to
+             * restore. The arrays that a draw reads are not kept (each draw brings its own copy), so there is nothing to save of them.
+             * Follows GLPixelStore.
+             */
+            struct GLClientAttributeFrame
+            {
+                uint32_t     mask = 0;
+                GLPixelStore pixel_store;
+            };
+
             /* The state of one OpenGL context, built from the calls that set it. A new context starts with the values of the specification.
              * Each kind of matrix has a stack that is never empty: its last element is the current matrix. The front end reports the model-view
              * and projection matrices to the model builder. It tracks the texture and color matrices only to keep them correct.
-             * Follows GLAttributeFrame, GLAttributes, GLImmediateBlock, GLListRecording, GLMatrix and GLPipelineState.
+             * Follows GLAttributeFrame, GLAttributes, GLClientAttributeFrame, GLImmediateBlock, GLListRecording, GLMatrix, GLPipelineState and
+             * GLPixelStore.
              */
             struct GLContextState
             {
-                std::vector<GLAttributeFrame> attribute_frame_vec;
-                GLAttributes                  attributes;
-                GLImmediateBlock              immediate_block;
-                GLListRecording               list_recording;
-                std::vector<uint64_t>         modelview_anchor_call_index_vec; /* per matrix of the stack below: the call that begins its camera (the last load of that matrix, a glLoadIdentity or a glLoadMatrix), or UINT64_MAX */
-                std::vector<GLMatrix>         modelview_f32mat_vec;
-                std::vector<GLMatrix>         other_f32mat_vec;
-                GLPipelineState               pipeline_state;
-                GLPixelStore                  pixel_store;
-                std::vector<GLMatrix>         projection_f32mat_vec;
+                std::vector<GLAttributeFrame>       attribute_frame_vec;
+                GLAttributes                        attributes;
+                std::vector<GLClientAttributeFrame> client_attribute_frame_vec;
+                GLImmediateBlock                    immediate_block;
+                GLListRecording                     list_recording;
+                std::vector<uint64_t>               modelview_anchor_call_index_vec; /* per matrix of the stack below: the call that begins its camera (the last load of that matrix, a glLoadIdentity or a glLoadMatrix), or UINT64_MAX */
+                std::vector<GLMatrix>               modelview_f32mat_vec;
+                std::vector<GLMatrix>               other_f32mat_vec;
+                GLPipelineState                     pipeline_state;
+                GLPixelStore                        pixel_store;
+                std::vector<GLMatrix>               projection_f32mat_vec;
             };
         }
     }

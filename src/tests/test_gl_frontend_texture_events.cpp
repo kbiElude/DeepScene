@@ -54,11 +54,14 @@ namespace
     protected:
         enum : uint32_t
         {
-            GL_RGBA                  = 0x00001908,
-            GL_TEXTURE_2D            = 0x00000DE1,
-            GL_UNPACK_ALIGNMENT      = 0x00000CF5,
-            GL_UNPACK_ROW_LENGTH     = 0x00000CF2,
-            GL_UNSIGNED_BYTE         = 0x00001401
+            GL_CLIENT_ALL_ATTRIB_BITS  = 0xFFFFFFFF,
+            GL_CLIENT_PIXEL_STORE_BIT  = 0x00000001,
+            GL_CLIENT_VERTEX_ARRAY_BIT = 0x00000002,
+            GL_RGBA                    = 0x00001908,
+            GL_TEXTURE_2D              = 0x00000DE1,
+            GL_UNPACK_ALIGNMENT        = 0x00000CF5,
+            GL_UNPACK_ROW_LENGTH       = 0x00000CF2,
+            GL_UNSIGNED_BYTE           = 0x00001401
         };
 
         void SetUp() override
@@ -194,6 +197,95 @@ TEST_F(GLFrontendTextureEvents, TheRowsOfAnUploadAreAsLongAsThePixelStoreSays)
               16u);
     EXPECT_EQ(m_sink.event_vec.at(1).layout.row_pitch_n_bytes,
               40u);
+}
+
+TEST_F(GLFrontendTextureEvents, APopOfTheClientAttributesPutsBackTheUnpackStateThatWasPushed)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+
+    m_builder.pixel_store       (GL_UNPACK_ROW_LENGTH,
+                                 10);
+    m_builder.push_client_attrib(GL_CLIENT_ALL_ATTRIB_BITS);
+    m_builder.pixel_store       (GL_UNPACK_ROW_LENGTH,
+                                 20);
+    m_builder.tex_image_2d      (0,
+                                 3,
+                                 3,
+                                 {});  /* rows of twenty texels */
+    m_builder.pop_client_attrib ();
+    m_builder.tex_image_2d      (0,
+                                 3,
+                                 3,
+                                 {});  /* rows of ten texels again */
+
+    feed();
+
+    ASSERT_EQ(m_sink.event_vec.size(),
+              2u);
+
+    EXPECT_EQ(m_sink.event_vec.at(0).layout.row_pitch_n_bytes,
+              80u);
+    EXPECT_EQ(m_sink.event_vec.at(1).layout.row_pitch_n_bytes,
+              40u);
+}
+
+TEST_F(GLFrontendTextureEvents, TheClientAttributesNestLikeTheAttributesDo)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+
+    m_builder.pixel_store       (GL_UNPACK_ROW_LENGTH,
+                                 10);
+    m_builder.push_client_attrib(GL_CLIENT_PIXEL_STORE_BIT);
+    m_builder.pixel_store       (GL_UNPACK_ROW_LENGTH,
+                                 20);
+    m_builder.push_client_attrib(GL_CLIENT_PIXEL_STORE_BIT);
+    m_builder.pixel_store       (GL_UNPACK_ROW_LENGTH,
+                                 30);
+    m_builder.pop_client_attrib ();
+    m_builder.tex_image_2d      (0,
+                                 3,
+                                 3,
+                                 {});  /* twenty again */
+    m_builder.pop_client_attrib ();
+    m_builder.tex_image_2d      (0,
+                                 3,
+                                 3,
+                                 {});  /* ten again */
+
+    feed();
+
+    ASSERT_EQ(m_sink.event_vec.size(),
+              2u);
+
+    EXPECT_EQ(m_sink.event_vec.at(0).layout.row_pitch_n_bytes,
+              80u);
+    EXPECT_EQ(m_sink.event_vec.at(1).layout.row_pitch_n_bytes,
+              40u);
+}
+
+TEST_F(GLFrontendTextureEvents, AMaskWithoutThePixelStoreBitPutsBackNoUnpackState)
+{
+    m_builder.bind_texture(GL_TEXTURE_2D,
+                           5);
+
+    m_builder.push_client_attrib(GL_CLIENT_VERTEX_ARRAY_BIT);
+    m_builder.pixel_store       (GL_UNPACK_ROW_LENGTH,
+                                 20);
+    m_builder.pop_client_attrib ();
+    m_builder.tex_image_2d      (0,
+                                 3,
+                                 3,
+                                 {});  /* the pop did not give back the row length of the start */
+
+    feed();
+
+    ASSERT_EQ(m_sink.event_vec.size(),
+              1u);
+
+    EXPECT_EQ(m_sink.event_vec.at(0).layout.row_pitch_n_bytes,
+              80u);
 }
 
 TEST_F(GLFrontendTextureEvents, APartOfALevelIsAnUploadOfTheRegionAndTheLevelIsAsItWas)
@@ -1196,13 +1288,6 @@ TEST_F(GLFrontendTextureLevels, TheAccumulationBufferEndsTheProcess)
     add_call_of(APIInterceptor::APIFUNCTION_GL_GLACCUM);
 
     expect_unsupported("glAccum");
-}
-
-TEST_F(GLFrontendTextureLevels, TheStateOfHowPixelsAreUnpackedThatIsSavedAndGivenBackEndsTheProcess)
-{
-    add_call_of(APIInterceptor::APIFUNCTION_GL_GLPUSHCLIENTATTRIB);
-
-    expect_unsupported("glPushClientAttrib");
 }
 
 TEST_F(GLFrontendTextureLevels, WhatChangesHowPixelsAreConvertedEndsTheProcess)
