@@ -1924,7 +1924,8 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
         {"gerbera.json",     60.0f, Analysis::Recipe::FramePacingMode::SCREEN_ONLY  },
         {"kasparov.json",    60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE },
         {"propaganda.json",  60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE },
-        {"tesla.json",       60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE }
+        {"tesla.json",       60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE },
+        {"we_cell.json",     60.0f, Analysis::Recipe::FramePacingMode::HOLD_TO_RATE }
     };
 
     for (const auto& expected : expected_array)
@@ -1945,13 +1946,14 @@ TEST_F(RecipeLoaderTest, TheRecipesOfTheRepositoryKeepTimeAsEachAppAlwaysDid)
         EXPECT_EQ(recipe.comfort.pushes_by_default,
                   (std::string(expected.filename) == "gerbera.json"    ||
                    std::string(expected.filename) == "propaganda.json" ||
-                   std::string(expected.filename) == "tesla.json") ) << expected.filename;
+                   std::string(expected.filename) == "tesla.json"      ||
+                   std::string(expected.filename) == "we_cell.json") ) << expected.filename;
     }
 }
 
 TEST_F(RecipeLoaderTest, OnlyThePropagandaRecipeOfTheRepositoryAsksForTheImmediateModeBlocksToBeRecorded)
 {
-    const char* const filename_array[] = {"fr08.json", "gerbera.json", "kasparov.json", "propaganda.json", "tesla.json"};
+    const char* const filename_array[] = {"fr08.json", "gerbera.json", "kasparov.json", "propaganda.json", "tesla.json", "we_cell.json"};
 
     for (const char* filename : filename_array)
     {

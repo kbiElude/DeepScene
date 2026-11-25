@@ -388,9 +388,7 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
     EXPECT_NE(m_catalog.app_vec.at(4).install_spec.install_directory.find("\\apps\\tesla"),
               std::string::npos);
 
-    /* we cell (OpenGL): started like the others (Fullscreen unticked, Run pressed), an archive to download, and listed unavailable because it
-     * has no recipe yet.
-     */
+    /* we cell (OpenGL): started like the others (Fullscreen unticked, Run pressed), a recipe which is valid, and an archive to download. */
     EXPECT_EQ(m_catalog.app_vec.at(5).id,
               "we_cell");
     EXPECT_EQ(m_catalog.app_vec.at(5).name,
@@ -399,7 +397,7 @@ TEST_F(CatalogLoaderTest, TheCatalogWhichComesWithTheRepositoryListsTheAppsOfThe
               "Run");
     EXPECT_EQ(m_catalog.app_vec.at(5).untick_checkbox_text,
               "Fullscreen");
-    EXPECT_NE(m_catalog.app_vec.at(5).unavailable_reason.find("recipe"),
+    EXPECT_EQ(m_catalog.app_vec.at(5).unavailable_reason.find("recipe"),
               std::string::npos) << m_catalog.app_vec.at(5).unavailable_reason;
     EXPECT_GE(m_catalog.app_vec.at(5).install_spec.url_vec.size(),
               2u);
