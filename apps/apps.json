@@ -101,6 +101,25 @@
         "unpacked_size": 7330319,
         "page": "https://files.scene.org/view/parties/2001/mekkasymposium01/demo/infprop.zip"
       }
+    },
+    {
+      "id": "we_cell",
+      "title": "we cell by Kewlers (2004)",
+      "recipe": "recipes/we_cell.json",
+      "thumbnail": "https://content.pouet.net/files/screenshots/00013/00013028.jpg",
+      "executable": "we_cell/we_cell.exe",
+      "download": {
+        "urls": [
+          "https://archive.scene.org/pub/parties/2004/assembly04/demo/we_cell_by_kewlers_1.zip",
+          "https://mirror.netcologne.de/scene.org/parties/2004/assembly04/demo/we_cell_by_kewlers_1.zip",
+          "https://mirror.scenesat.com/scene.org/parties/2004/assembly04/demo/we_cell_by_kewlers_1.zip",
+          "https://http.jp.scene.org/parties/2004/assembly04/demo/we_cell_by_kewlers_1.zip"
+        ],
+        "sha256": "da19cf79765fd48a9cbe1e93a97ea851434071b2a8ab3b217fa32266e740485e",
+        "size": 5760323,
+        "unpacked_size": 6321289,
+        "page": "https://files.scene.org/view/parties/2004/assembly04/demo/we_cell_by_kewlers_1.zip"
+      }
     }
   ]
 }
