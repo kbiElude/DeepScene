@@ -23,7 +23,8 @@ namespace Stereo
         /* Makes an OpenGL application render larger than it asks for (see ResolutionPolicy), without its knowledge. The framebuffers of the
          * eyes (see GLEyeTargets) get the size that the policy chooses. Everything the application states in pixels is converted to match:
          * the viewport, the scissor box, the line width and the point size are scaled. A texture that the application gives storage for without
-         * pixels, to fill by copying from the framebuffer, is scaled together with the rectangles of those copies. A glReadPixels of one color
+         * pixels (a null pointer, or a buffer of zeros), to fill by copying from the framebuffer, is scaled together with the rectangles of those
+         * copies. A glReadPixels of one color
          * pixel in bytes is made at the pixel of the larger framebuffer that lies under the center of the pixel the application names. When the
          * scaler makes a call itself, the application's own call is not made, and the analysis still sees the call as the application issued it.
          *
@@ -100,10 +101,26 @@ namespace Stereo
             bool make_scaled_read(const uint32_t&                            in_n_arguments,
                                   const APIInterceptor::APIFunctionArgument* in_arguments_ptr) const;
 
+            /* Returns true if the unpacking of pixels starts at the first pixel of the first row and has no row length of its own (nothing is skipped,
+             * the rows are as long as the image). Only then is a buffer made for the scaled size read the way the one of the application is.
+             */
+            bool has_default_unpack_origin() const;
+
             /* Returns true if the argument is a null pointer (an upload without data). The call has not been analysed yet when it is about to be
              * made, so its data is still in the chunk that the interceptor keeps.
              */
             static bool is_null_pointer(const APIInterceptor::APIFunctionArgument& in_argument);
+
+            /* Returns true if the argument is data of which every byte is zero, and then the number of bytes. Like a null pointer it gives storage
+             * without pixels: the program fills the texture by copying, and the zeros never show.
+             */
+            static bool is_zero_filled(const APIInterceptor::APIFunctionArgument& in_argument,
+                                       uint32_t*                                  out_n_bytes_ptr);
+
+            /* Returns true if the texture was made a scaled one only because its storage was given as a buffer of zeros, and nothing has shown yet that
+             * the program renders to it. Real pixels given to such a texture make it an ordinary one again (see on_pre).
+             */
+            bool is_zero_storage_texture(const uint32_t& in_texture) const;
 
             uint32_t                           m_asked_height;
             uint32_t                           m_asked_width;
@@ -119,6 +136,7 @@ namespace Stereo
             std::set<uint32_t>                 m_scaled_texture_set;
             uint32_t                           m_target_height;
             uint32_t                           m_target_width;
+            std::set<uint32_t>                 m_zero_storage_texture_set; /* the scaled textures above that began as zeros and have not been copied into */
         };
     }
 }

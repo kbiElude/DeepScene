@@ -541,7 +541,7 @@
 <table>
 <tr><th>Case</th><th>What is done</th></tr>
 <tr><td><code>glViewport</code>, <code>glScissor</code>, <code>glLineWidth</code>, <code>glPointSize</code></td><td>Scaled, also in a display list that the application compiles. The scissor rectangle is kept inside the framebuffer.</td></tr>
-<tr><td>Storage for a texture without pixels (<code>glTexImage2D</code> with a null pointer: what the application renders to)</td><td>Made as many times larger. A texture that was given pixels stays as it is.</td></tr>
+<tr><td>Storage for a texture without pixels (<code>glTexImage2D</code> with a null pointer, or with a buffer of zeros: what the application renders to)</td><td>Made as many times larger, and filled with zeros if the application gave zeros. A texture that was only given zeros is taken for one the application renders to until it gets real pixels: they make it an ordinary texture again, at the size the application gives it, and a copy into it confirms it. A texture that was given pixels with content stays as it is.</td></tr>
 <tr><td>Copies to such a texture (<code>glCopyTexSubImage2D</code>, <code>glCopyTexImage2D</code>)</td><td>The corner and the size are scaled, for both eyes.</td></tr>
 <tr><td>A <code>glReadPixels</code> of one pixel of the colours, in bytes</td><td>Made at the pixel of the larger framebuffer that is under the centre of the one the application names, into the application's own buffer. A pixel outside the window is brought to the nearest one inside it (<code>ResolutionPolicy::scale_pixel_coordinate</code>).</td></tr>
 <tr><td><code>cache_pixel_reads</code></td><td>Off unless the recipe has it, since it changes where what the application reads comes from. See below.</td></tr>

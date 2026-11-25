@@ -7,10 +7,12 @@
 #include "common/callbacks.h"
 #include "gl_driver_functions.h"
 #include "gl_resolution_scaler.h"
+#include "gl_zero_filled_pixels.h"
 #include "own_call_scope.h"
 #include "render_scale_planner.h"
 #include "resolution_hazard_gate.h"
 #include "eye_image_limits.h"
+#include <vector>
 
 Stereo::ConverterDLL::GLResolutionScaler::GLResolutionScaler(const uint32_t&                    in_target_width,
                                                              const uint32_t&                    in_target_height,
@@ -35,7 +37,8 @@ Stereo::ConverterDLL::GLResolutionScaler::GLResolutionScaler(const uint32_t&    
 
 void Stereo::ConverterDLL::GLResolutionScaler::forget_texture(const uint32_t& in_texture)
 {
-    m_scaled_texture_set.erase(in_texture);
+    m_scaled_texture_set.erase      (in_texture);
+    m_zero_storage_texture_set.erase(in_texture);
 }
 
 uint32_t Stereo::ConverterDLL::GLResolutionScaler::get_asked_height() const
@@ -51,6 +54,29 @@ uint32_t Stereo::ConverterDLL::GLResolutionScaler::get_asked_width() const
 const Stereo::Core::ResolutionPolicy& Stereo::ConverterDLL::GLResolutionScaler::get_policy() const
 {
     return m_policy;
+}
+
+bool Stereo::ConverterDLL::GLResolutionScaler::has_default_unpack_origin() const
+{
+    constexpr GLenum UNPACK_ROW_LENGTH  = 0x0CF2;
+    constexpr GLenum UNPACK_SKIP_PIXELS = 0x0CF4;
+    constexpr GLenum UNPACK_SKIP_ROWS   = 0x0CF3;
+
+    const OwnCallScope own_call_scope;
+    GLint              row_length  = 0;
+    GLint              skip_pixels = 0;
+    GLint              skip_rows   = 0;
+
+    GLDriverFunctions::get().get_integerv_func_ptr(UNPACK_ROW_LENGTH,
+                                                   &row_length);
+    GLDriverFunctions::get().get_integerv_func_ptr(UNPACK_SKIP_PIXELS,
+                                                   &skip_pixels);
+    GLDriverFunctions::get().get_integerv_func_ptr(UNPACK_SKIP_ROWS,
+                                                   &skip_rows);
+
+    return (row_length  == 0 &&
+            skip_pixels == 0 &&
+            skip_rows   == 0);
 }
 
 bool Stereo::ConverterDLL::GLResolutionScaler::is_identity() const
@@ -91,6 +117,42 @@ bool Stereo::ConverterDLL::GLResolutionScaler::is_null_pointer(const APIIntercep
 bool Stereo::ConverterDLL::GLResolutionScaler::is_scaled_texture(const uint32_t& in_texture) const
 {
     return (m_scaled_texture_set.find(in_texture) != m_scaled_texture_set.end() );
+}
+
+bool Stereo::ConverterDLL::GLResolutionScaler::is_zero_storage_texture(const uint32_t& in_texture) const
+{
+    return (m_zero_storage_texture_set.find(in_texture) != m_zero_storage_texture_set.end() );
+}
+
+bool Stereo::ConverterDLL::GLResolutionScaler::is_zero_filled(const APIInterceptor::APIFunctionArgument& in_argument,
+                                                              uint32_t*                                  out_n_bytes_ptr)
+{
+    const void* data_ptr = nullptr;
+    uint32_t    n_bytes  = 0;
+    bool        result   = false;
+
+    if (in_argument.type != APIInterceptor::ARGTYPE_DATA_CHUNK_ID)
+    {
+        goto end;
+    }
+
+    if (APIInterceptor::get_data_chunk(in_argument.get_data_chunk_id(),
+                                      &data_ptr,
+                                      &n_bytes) == false)
+    {
+        goto end;
+    }
+
+    result = GLZeroFilledPixels::is_zero_filled(data_ptr,
+                                                n_bytes);
+
+    if (result)
+    {
+        *out_n_bytes_ptr = n_bytes;
+    }
+
+end:
+    return result;
 }
 
 bool Stereo::ConverterDLL::GLResolutionScaler::make_scaled_read(const uint32_t&                            in_n_arguments,
@@ -289,7 +351,25 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
                                                &target)              &&
                     target == TEXTURE_2D)
                 {
-                    const bool is_storage_only = is_null_pointer(in_arguments_ptr[PIXELS_ARGUMENT]);
+                    const auto& pixels_argument = in_arguments_ptr[PIXELS_ARGUMENT];
+                    const bool  is_null_storage = is_null_pointer(pixels_argument);
+                    uint32_t    n_zero_bytes    = 0;
+                    bool        is_zero_storage = false;
+
+                    /* A buffer of zeros gives storage without pixels as well, if the unpacking reads it from its start: the program copies over it. */
+                    if (is_null_storage == false)
+                    {
+                        is_zero_storage = is_zero_filled(pixels_argument,
+                                                        &n_zero_bytes);
+                    }
+
+                    if (is_zero_storage)
+                    {
+                        is_zero_storage = has_default_unpack_origin();
+                    }
+
+                    const bool is_storage_only = (is_null_storage ||
+                                                  is_zero_storage);
 
                     if (is_storage_only)
                     {
@@ -319,6 +399,21 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
                                                           "A texture that the application renders to would be " + std::to_string(width) + " x " + std::to_string(height) +
                                                           ", larger than the driver makes; lower the render scale");
 
+                            /* The contents the program gave stay what they were: zeros, at the larger size. A null pointer leaves them undefined. */
+                            std::vector<uint8_t> zero_pixel_u8_vec;
+                            const void*          pixels_ptr = nullptr;
+
+                            if (is_zero_storage)
+                            {
+                                zero_pixel_u8_vec.assign(GLZeroFilledPixels::get_n_scaled_bytes(n_zero_bytes,
+                                                                                                static_cast<uint64_t>(value_array.at(3) ) * static_cast<uint64_t>(value_array.at(4) ),
+                                                                                                width,
+                                                                                                height),
+                                                         0);
+
+                                pixels_ptr = zero_pixel_u8_vec.data();
+                            }
+
                             GLDriverFunctions::get().tex_image_2d_func_ptr(target,
                                                                            value_array.at(1),
                                                                            value_array.at(2),
@@ -327,20 +422,53 @@ bool Stereo::ConverterDLL::GLResolutionScaler::on_pre(const APIInterceptor::APIF
                                                                            value_array.at(5),
                                                                            static_cast<GLenum>(value_array.at(6) ),
                                                                            static_cast<GLenum>(value_array.at(7) ),
-                                                                           nullptr);
+                                                                           pixels_ptr);
 
                             if (in_bound_texture != 0)
                             {
                                 m_scaled_texture_set.insert(in_bound_texture);
+
+                                /* Zeros alone do not say that the program renders to the texture: it may fill it with pixels later (see above). */
+                                if (is_zero_storage)
+                                {
+                                    m_zero_storage_texture_set.insert(in_bound_texture);
+                                }
+                                else
+                                {
+                                    m_zero_storage_texture_set.erase(in_bound_texture);
+                                }
                             }
 
                             if (m_scaled_texture_set.size() <= 12)
                             {
-                                m_log_func("The texture " + std::to_string(in_bound_texture) + " (storage without pixels) is made " + std::to_string(width) + " x " + std::to_string(height) + " instead of " + std::to_string(value_array.at(3) ) + " x " + std::to_string(value_array.at(4) ) );
+                                const std::string storage_text = (is_zero_storage) ? " (storage with pixels of zeros) is made "
+                                                                                   : " (storage without pixels) is made ";
+
+                                m_log_func("The texture "                              +
+                                           std::to_string(in_bound_texture)            +
+                                           storage_text                                +
+                                           std::to_string(width)                       +
+                                           " x "                                       +
+                                           std::to_string(height)                      +
+                                           " instead of "                              +
+                                           std::to_string(value_array.at(3) )          +
+                                           " x "                                       +
+                                           std::to_string(value_array.at(4) ) );
                             }
 
                             result = true;
                         }
+                    }
+                    else
+                    if (is_scaled_destination &&
+                        is_zero_storage_texture(in_bound_texture) )
+                    {
+                        /* The program gives real pixels to a texture that was only taken for one to render to, because it began as zeros. It is one that the
+                         * program fills itself: the upload replaces the whole storage, so the texture is left at the size the program gives it.
+                         */
+                        forget_texture(in_bound_texture);
+
+                        m_log_func("The texture " + std::to_string(in_bound_texture) + " gets pixels: it is not one that the application renders to, and is left as it makes it");
                     }
                     else
                     if (is_scaled_destination)
@@ -515,6 +643,9 @@ void Stereo::ConverterDLL::GLResolutionScaler::scale_copy(const bool&           
     const size_t size_width_index = corner_x_index + 2;
 
     auto& value_array = *inout_value_array_ptr;
+
+    /* A copy into a texture shows that the program renders to it, whatever its first pixels were. */
+    m_zero_storage_texture_set.erase(in_bound_texture);
 
     if (in_is_sub_image)
     {

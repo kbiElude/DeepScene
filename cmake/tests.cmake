@@ -22,6 +22,7 @@ if (DEMOVRPLAYER_BUILD_TESTS)
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/OpenGL/gl_color_target_formats.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/OpenGL/gl_run_call_classifier.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/OpenGL/gl_texture_twin_table.cpp"
+                                     "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/OpenGL/gl_zero_filled_pixels.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/environment_variable_reader.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/eye_image_limits.cpp"
                                      "${DemoVRPlayer_SOURCE_DIR}/src/runtime/converter_dll/invisible_window_manager.cpp"
