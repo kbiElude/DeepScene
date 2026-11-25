@@ -152,7 +152,7 @@ tools\analysis\APIDumpDependencyExtractor_x64 result_dump.workload -o app.deps -
 </figure>
 <table>
 <tr><th>Command</th><th>What it adds</th></tr>
-<tr><td><code>overlays</code></td><td>The passes whose camera never changes, and the draws drawn with an orthographic projection even in a pass of a 3D scene. It ends with an <code>unaffected</code> list that can be pasted into a recipe, and it is a hint.</td></tr>
+<tr><td><code>overlays</code></td><td>The passes whose camera never changes, and the draws that are flat layers (an orthographic projection, or all vertices at one depth through an identity projection) even in a pass of a 3D scene. It ends with an <code>unaffected</code> list that can be pasted into a recipe, and it is a hint.</td></tr>
 <tr><td><code>pass &lt;id&gt;</code></td><td>The constants of the camera and their values over time.</td></tr>
 <tr><td><code>depth</code></td><td>For each pass with vertices in front of the camera, in each kind of frame: the depth of its draws, and of its vertices where the analysis could read them.</td></tr>
 </table>

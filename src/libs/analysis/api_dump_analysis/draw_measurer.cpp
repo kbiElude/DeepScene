@@ -123,15 +123,17 @@ bool Analysis::APIDumpAnalysis::DrawMeasurer::find_draw_matrices(const ConstantS
      */
     const auto& projection_f32mat = out_matrices_ptr->projection_f32mat;
 
-    out_matrices_ptr->has_view        = has_view;
-    out_matrices_ptr->is_perspective  = (out_matrices_ptr->has_projection &&
-                                         is_perspective_projection(projection_f32mat) );
-    out_matrices_ptr->is_orthographic = (out_matrices_ptr->has_projection &&
-                                         projection_f32mat.at(3)  == 0.0f &&
-                                         projection_f32mat.at(7)  == 0.0f &&
-                                         projection_f32mat.at(11) == 0.0f &&
-                                         projection_f32mat.at(15) != 0.0f &&
-                                         projection_f32mat       != identity_f32mat);
+    out_matrices_ptr->has_view               = has_view;
+    out_matrices_ptr->is_identity_projection = (out_matrices_ptr->has_projection &&
+                                                projection_f32mat == identity_f32mat);
+    out_matrices_ptr->is_perspective         = (out_matrices_ptr->has_projection &&
+                                                is_perspective_projection(projection_f32mat) );
+    out_matrices_ptr->is_orthographic        = (out_matrices_ptr->has_projection &&
+                                                projection_f32mat.at(3)  == 0.0f &&
+                                                projection_f32mat.at(7)  == 0.0f &&
+                                                projection_f32mat.at(11) == 0.0f &&
+                                                projection_f32mat.at(15) != 0.0f &&
+                                                projection_f32mat       != identity_f32mat);
 
     return (has_view        &&
             is_orthographic == false);
@@ -223,6 +225,9 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
     constexpr size_t DEPTH_COLUMN   = 2;
     constexpr size_t N_VIEW_COLUMNS = 3; /* x, y and the depth */
     constexpr size_t ORIGIN_ROW     = 3; /* the translation is the last row */
+
+    /* The spread of depth, in the units of the picture, up to which the vertices of a draw count as being at one depth. */
+    constexpr float FLAT_DEPTH_TOLERANCE = 1.0e-4f;
 
     DrawFacts&   facts             = *inout_facts_ptr;
     bool         has_place         = false;
@@ -355,6 +360,16 @@ void Analysis::APIDumpAnalysis::DrawMeasurer::record_draw_facts(const DrawDescri
                 {
                     has_vertex_behind = true;
                 }
+            }
+
+            /* A draw through the identity projection with all its vertices at one depth is in the space of the picture. The identity says nothing
+             * of depth, so it is not orthographic (see find_draw_matrices), but such a draw is a flat layer all the same.
+             */
+            if (matrices.is_identity_projection &&
+                has_place                       &&
+                z_max - z_min                  <= FLAT_DEPTH_TOLERANCE)
+            {
+                is_flat_layer = true;
             }
         }
     }

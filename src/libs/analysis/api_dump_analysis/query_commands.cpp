@@ -580,6 +580,26 @@ const char* Analysis::APIDumpAnalysis::QueryCommands::get_transfer_kind_name(con
     return result_ptr;
 }
 
+bool Analysis::APIDumpAnalysis::QueryCommands::is_flat_layer_structure(const AnalysisResult& in_analysis,
+                                                                       const uint64_t&       in_structure_key)
+{
+    uint64_t n_draws      = 0;
+    uint64_t n_flat_draws = 0;
+
+    for (auto facts_iterator = in_analysis.model.draw_facts_map.lower_bound(DrawFactsKey(in_structure_key,
+                                                                                         0) );
+         facts_iterator != in_analysis.model.draw_facts_map.end() &&
+         facts_iterator->first.first == in_structure_key;
+       ++facts_iterator)
+    {
+        n_draws      += facts_iterator->second.n_draws;
+        n_flat_draws += facts_iterator->second.n_draws_flat_layer;
+    }
+
+    return (n_draws      != 0 &&
+            n_flat_draws == n_draws);
+}
+
 bool Analysis::APIDumpAnalysis::QueryCommands::parse_resource_access_class(const std::string&   in_name,
                                                                            ResourceAccessClass* out_class_ptr)
 {
@@ -1148,8 +1168,9 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
 
     inout_writer_ptr->end_array();
 
-    /* The draws made with an orthographic projection are candidates too, whatever the camera of their pass does: a pass of a 3D scene can
-     * contain the panels of a screen. Like the passes, this is only a hint: it can be wrong, but it is often useful.
+    /* The draws made with an orthographic projection, and the ones that are flat in the space of the picture through an identity projection, are
+     * candidates too, whatever the camera of their pass does: a pass of a 3D scene can contain the panels of a screen. Like the passes, this is
+     * only a hint: it can be wrong, but it is often useful.
      */
     inout_writer_ptr->write_key("orthographic_draws");
     inout_writer_ptr->begin_array();
@@ -1166,10 +1187,16 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
 
         for (const auto& draw_signature : structure.draw_signature_vec)
         {
-            const auto draw_iterator = model_ref.draw_structure_map.find(draw_signature.structure_key);
+            const auto draw_iterator   = model_ref.draw_structure_map.find(draw_signature.structure_key);
+            const bool is_orthographic = (draw_iterator != model_ref.draw_structure_map.end() &&
+                                          draw_iterator->second.is_orthographic);
+            const bool is_flat_layer   = is_flat_layer_structure(in_analysis,
+                                                                 draw_signature.structure_key);
+            const bool is_candidate    = (is_orthographic ||
+                                          is_flat_layer);
 
             if (draw_iterator != model_ref.draw_structure_map.end() &&
-                draw_iterator->second.is_orthographic)
+                is_candidate)
             {
                 inout_writer_ptr->begin_object();
                 inout_writer_ptr->write_key    ("signature_key");
@@ -1193,7 +1220,8 @@ Analysis::APIDumpAnalysis::QueryStatus Analysis::APIDumpAnalysis::QueryCommands:
                 inout_writer_ptr->write_string(get_primitive_topology_name(draw_iterator->second.primitive_topology) );
                 inout_writer_ptr->write_key   ("reasons");
                 inout_writer_ptr->begin_inline_array();
-                inout_writer_ptr->write_string("orthographic_projection");
+                inout_writer_ptr->write_string((is_orthographic) ? "orthographic_projection"
+                                                                 : "flat_layer");
                 inout_writer_ptr->end_array();
                 inout_writer_ptr->end_object();
             }

@@ -9,8 +9,8 @@
  *   info       what the analysis is of, and how much it found
  *   timeline   runs of frames of one shape, in time order (paged)
  *   pipelines  frame shapes and their pass structures (paged)
- *   overlays   passes with a constant camera and draws with an orthographic projection: 2D overlay candidates, as a recipe
- *              "unaffected" list (a hint only)
+ *   overlays   passes with a constant camera and draws that are flat layers (an orthographic projection, or all vertices at one depth through
+ *              an identity projection): 2D overlay candidates, as a recipe "unaffected" list (a hint only)
  *   pass       one pass structure, with its draws (paged) and camera constants
  *   frame      one frame by index, or a representative frame of a shape
  *   resources  what the frames did with each resource, optionally for one class (paged)
@@ -53,6 +53,12 @@ namespace Analysis
             static PassDepthSpread       get_pass_depth_spread        (const AnalysisResult& in_analysis,
                                                                        const uint32_t&       in_pass_id);
             static std::vector<uint32_t> get_static_camera_pass_id_vec(const AnalysisResult& in_analysis);
+
+            /* Whether the draws of a draw structure that were measured are all flat layers: in the space of the picture, in pixels, with an orthographic projection or
+             * through an identity projection (see DrawFacts::n_draws_flat_layer). False if none was measured.
+             */
+            static bool is_flat_layer_structure(const AnalysisResult& in_analysis,
+                                                const uint64_t&       in_structure_key);
 
             /* Reads a class name: frame_local, loop_carried, static, unread or unused. */
             static bool parse_resource_access_class(const std::string&   in_name,

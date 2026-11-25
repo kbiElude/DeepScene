@@ -980,3 +980,48 @@ TEST_F(QueryCommandsTest, VerticesWithinOneRangeOfTheDepthHistogramOfEachOtherAr
                   depth_pair.second < 6.0f) << depth_pair.second << ": " << spread.far_to_near_ratio;
     }
 }
+
+TEST(QueryCommandsFlatLayers, ADrawStructureIsAFlatLayerWhenAllItsMeasuredDrawsAre)
+{
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Analysis::APIDumpAnalysis::DrawFacts      all_flat;
+    Analysis::APIDumpAnalysis::DrawFacts      none_flat;
+    Analysis::APIDumpAnalysis::DrawFacts      some_flat;
+
+    all_flat.n_draws            = 4;
+    all_flat.n_draws_flat_layer = 4;
+    none_flat.n_draws           = 3;
+    some_flat.n_draws            = 5;
+    some_flat.n_draws_flat_layer = 2;
+
+    /* The facts of a structure are kept for each size of its draws; they are taken together. */
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x10, 0x1)] = all_flat;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x10, 0x2)] = all_flat;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x20, 0x1)] = none_flat;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x30, 0x1)] = all_flat;
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x30, 0x2)] = some_flat;
+
+    EXPECT_TRUE (Analysis::APIDumpAnalysis::QueryCommands::is_flat_layer_structure(analysis,
+                                                                                   0x10) );
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::QueryCommands::is_flat_layer_structure(analysis,
+                                                                                   0x20) );
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::QueryCommands::is_flat_layer_structure(analysis,
+                                                                                   0x30) );
+}
+
+TEST(QueryCommandsFlatLayers, AStructureWithNoMeasuredDrawIsNotAFlatLayer)
+{
+    Analysis::APIDumpAnalysis::AnalysisResult analysis;
+    Analysis::APIDumpAnalysis::DrawFacts      unmeasured;
+
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::QueryCommands::is_flat_layer_structure(analysis,
+                                                                                   0x10) );
+
+    /* Draws that were counted but whose vertices were not measured (no history) are not flat layers. */
+    unmeasured.n_draws = 6;
+
+    analysis.model.draw_facts_map[Analysis::APIDumpAnalysis::DrawFactsKey(0x10, 0x1)] = unmeasured;
+
+    EXPECT_FALSE(Analysis::APIDumpAnalysis::QueryCommands::is_flat_layer_structure(analysis,
+                                                                                   0x10) );
+}

@@ -2240,6 +2240,24 @@ namespace
 
 namespace
 {
+    /* How many draws the facts of the model count, and how many of them are flat layers. */
+    void count_flat_layer_draws(const Analysis::APIDumpAnalysis::Model& in_model,
+                                uint64_t*                               out_n_draws_ptr,
+                                uint64_t*                               out_n_flat_layer_draws_ptr)
+    {
+        *out_n_draws_ptr            = 0;
+        *out_n_flat_layer_draws_ptr = 0;
+
+        for (const auto& facts_pair : in_model.draw_facts_map)
+        {
+            *out_n_draws_ptr            += facts_pair.second.n_draws;
+            *out_n_flat_layer_draws_ptr += facts_pair.second.n_draws_flat_layer;
+        }
+    }
+}
+
+namespace
+{
     /* How many of the draw structures of the model are orthographic. */
     size_t count_orthographic_structures(const Analysis::APIDumpAnalysis::Model& in_model)
     {
@@ -2296,6 +2314,90 @@ TEST(ModelBuilder, TheIdentityIsNoProjectionAndIsNotToldApart)
     helper.end_frame ();
 
     EXPECT_EQ(count_orthographic_structures(helper.get_model() ),
+              0u);
+}
+
+TEST(ModelBuilder, AFlatDrawThroughTheIdentityProjectionIsAFlatLayerWithoutBeingOrthographic)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    Tests::ModelTestHelper                 helper;
+    const auto                             swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX> identity_f32mat  = {1, 0, 0, 0,
+                                                               0, 1, 0, 0,
+                                                               0, 0, 1, 0,
+                                                               0, 0, 0, 1};
+    uint64_t                               n_draws          = 0;
+    uint64_t                               n_flat_layers    = 0;
+
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_VIEW_MATRIX,
+                      0,
+                      identity_f32mat);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      identity_f32mat);
+    helper.bind        (swapchain_image);
+    helper.set_viewport(0, 0, 640, 480);
+
+    /* A full-screen quad at one depth, as a program draws the last layer of its picture. */
+    helper.draw_with_geometry({{-1.0f, -1.0f, -0.999f},
+                               { 1.0f, -1.0f, -0.999f},
+                               { 1.0f,  1.0f, -0.999f},
+                               {-1.0f,  1.0f, -0.999f}},
+                              4);
+    helper.end_frame();
+
+    count_flat_layer_draws(helper.get_model(),
+                          &n_draws,
+                          &n_flat_layers);
+
+    EXPECT_EQ(n_draws,
+              1u);
+    EXPECT_EQ(n_flat_layers,
+              1u);
+
+    /* The structure, and so the keys of a recipe, are those that the identity always gave. */
+    EXPECT_EQ(count_orthographic_structures(helper.get_model() ),
+              0u);
+}
+
+TEST(ModelBuilder, ADrawThroughTheIdentityProjectionWhoseVerticesHaveDepthIsNotAFlatLayer)
+{
+    constexpr size_t N_FLOATS_PER_MATRIX = 16;
+
+    Tests::ModelTestHelper                 helper;
+    const auto                             swapchain_image = helper.create_swapchain_image();
+    std::array<float, N_FLOATS_PER_MATRIX> identity_f32mat  = {1, 0, 0, 0,
+                                                               0, 1, 0, 0,
+                                                               0, 0, 1, 0,
+                                                               0, 0, 0, 1};
+    uint64_t                               n_draws          = 0;
+    uint64_t                               n_flat_layers    = 0;
+
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::MODEL_VIEW_MATRIX,
+                      0,
+                      identity_f32mat);
+    helper.set_matrix(Analysis::APIDumpAnalysis::ConstantSemantic::PROJECTION_MATRIX,
+                      64,
+                      identity_f32mat);
+    helper.bind        (swapchain_image);
+    helper.set_viewport(0, 0, 640, 480);
+
+    /* The same quad with its corners at different depths: a program that sets no projection and puts a scene in the model-view matrix. */
+    helper.draw_with_geometry({{-1.0f, -1.0f, -0.2f},
+                               { 1.0f, -1.0f, -0.4f},
+                               { 1.0f,  1.0f, -0.6f},
+                               {-1.0f,  1.0f, -0.8f}},
+                              4);
+    helper.end_frame();
+
+    count_flat_layer_draws(helper.get_model(),
+                          &n_draws,
+                          &n_flat_layers);
+
+    EXPECT_EQ(n_draws,
+              1u);
+    EXPECT_EQ(n_flat_layers,
               0u);
 }
 

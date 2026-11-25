@@ -502,16 +502,17 @@ namespace Analysis
         /* The matrices that a draw is made with, as given by the constants. */
         struct DrawMatrices
         {
-            bool                  has_projection   = false;
-            bool                  has_view         = false;
-            bool                  is_orthographic  = false; /* far things are not smaller in the projection */
-            bool                  is_perspective   = false; /* the projection divides by the depth          */
-            std::array<float, 16> model_f32mat     = {1.0f, 0.0f, 0.0f, 0.0f,
-                                                      0.0f, 1.0f, 0.0f, 0.0f,
-                                                      0.0f, 0.0f, 1.0f, 0.0f,
-                                                      0.0f, 0.0f, 0.0f, 1.0f};
-            std::array<float, 16> projection_f32mat = {};
-            std::array<float, 16> view_f32mat       = {};
+            bool                  has_projection         = false;
+            bool                  has_view               = false;
+            bool                  is_identity_projection = false; /* the program sets no projection, or draws in the space of the picture */
+            bool                  is_orthographic        = false; /* far things are not smaller in the projection                         */
+            bool                  is_perspective         = false; /* the projection divides by the depth                                  */
+            std::array<float, 16> model_f32mat           = {1.0f, 0.0f, 0.0f, 0.0f,
+                                                            0.0f, 1.0f, 0.0f, 0.0f,
+                                                            0.0f, 0.0f, 1.0f, 0.0f,
+                                                            0.0f, 0.0f, 0.0f, 1.0f};
+            std::array<float, 16> projection_f32mat      = {};
+            std::array<float, 16> view_f32mat            = {};
         };
 
         /* A draw as used to tell passes apart: the resources are represented by their keys, and the counts are left out. Uses
@@ -548,7 +549,7 @@ namespace Analysis
             uint64_t n_draws                        = 0;
             uint64_t n_draws_after_3d_draw          = 0;    /* the draws after a perspective draw in the same frame                                                    */
             uint64_t n_draws_eye_space              = 0;    /* the draws with the origin at the camera and the vertices in front of it                                 */
-            uint64_t n_draws_flat_layer             = 0;    /* the draws in pixels, or orthographic                                                                    */
+            uint64_t n_draws_flat_layer             = 0;    /* the draws in pixels, orthographic, or flat through an identity projection                               */
             uint64_t n_draws_sampling_copied_color  = 0;    /* the draws that sample a resource that a copy of the picture filled                                      */
             uint64_t n_draws_with_footprint         = 0;    /* the draws whose sampled vertices could be placed in the picture                                         */
             float    view_depth_max                 = 0.0f;

@@ -84,10 +84,15 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
             const auto structure_iterator = model_ref.draw_structure_map.find(draw_signature.structure_key);
             const bool is_orthographic   = (structure_iterator != model_ref.draw_structure_map.end() &&
                                             structure_iterator->second.is_orthographic);
+            const bool is_flat_layer     = Analysis::APIDumpAnalysis::QueryCommands::is_flat_layer_structure(in_analysis,
+                                                                                                             draw_signature.structure_key);
 
-            /* Hint from the analysis: the camera of the pass never changes, or the draw is orthographic. A good sign, not proof. */
+            /* Hint from the analysis: the camera of the pass never changes, or the draw is orthographic or flat in the space of the picture. A good
+             * sign, not proof.
+             */
             const bool is_hinted         = (is_static_camera ||
-                                            is_orthographic);
+                                            is_orthographic  ||
+                                            is_flat_layer);
 
             if (is_recipe_overlay ||
                 is_hinted)
@@ -104,6 +109,11 @@ std::vector<Analysis::RecipeBake::OverlayCandidate> Analysis::RecipeBake::Overla
                 if (is_orthographic)
                 {
                     candidate.reason_vec.push_back("orthographic_projection");
+                }
+                else
+                if (is_flat_layer)
+                {
+                    candidate.reason_vec.push_back("flat_layer");
                 }
 
                 if (depth_spread.has_depth)
