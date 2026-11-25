@@ -105,6 +105,8 @@
     {
       "id": "we_cell",
       "title": "we cell by Kewlers (2004)",
+      "launch_button": "Run",
+      "untick_checkbox": "Fullscreen",
       "recipe": "recipes/we_cell.json",
       "thumbnail": "https://content.pouet.net/files/screenshots/00013/00013028.jpg",
       "executable": "we_cell/we_cell.exe",
