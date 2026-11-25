@@ -219,7 +219,7 @@
   <li><strong>Immediate mode.</strong> One draw for each <code>glBegin</code> and <code>glEnd</code> with vertices in them, of the topology its mode makes.</li>
   <li><strong>Its state.</strong> The pipeline state set when the draw ended: the enabled capabilities, the depth, alpha and blend functions, the masks, the culling, the winding of faces and the polygon modes, the stencil function, operations and masks, and the shade model.</li>
   <li><strong>Arrays.</strong> <code>glDrawArrays</code> and <code>glDrawElements</code>. The dumper stores the part of each array the draw reads.</li>
-  <li><strong>Array buffers.</strong> The front end makes a buffer resource of each array and of the indices, once for each different bytes, so the same data is the same resource in any draw or frame, and it keeps the bytes of each.</li>
+  <li><strong>Array buffers.</strong> The front end makes a buffer resource of each array and of the indices, once for each different bytes, so the same data is the same resource in any draw or frame.</li>
   <li><strong>How long the bytes live.</strong> The bytes of a piece are kept for the frame it is seen in (each eye of a stereo frame draws it), and kept on if the piece is seen in a second frame, which is reuse across frames.</li>
   <li><strong>What the key sees.</strong> Such a buffer is told apart in the match key by its kind alone (<code>is_application_memory</code>), so a draw is told apart by its layout, topology and state and not by the bytes it reads.</li>
 </ul>

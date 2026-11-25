@@ -4,12 +4,12 @@
  *
  * Builds the model draw for a glDrawArrays or glDrawElements call whose vertices (and indices) are in application memory. The dumper copies
  * the data that such a draw reads and stores the copy in the call (see GLClientArraySnapshot). Each array and the indices become model
- * resources. A resource is created once for the same bytes, in whichever frame they appear (see GLBlobStore).
+ * resources. A resource is created once for the same bytes, in whichever frame they appear (see GLClientArrayResources).
  */
 #ifndef APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_ARRAY_DRAW_DESCRIBER_H
 #define APIDUMPANALYSIS_FRONTENDS_OPENGL_GL_ARRAY_DRAW_DESCRIBER_H
 
-#include "analysis/api_dump_analysis/frontends/OpenGL/gl_blob_store.h"
+#include "analysis/api_dump_analysis/frontends/OpenGL/gl_client_array_resources.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/gl_pipeline_state.h"
 #include "analysis/api_dump_analysis/frontends/OpenGL/types.h"
 #include "analysis/api_dump_analysis/model_builder.h"
@@ -37,12 +37,6 @@ namespace Analysis
                                            const GLPipelineState&                              in_pipeline_state,
                                            Analysis::APIDumpAnalysis::DrawDescription*         out_description_ptr);
 
-                /* The data that draws read from application memory, kept as resources. */
-                const GLBlobStore& get_blob_store() const;
-
-                /* Ends the frame. Data that was read only in this frame is released. */
-                void on_frame_ended();
-
             private:
                 /* A sample of the geometry of the draw, taken from the position array; null if none of the vertices could be read. */
                 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> make_geometry_sample(const std::vector<GLClientArray>&        in_array_vec,
@@ -56,7 +50,7 @@ namespace Analysis
                                            const uint32_t&                          in_index_type,
                                            const size_t&                            in_place);
 
-                GLBlobStore                              m_blob_store;
+                GLClientArrayResources                   m_array_resources;
                 Analysis::APIDumpAnalysis::ModelBuilder* m_builder_ptr;
             };
         }

@@ -264,7 +264,7 @@
 <tr><td><code>GLTextureFormatMapper</code></td><td>OpenGL texel formats to <code>TextureFormat</code> of <code>Utils::Graphics</code>, and how the bytes of an upload are laid out.</td></tr>
 <tr><td><code>GLMatrixMath</code></td><td>The matrices that the calls produce, as the specification defines them.</td></tr>
 <tr><td><code>GLListClassifier</code></td><td>How the calls of a display list affect what differs for each eye, so that a list the driver compiled once can be called for both.</td></tr>
-<tr><td><code>GLArrayDrawDescriber</code>, <code>GLClientArraySnapshot</code>, <code>GLBlobStore</code></td><td>Draws whose vertices are in application memory: the snapshot of the arrays that the dumper took, the draw built from it, and the store that gives the same bytes the same buffer in every frame.</td></tr>
+<tr><td><code>GLArrayDrawDescriber</code>, <code>GLClientArraySnapshot</code>, <code>GLClientArrayResources</code></td><td>Draws whose vertices are in application memory: the snapshot of the arrays that the dumper took, the draw built from it, and the resources that give the same bytes the same buffer in every frame.</td></tr>
 <tr><td><code>GLVertexReader</code></td><td>The position that a <code>glVertex</code> call gives.</td></tr>
 <tr><td><code>GLGeometrySampler</code></td><td>Builds the sample of a draw from the positions OpenGL read; which vertices are sampled is <code>GeometrySampler</code>'s choice.</td></tr>
 <tr><td><code>GLFunctionPolicy</code>, <code>GLResolutionHazards</code></td><td>Which functions may be left out and why (any other ends the process; what each function is comes from <code>GLFunctionClassifier</code> in <code>APIDumpIndex</code>), and the calls that depend on the pixel size of the render target.</td></tr>

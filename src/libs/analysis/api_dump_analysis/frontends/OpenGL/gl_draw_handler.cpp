@@ -37,11 +37,6 @@ void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::add_block_vertices(con
     }
 }
 
-const Analysis::APIDumpAnalysis::Frontends::GLBlobStore& Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::get_blob_store() const
-{
-    return m_array_draw_describer.get_blob_store();
-}
-
 uint64_t Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::get_n_unfollowed_calls() const
 {
     return m_n_unfollowed_calls;
@@ -328,7 +323,3 @@ void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::handle_vertex(const Ca
     }
 }
 
-void Analysis::APIDumpAnalysis::Frontends::GLDrawHandler::on_frame_ended()
-{
-    m_array_draw_describer.on_frame_ended();
-}

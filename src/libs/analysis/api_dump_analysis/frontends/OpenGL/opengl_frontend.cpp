@@ -145,11 +145,6 @@ bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::find_resource_view(co
                                                 out_view_ptr);
 }
 
-const Analysis::APIDumpAnalysis::Frontends::GLBlobStore& Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_blob_store() const
-{
-    return m_draw_handler.get_blob_store();
-}
-
 bool Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::get_current_matrices(const uint32_t& in_thread_id,
                                                                                 GLMatrix*       out_modelview_f32mat_ptr,
                                                                                 GLMatrix*       out_projection_f32mat_ptr,
@@ -839,8 +834,6 @@ void Analysis::APIDumpAnalysis::Frontends::OpenGLFrontend::on_call(const Capture
 
     if (is_frame_boundary)
     {
-        m_draw_handler.on_frame_ended();
-
         m_builder_ptr->on_frame_presented();
     }
 }

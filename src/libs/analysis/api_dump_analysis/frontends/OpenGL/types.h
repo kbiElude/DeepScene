@@ -31,15 +31,6 @@ namespace Analysis
                 UNREADABLE /* the arguments or the data are not what the call requires      */
             };
 
-            /* Whether a piece of application data is reused, which decides how long it is kept: one-frame pieces for that frame only,
-             * pieces seen in several frames for the following frames too.
-             */
-            enum class GLBlobReuse
-            {
-                ACROSS_FRAMES,
-                ONE_FRAME
-            };
-
             /* What an array of vertex data is for. The values are the ones the dumper stores (ClientArrayKind of the interception). */
             enum class GLClientArrayKind : uint32_t
             {
@@ -200,15 +191,6 @@ namespace Analysis
                 GLBox                        scissor_box;
                 std::map<uint32_t, uint32_t> texture_binding_map;             /* GL_TEXTURE_2D binding by unit number */
                 GLBox                        viewport;
-            };
-
-            /* A piece of application data read by draws; the bytes are kept while worth keeping (see GLBlobReuse). */
-            struct GLBlob
-            {
-                std::shared_ptr<const std::vector<uint8_t> > data_ptr;                                                       /* null: the bytes are not kept         */
-                uint64_t                                     last_frame  = 0;                                                /* the last frame that used the piece   */
-                uint32_t                                     n_frames    = 0;                                                /* the number of frames that used it    */
-                Analysis::APIDumpAnalysis::ResourceId        resource_id = Analysis::APIDumpAnalysis::ResourceId::NONE;
             };
 
             /* Vertex data a draw reads from application memory, as copied by the dumper: the touched part, from first_element. Uses GLClientArrayKind. */

@@ -12,8 +12,8 @@
 #include <string.h>
 
 Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::GLArrayDrawDescriber(Analysis::APIDumpAnalysis::ModelBuilder* in_builder_ptr)
-    :m_blob_store (in_builder_ptr),
-     m_builder_ptr(in_builder_ptr)
+    :m_array_resources(in_builder_ptr),
+     m_builder_ptr    (in_builder_ptr)
 {
     /* Stub */
 }
@@ -140,9 +140,9 @@ Analysis::APIDumpAnalysis::Frontends::GLArrayDrawResult Analysis::APIDumpAnalysi
 
                     if (array.n_bytes > 0)
                     {
-                        const auto buffer_id = m_blob_store.get_resource_id(Analysis::APIDumpAnalysis::ResourceKind::BUFFER_VERTEX,
-                                                                            array.data_ptr,
-                                                                            array.n_bytes);
+                        const auto buffer_id = m_array_resources.get_resource_id(Analysis::APIDumpAnalysis::ResourceKind::BUFFER_VERTEX,
+                                                                                 array.data_ptr,
+                                                                                 array.n_bytes);
 
                         out_description_ptr->vertex_buffer_id_vec.push_back(buffer_id);
                     }
@@ -152,9 +152,9 @@ Analysis::APIDumpAnalysis::Frontends::GLArrayDrawResult Analysis::APIDumpAnalysi
                 {
                     layout_hasher.add_u32(index_type);
 
-                    out_description_ptr->index_buffer_id = m_blob_store.get_resource_id(Analysis::APIDumpAnalysis::ResourceKind::BUFFER_INDEX,
-                                                                                        indices_chunk_ptr->data(),
-                                                                                        indices_n_bytes);
+                    out_description_ptr->index_buffer_id = m_array_resources.get_resource_id(Analysis::APIDumpAnalysis::ResourceKind::BUFFER_INDEX,
+                                                                                             indices_chunk_ptr->data(),
+                                                                                             indices_n_bytes);
                 }
 
                 out_description_ptr->vertex_layout_key = layout_hasher.get_digest();
@@ -174,11 +174,6 @@ Analysis::APIDumpAnalysis::Frontends::GLArrayDrawResult Analysis::APIDumpAnalysi
     }
 
     return result;
-}
-
-const Analysis::APIDumpAnalysis::Frontends::GLBlobStore& Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::get_blob_store() const
-{
-    return m_blob_store;
 }
 
 std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::make_geometry_sample(const std::vector<GLClientArray>&        in_array_vec,
@@ -241,11 +236,6 @@ std::shared_ptr<const Analysis::APIDumpAnalysis::GeometrySample> Analysis::APIDu
     }
 
     return result_ptr;
-}
-
-void Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::on_frame_ended()
-{
-    m_blob_store.on_frame_ended();
 }
 
 uint32_t Analysis::APIDumpAnalysis::Frontends::GLArrayDrawDescriber::read_index(const Capture::APIDumpLoader::DataChunk& in_indices_chunk,

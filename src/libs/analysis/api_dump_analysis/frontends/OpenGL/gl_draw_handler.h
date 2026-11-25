@@ -37,9 +37,6 @@ namespace Analysis
                 void add_block_vertices(const uint32_t& in_n_vertices,
                                         GLContextState* inout_state_ptr);
 
-                /* The data that draws read from application memory, kept only as long as it is worth keeping (see GLBlobStore). */
-                const GLBlobStore& get_blob_store() const;
-
                 /* The number of draw or clear calls that are not followed. The front end continues without them. */
                 uint64_t get_n_unfollowed_calls() const;
 
@@ -69,9 +66,6 @@ namespace Analysis
                 void handle_vertex(const Capture::APIDumpLoader::DumpedAPICall& in_call,
                                    const Capture::APIDumpLoader::Workload&      in_workload,
                                    GLContextState*                              inout_state_ptr);
-
-                /* A frame is presented. The describer is notified so that it releases the data it kept for the frame. */
-                void on_frame_ended();
 
             private:
                 /* Returns the call that begins the camera of the draw (see DrawDescription::view_anchor_call_index), taken from the model-view stack. */

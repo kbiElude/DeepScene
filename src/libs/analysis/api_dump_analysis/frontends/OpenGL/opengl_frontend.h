@@ -51,9 +51,6 @@ namespace Analysis
                 bool find_resource_view(const uint64_t&                          in_address,
                                         Analysis::APIDumpAnalysis::ResourceView* out_view_ptr) const override;
 
-                /* The data that the draws read from the memory of the application, kept while it is worth keeping (see GLBlobStore). */
-                const GLBlobStore& get_blob_store() const;
-
                 /* The current model-view and projection matrices of the thread's current context, and the matrix mode; false if none. */
                 bool get_current_matrices(const uint32_t& in_thread_id,
                                           GLMatrix*       out_modelview_f32mat_ptr,
