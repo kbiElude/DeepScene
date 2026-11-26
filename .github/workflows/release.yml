@@ -1,7 +1,7 @@
 # Builds DeepScene (x86 and x64, Release) and publishes it on the Releases page.
 #
 #   - Push a tag that starts with "v" (v1.0.0, v1.1.0-beta1): the release is built, and published under that tag. A tag with a "-" in it
-#     (v1.1.0-beta1) is marked as a pre-release.
+#     (v1.1.0-beta1) is marked as a pre-release. If a release for the tag exists already, the files are added to it instead.
 #   - Run it by hand (Actions > Release > Run workflow): the same build, without publishing. The zip is an artifact of the run, to look at.
 #
 # What is built is what build.bat builds: the same two build trees, the same install into build_final\ (cmake/install.cmake), which is zipped as
@@ -119,16 +119,23 @@ jobs:
         with:
           name: release
 
-      - name: Make the release
+      # A release made by hand (which also makes the tag) is there already: it gets the files, and keeps its title, notes and pre-release mark.
+      - name: Make the release, or add the files to it
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          flags="--generate-notes"
-          case "$TAG" in
-            *-*) flags="$flags --prerelease" ;;
-          esac
-          gh release create "$TAG" DeepScene-*-windows.zip SHA256SUMS.txt \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "DeepScene $TAG" \
-            $flags
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" DeepScene-*-windows.zip SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+          else
+            flags="--generate-notes"
+            case "$TAG" in
+              *-*) flags="$flags --prerelease" ;;
+            esac
+            gh release create "$TAG" DeepScene-*-windows.zip SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "DeepScene $TAG" \
+              $flags
+          fi

@@ -137,14 +137,14 @@ build.bat --clean            :: wipe the two build trees, build nothing</code></
 </table>
 
 <h2 id="github">A release on GitHub</h2>
-<p>A release is made on GitHub by a tag. Pushing a tag that starts with <code>v</code> (<code>v1.0.0</code>) starts the workflow <code>.github/workflows/release.yml</code>, which builds what <code>build.bat</code> builds, zips <code>build_final\</code> and puts the zip on the Releases page under the name of the tag.</p>
+<p>A release is made on GitHub by a tag. Pushing a tag that starts with <code>v</code> (<code>v1.0.0</code>) starts the workflow <code>.github/workflows/release.yml</code>, which builds what <code>build.bat</code> builds, zips <code>build_final\</code> and puts the zip on the Releases page under the name of the tag. A release which is made by hand on that page makes the tag too: the workflow then adds the zip to it, and leaves its title and notes as they are.</p>
 <figure>
 <svg viewBox="0 0 900 230" role="img" aria-label="The steps of the release workflow: a tag, then the build and the tests side by side, then the release">
   <defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>
   <rect class="box4" x="10"  y="75" width="150" height="80" rx="6"/><text x="85" y="103" text-anchor="middle">a tag</text><text class="small" x="85" y="123" text-anchor="middle">v1.0.0, pushed</text><text class="small" x="85" y="139" text-anchor="middle">to GitHub</text>
   <rect class="box"  x="240" y="25" width="300" height="80" rx="6"/><text x="390" y="53" text-anchor="middle">build</text><text class="small" x="390" y="73" text-anchor="middle">x86 and x64, Release; both installed</text><text class="small" x="390" y="89" text-anchor="middle">into build_final\ and zipped</text>
   <rect class="box2" x="240" y="125" width="300" height="80" rx="6"/><text x="390" y="153" text-anchor="middle">test</text><text class="small" x="390" y="173" text-anchor="middle">the tests of the x64 build; a failure is</text><text class="small" x="390" y="189" text-anchor="middle">shown, and does not stop the release</text>
-  <rect class="box3" x="620" y="75" width="270" height="80" rx="6"/><text x="755" y="103" text-anchor="middle">publish</text><text class="small" x="755" y="123" text-anchor="middle">the zip and its SHA-256 on the</text><text class="small" x="755" y="139" text-anchor="middle">Releases page, with notes</text>
+  <rect class="box3" x="620" y="75" width="270" height="80" rx="6"/><text x="755" y="103" text-anchor="middle">publish</text><text class="small" x="755" y="123" text-anchor="middle">the zip and its SHA-256 on the</text><text class="small" x="755" y="139" text-anchor="middle">Releases page</text>
   <path class="arrow" d="M160 100L238 70"/><path class="arrow" d="M160 130L238 160"/><path class="arrow" d="M540 65L618 100"/><path class="arrow" d="M540 165L618 130"/>
 </svg>
 <figcaption>The build and the tests run side by side; the release waits for both.</figcaption>
