@@ -23,4 +23,4 @@ MIT; see [LICENSE.txt](LICENSE.txt).
 
 ---
 
-Built by Dominik Witczak in his spare time, with help from the Sonnet AI model. Dominik steers, reviews and makes the calls.
+A spare-time project by Dominik Witczak, built with help from the Sonnet AI model.
